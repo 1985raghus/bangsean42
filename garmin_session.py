@@ -18,6 +18,8 @@ import threading
 
 from garminconnect import Garmin
 
+from token_store import delete_token, restore_token_to_disk, save_token_from_disk
+
 TOKEN_STORE_PATH = os.path.expanduser("~/.garminconnect")
 
 
@@ -34,6 +36,7 @@ class GarminSession:
         with self._lock:
             if self.status == "logged_in":
                 return True
+            restore_token_to_disk()  # no-op locally; pulls from Supabase when deployed
             client = Garmin()
             try:
                 client.login(TOKEN_STORE_PATH)
@@ -42,6 +45,7 @@ class GarminSession:
             self.client = client
             self.status = "logged_in"
             self.error = None
+            save_token_from_disk()  # keep Supabase in sync in case the token refreshed
             return True
 
     def start_login(self, email: str, password: str) -> None:
@@ -62,6 +66,7 @@ class GarminSession:
                 return
             self.client = client
             self.status = "logged_in"
+            save_token_from_disk()
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -82,10 +87,12 @@ class GarminSession:
             self.client = None
             self.status = "logged_out"
             self.error = None
-        if forget_device and os.path.exists(TOKEN_STORE_PATH):
-            import shutil
+        if forget_device:
+            delete_token()
+            if os.path.exists(TOKEN_STORE_PATH):
+                import shutil
 
-            shutil.rmtree(TOKEN_STORE_PATH, ignore_errors=True)
+                shutil.rmtree(TOKEN_STORE_PATH, ignore_errors=True)
 
     def state(self) -> dict:
         return {"status": self.status, "error": self.error}

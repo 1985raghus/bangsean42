@@ -1,2 +1,4 @@
 garminconnect[workout]
 flask
+gunicorn
+supabase

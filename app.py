@@ -1,18 +1,26 @@
 """Local web app: Garmin Connect login, live progress, and training analysis.
 
-Runs on your machine only (127.0.0.1) - it holds your Garmin session in
-memory and reads/writes garminconnect's own token cache on disk, but never
-stores your password anywhere. Start it with:
+Runs on your machine only (127.0.0.1) by default - it holds your Garmin
+session in memory and reads/writes garminconnect's own token cache on disk,
+but never stores your password anywhere. Start it with:
 
     python app.py
 
 then open http://127.0.0.1:5000
+
+Set APP_PASSWORD to enable the login gate below (required once this is
+reachable from anywhere other than localhost - see the deploy notes in
+README.md). Leave it unset for local use and nothing changes.
 """
 
+import hmac
+import os
+import secrets
 import time
 from datetime import date, datetime
 
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request
+from flask import session as flask_session
 
 from build_workouts import session_distance_km
 from garmin_session import session
@@ -47,6 +55,36 @@ from progress import (
 )
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+
+_APP_PASSWORD = os.environ.get("APP_PASSWORD")  # unset = local trusted-machine mode, gate disabled
+
+
+@app.before_request
+def _require_app_password():
+    if not _APP_PASSWORD:
+        return None  # gate disabled - unchanged local behavior
+    if request.endpoint in ("login_gate", "login_gate_post", "static"):
+        return None
+    if flask_session.get("authed"):
+        return None
+    return redirect("/gate")
+
+
+@app.get("/gate")
+def login_gate():
+    return render_template("gate.html", error=None)
+
+
+@app.post("/gate")
+def login_gate_post():
+    entered = request.form.get("password", "")
+    if _APP_PASSWORD and hmac.compare_digest(entered, _APP_PASSWORD):
+        flask_session["authed"] = True
+        flask_session.permanent = True
+        return redirect("/")
+    return render_template("gate.html", error="Wrong password")
+
 
 _CACHE_TTL_SECONDS = 300
 _HISTORY_CACHE_TTL_SECONDS = 3600  # history barely changes minute to minute
@@ -463,6 +501,7 @@ def api_history():
     return jsonify({**data, "cacheAgeSec": _cache_age("history"), "cacheTtlSec": _HISTORY_CACHE_TTL_SECONDS})
 
 
+session.try_cached_login()  # runs on import too, so gunicorn (which never hits __main__) still restores the session
+
 if __name__ == "__main__":
-    session.try_cached_login()
     app.run(host="127.0.0.1", port=5000, debug=False)
