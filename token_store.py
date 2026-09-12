@@ -16,20 +16,12 @@ import json
 import os
 from pathlib import Path
 
+from db import supabase_client, supabase_configured
+
 TOKEN_STORE_PATH = os.path.expanduser("~/.garminconnect")
 _TOKEN_FILE = Path(TOKEN_STORE_PATH) / "garmin_tokens.json"
 
-_SUPABASE_URL = os.environ.get("SUPABASE_URL")
-_SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 _ROW_ID = "default"  # single-user app - one row is enough
-
-
-def _supabase_client():
-    if not _SUPABASE_URL or not _SUPABASE_KEY:
-        return None
-    from supabase import create_client
-
-    return create_client(_SUPABASE_URL, _SUPABASE_KEY)
 
 
 def restore_token_to_disk() -> bool:
@@ -37,7 +29,7 @@ def restore_token_to_disk() -> bool:
     garminconnect expects, before it attempts login. No-op (returns False)
     if Supabase isn't configured, or nothing's been saved there yet.
     """
-    client = _supabase_client()
+    client = supabase_client()
     if not client:
         return False
     try:
@@ -57,7 +49,7 @@ def save_token_from_disk() -> bool:
     token file yet, or the write failed - persistence is never worth failing
     a login over.
     """
-    client = _supabase_client()
+    client = supabase_client()
     if not client or not _TOKEN_FILE.exists():
         return False
     try:
@@ -82,7 +74,7 @@ def sync_if_changed() -> None:
     copy current. No-op when Supabase isn't configured.
     """
     global _last_synced_mtime
-    if not _SUPABASE_URL or not _SUPABASE_KEY or not _TOKEN_FILE.exists():
+    if not supabase_configured() or not _TOKEN_FILE.exists():
         return
     mtime = _TOKEN_FILE.stat().st_mtime
     if mtime == _last_synced_mtime:
@@ -93,7 +85,7 @@ def sync_if_changed() -> None:
 
 def delete_token() -> None:
     """Mirrors GarminSession.logout(forget_device=True) - clears the Supabase copy too."""
-    client = _supabase_client()
+    client = supabase_client()
     if not client:
         return
     try:

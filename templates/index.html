@@ -246,6 +246,30 @@
   .course-marks { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .75); font-variant-numeric: tabular-nums; }
   .boot-msg { margin-top: 28px; min-height: 24px; font-size: 15px; font-weight: 600; }
   @media (prefers-reduced-motion: reduce) { .runner svg, .speed i { animation: none; } .runner, .course-line > i { transition: none; } }
+
+  /* anything still loading gets the runner too */
+  .is-loading { display: flex; align-items: center; gap: 10px; }
+  .is-loading::before { content: ""; flex: none; width: 22px; height: 22px; transform-origin: 50% 100%; animation: stride .38s ease-in-out infinite alternate;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%238fb0ff' d='M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z'/%3E%3C/svg%3E") center / contain no-repeat; }
+  @media (prefers-reduced-motion: reduce) { .is-loading::before { animation: none; } }
+
+  /* header actions + settings sheet */
+  .top-actions { display: flex; gap: 8px; flex: none; }
+  dialog.sheet { width: 100%; max-width: 100%; margin: auto 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); border: 0; border-radius: 22px 22px 0 0; background: var(--surface); color: var(--ink); box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, .7); }
+  dialog.sheet::backdrop { background: rgba(4, 7, 16, .6); }
+  dialog.sheet .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  dialog.sheet .close { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+  dialog.sheet .stack { display: grid; gap: 10px; margin: 16px 0 12px; }
+  dialog.sheet .btn { width: 100%; }
+  @media (min-width: 600px) { dialog.sheet { margin: auto; max-width: 400px; border-radius: 22px; } }
+
+  /* post-run feel */
+  .feel { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+  .feel button { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 58px; padding: 6px 2px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+  .feel button b { font-family: var(--display); font-weight: 400; font-size: 20px; line-height: 1.1; color: var(--ink); }
+  .feel button span { font-size: 11px; font-weight: 700; }
+  .feel button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+  .feel button[aria-pressed="true"] b { color: #fff; }
 </style>
 </head>
 <body>
@@ -295,9 +319,14 @@
           <div class="eyebrow" id="hdr-eyebrow">&nbsp;</div>
           <h1 id="hdr-title">Bangsaen Marathon</h1>
         </div>
+        <div class="top-actions">
+        <button class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
         <button class="icon-btn" id="refresh-btn" aria-label="Refresh data" title="Refresh data">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
         </button>
+        </div>
       </div>
       <div id="t-ready" class="band-loading">Checking readiness&hellip;</div>
       <div id="synced" class="synced"></div>
@@ -338,7 +367,7 @@
     <nav class="jump" aria-label="Jump to a section">
       <button data-to="p-outlook">Outlook</button><button data-to="sec-paces">Paces</button><button data-to="p-flags-wrap">Flags</button><button data-to="sec-load">Load</button><button data-to="sec-race">Race plan</button><button data-to="sec-lessons">Lessons</button><button data-to="sec-plan">Plan</button>
     </nav>
-    <div class="block" id="p-outlook"><div class="loading">Loading&hellip;</div></div>
+    <div class="block" id="p-outlook"><div class="loading is-loading">Loading&hellip;</div></div>
     <div class="block" id="sec-paces">
       <h2>Are you running the right paces?</h2>
       <p class="lede">Each run plotted by how far it strayed from its own target zone. Above the line means harder than planned &mdash; the habit behind both earlier races.</p>
@@ -355,12 +384,12 @@
     <div class="block" id="sec-race">
       <h2>Race plan</h2>
       <p class="lede">Pacing, fueling and race-week eating for the goal you pick.</p>
-      <div id="p-race"><div class="loading">Loading&hellip;</div></div>
+      <div id="p-race"><div class="loading is-loading">Loading&hellip;</div></div>
     </div>
     <div class="block" id="sec-lessons">
       <h2>Lessons from 2024 and 2025</h2>
       <p class="lede">Both earlier races started too fast and faded. This is the shape to avoid.</p>
-      <div class="card"><div id="p-history-chart"><div class="loading">Loading&hellip;</div></div></div>
+      <div class="card"><div id="p-history-chart"><div class="loading is-loading">Loading&hellip;</div></div></div>
       <div id="p-cycles" style="margin-top:12px;"></div>
     </div>
     <div class="block" id="sec-plan">
@@ -378,13 +407,13 @@
     <div class="block">
       <h2>Sleep</h2>
       <p class="lede">From the watch. Short nights are the most common reason readiness drops.</p>
-      <div class="stats s4" id="b-sleep-stats" style="margin-bottom:16px;"><div class="loading">Loading&hellip;</div></div>
+      <div class="stats s4" id="b-sleep-stats" style="margin-bottom:16px;"><div class="loading is-loading">Loading&hellip;</div></div>
       <div class="card"><div id="b-sleep-chart"></div></div>
     </div>
     <div class="block">
       <h2>Weight</h2>
       <div class="card">
-        <div id="b-weight"><div class="loading">Loading&hellip;</div></div>
+        <div id="b-weight"><div class="loading is-loading">Loading&hellip;</div></div>
         <div class="sep"></div>
         <form id="weight-form" class="form-grid" style="align-items:end;">
           <div><label class="f" for="weight-input">Log weight (kg)</label><input id="weight-input" type="number" step="0.1" inputmode="decimal" placeholder="64.5" required></div>
@@ -413,13 +442,6 @@
         <div id="sweat-result"></div>
       </form>
     </div>
-    <div class="block">
-      <h2>Settings</h2>
-      <div class="btn-row" style="margin-top:10px;">
-        <button class="btn secondary" id="signout-btn">Sign out of Garmin</button>
-        <form method="post" action="/gate/logout" id="lock-form" hidden><button class="btn secondary" type="submit">Lock app</button></form>
-      </div>
-    </div>
   </section>
 
   <!-- GEAR: race shoes, training shoes, race-day kit -->
@@ -427,7 +449,7 @@
     <div class="block">
       <h2>Race shoes</h2>
       <p class="lede">Broken in by race day, but nowhere near worn out.</p>
-      <div id="g-race"><div class="loading">Loading&hellip;</div></div>
+      <div id="g-race"><div class="loading is-loading">Loading&hellip;</div></div>
     </div>
     <div class="block">
       <h2>Training shoes</h2>
@@ -442,6 +464,16 @@
   </section>
   </div>
 </div>
+
+<dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
+  <div class="sheet-head"><h2 id="settings-title">Settings</h2><button class="close" id="settings-close" aria-label="Close settings">&times;</button></div>
+  <p class="small muted" id="settings-synced" style="margin:4px 0 0;"></p>
+  <div class="stack">
+    <form method="post" action="/gate/logout" id="lock-form" hidden><button class="btn secondary" type="submit">Lock app</button></form>
+    <button class="btn secondary" id="signout-btn">Sign out of Garmin</button>
+  </div>
+  <p class="small muted" style="margin:0;"><span id="lock-help"><b>Lock app</b> asks for the app password again on this device. </span><b>Sign out of Garmin</b> disconnects the app from your Garmin account for everyone until you sign in again.</p>
+</dialog>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -514,7 +546,7 @@ function devChip(dev) {
 
 /* ---------- boot screen: the runner advances one step per real data request, not on a timer ---------- */
 const BOOT_LINES = ['Lacing up…', 'Syncing with Garmin…', 'Reading last night’s sleep…', 'Checking your resting heart rate…', 'Plotting today’s pace…', 'Mixing the gels…', 'Walking to the start line…'];
-const boot = { done: 0, total: 8, on: true };
+const boot = { done: 0, total: 9, on: true };
 boot.timer = setInterval(() => { const m = $('boot-msg'); if (m) m.textContent = BOOT_LINES[(BOOT_LINES.indexOf(m.textContent) + 1) % BOOT_LINES.length]; }, 1400);
 function bootStep() {
   if (!boot.on) return;
@@ -528,7 +560,11 @@ const bootTrack = (p) => p.then((v) => { bootStep(); return v; }, (e) => { bootS
 function bootEnd() {
   if (!boot.on) return;
   boot.on = false; clearInterval(boot.timer);
-  const el = $('boot'); el.classList.add('done'); setTimeout(() => el.remove(), 450);
+  // Let the runner cross the line before the curtain lifts.
+  $('boot-fill').style.width = '100%'; $('boot-runner').style.left = '100%';
+  $('boot-km').textContent = '42.2 km'; $('boot-msg').textContent = 'Finish!';
+  const el = $('boot');
+  setTimeout(() => { el.classList.add('done'); setTimeout(() => el.remove(), 450); }, 550);
 }
 
 function toast(msg) {
@@ -787,13 +823,25 @@ function coachCue(s) {
   if (!prev) return `First ${group === 'quality' ? 'quality session' : KIND[s.kind].toLowerCase()} of its kind &mdash; start at the slow end, ${esc(main.paceSlow)}, and let it settle.`;
   const dev = effortDev(prev);
   const what = group === 'quality' ? (prev.wholeActivityPaceLabel ? 'reps averaged' : 'averaged') : 'averaged';
+  // How it *felt* is the other half of the story: fast-but-easy is fitness, fast-and-hard is the old blow-up pattern.
+  const rpe = feelFor(prev), planHi = (PLANNED_RPE[prev.kind] || [3, 5])[1];
+  const feltHard = rpe != null && rpe > planHi + 1, feltFine = rpe != null && rpe <= planHi;
+  const felt = rpe != null ? ` It felt ${rpe}/10` : '';
+  let cue;
   if (dev > 0) {
-    return group === 'quality'
+    cue = group === 'quality'
       ? `Your last session&rsquo;s ${what} <b>${esc(prev.actualPaceLabel)}</b> &mdash; ${Math.round(dev)} s/km faster than planned. Start each rep at <b>${esc(main.paceSlow)}</b> and hold it, even when it feels easy.`
       : `Your last ${esc(KIND[prev.kind].toLowerCase())} ${what} <b>${esc(prev.actualPaceLabel)}</b> &mdash; ${Math.round(dev)} s/km too fast. Keep this one conversational: the easy-days-too-hard habit is what cost you in 2024 and 2025.`;
+    if (feltFine) cue += `${felt}, so the fitness is there &mdash; bank it by staying on target.`;
+    else if (feltHard) cue += `${felt} too: fast <em>and</em> hard is exactly how both races unravelled.`;
+  } else if (dev < 0) {
+    cue = `Your last one ran ${Math.round(-dev)} s/km slower than planned. Fine in the heat &mdash; don&rsquo;t chase the pace, chase the effort.`;
+  } else {
+    cue = `Your last ${group === 'quality' ? 'quality session' : esc(KIND[prev.kind].toLowerCase())} landed in its zone.`;
+    cue += feltHard ? `${felt} though &mdash; harder than it should. Check sleep and fuel, and keep today honest.` : ' Same again.';
   }
-  if (dev < 0) return `Your last one ran ${Math.round(-dev)} s/km slower than planned. Fine in the heat &mdash; don&rsquo;t chase the pace, chase the effort.`;
-  return `Your last ${group === 'quality' ? 'quality session' : esc(KIND[prev.kind].toLowerCase())} landed in its zone. Same again.`;
+  if (rpe == null) cue += ' <span class="muted">Rate each run after you finish &mdash; the coach uses it here.</span>';
+  return cue;
 }
 
 function renderSession() {
@@ -875,6 +923,33 @@ function flagHtml(i, withAction = true, withDetail = true) {
   </div></div>`;
 }
 
+/* ---------- post-run feel (session RPE, 1-10) ---------- */
+const FEEL = [[2, 'Very easy'], [4, 'Easy'], [6, 'Moderate'], [8, 'Hard'], [10, 'All-out']];
+const PLANNED_RPE = { recovery: [2, 3], easy: [3, 4], long: [4, 5], mp: [5, 6], tempo: [7, 8] };
+const feelFor = (row) => (row && row.activityId ? S.feels?.[String(row.activityId)]?.rpe : undefined);
+function feelVerdict(kind, rpe) {
+  const [lo, hi] = PLANNED_RPE[kind] || [3, 5];
+  if (rpe > hi + 1) return `Harder than this run was meant to feel (${lo}–${hi}). If that keeps happening, it’s fatigue or pace — ease off before it costs you.`;
+  if (rpe < lo - 1) return `Easier than planned (${lo}–${hi}). A good sign — just not permission to speed up.`;
+  return `Right where this run should feel (${lo}–${hi}).`;
+}
+function feelPicker(row) {
+  const rpe = feelFor(row), [lo, hi] = PLANNED_RPE[row.kind] || [3, 5];
+  return `<div class="sep"></div><div class="when">How did it feel?</div>
+    <div class="feel" role="group" aria-label="How hard the run felt, 1 to 10">${FEEL.map(([v, l]) => `<button type="button" data-rpe="${v}" aria-pressed="${rpe === v}"><b>${v}</b><span>${l}</span></button>`).join('')}</div>
+    <p class="small muted" id="feel-note" style="margin:8px 0 0;">${rpe != null ? esc(feelVerdict(row.kind, rpe)) : `This one was meant to feel ${lo}–${hi} out of 10. One tap &mdash; the coach uses it next time.`}</p>`;
+}
+async function saveFeel(row, runDate, rpe) {
+  try {
+    await postJSON('/api/feel', { activityId: row.activityId, date: runDate, rpe });
+    S.feels = { ...(S.feels || {}), [String(row.activityId)]: { rpe, date: runDate } };
+    renderLast(); renderSession(); renderWeek(); toast(`Saved: felt ${rpe}/10`);
+  } catch (e) {
+    const note = $('feel-note');
+    note.className = 'small err'; note.textContent = `Couldn't save: ${e.message}`;
+  }
+}
+
 function renderLast() {
   const el = $('t-last');
   const done = (S.progress.rows || []).filter((r) => r.status === 'done' || r.status === 'partial');
@@ -891,8 +966,10 @@ function renderLast() {
       ${devChip(dev)}
     </div>
     <div class="meta small muted" style="margin-top:4px;">Target ${esc(s?.paceHi)}–${esc(s?.paceLo)} &middot; ${fmtKm(last.actualKm)} km${last.actualHr ? ` &middot; avg HR ${Math.round(last.actualHr)}` : ''}${last.wholeActivityPaceLabel ? ` &middot; reps only (whole run ${esc(last.wholeActivityPaceLabel)})` : ''}</div>
+    ${last.activityId ? feelPicker(last) : ''}
     ${flags.length ? `<div style="margin-top:12px;">${flags.map((i) => flagHtml(i, true, false)).join('')}</div>` : ''}
   </div>`;
+  el.querySelectorAll('[data-rpe]').forEach((b) => b.addEventListener('click', () => saveFeel(last, runDate, Number(b.dataset.rpe))));
 }
 
 function renderWeek() {
@@ -907,7 +984,7 @@ function renderWeek() {
     const s = sessionFor(r.date) || {};
     const right = r.actualKm != null ? `${fmtKm(r.actualKm)} km<br><span class="small muted">${esc(r.actualPaceLabel || '')}</span>` : `${fmtKm(r.plannedKm)} km`;
     return `<div class="row"><span class="dot ${icon[r.status]}" title="${word[r.status]}"></span>
-      <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
+      <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}${feelFor(r) != null ? ` &middot; felt ${feelFor(r)}/10` : ''}</div></div>
       <div class="r">${right}</div></div>`;
   }).join('')}</div>
   <div class="wk-meter" style="margin-top:12px;"><i style="width:${pctW}%;background:var(--brand)"></i></div>
@@ -927,12 +1004,12 @@ function renderTodayFlags() {
 
 async function loadToday(force) {
   const q = force ? '?refresh=1' : '';
-  const [plan, progress, readiness, insights, hydration, fuelToday] = await Promise.all([
+  const [plan, progress, readiness, insights, hydration, fuelToday, feel] = await Promise.all([
     bootTrack(getJSON('/api/plan')), bootTrack(getJSON('/api/progress' + q)), bootTrack(getJSON('/api/readiness' + q)).catch(() => null),
     bootTrack(getJSON('/api/insights' + q)).catch(() => ({ insights: [] })), bootTrack(getJSON('/api/hydration' + q)).catch(() => null),
-    bootTrack(getJSON('/api/fuel')).catch(() => null),
+    bootTrack(getJSON('/api/fuel')).catch(() => null), bootTrack(getJSON('/api/feel')).catch(() => ({ feels: {} })),
   ]);
-  Object.assign(S, { plan, progress, readiness, insights: insights.insights, hydration, fuelToday });
+  Object.assign(S, { plan, progress, readiness, insights: insights.insights, hydration, fuelToday, feels: feel.feels || {} });
   renderHeader(); renderReady(readiness); renderSession();
   S.fuelNext = S.focus && S.focus.date !== progress.today ? await bootTrack(getJSON(`/api/fuel?date=${S.focus.date}`)).catch(() => null) : null;
   renderFuel(); renderLast(); renderWeek(); renderTodayFlags();
@@ -940,8 +1017,8 @@ async function loadToday(force) {
 }
 
 /* ---------- PROGRESS ---------- */
-function tierMeter(pred) {
-  const W = $('p-outlook').clientWidth || 340, H = 78, m = { l: 10, r: 10 };
+function tierMeter(pred, W) {
+  const H = 78, m = { l: 10, r: 10 };
   const lo = 3.5 * 3600, hi = 5 * 3600, x = (s) => m.l + ((Math.max(lo, Math.min(hi, s)) - lo) / (hi - lo)) * (W - m.l - m.r);
   const marks = [
     { s: 4 * 3600, label: 'Stretch 4:00' }, { s: 4 * 3600 + 35 * 60, label: 'Primary 4:35' }, { s: 4 * 3600 + 45 * 60, label: 'Floor 4:45' },
@@ -964,12 +1041,14 @@ function renderOutlook() {
   el.innerHTML = `<div class="eyebrow">Race outlook &middot; Sun 15 Nov</div>
     <div class="hero num">${esc(p.avgPredictedLabel)}</div>
     <p class="lede" style="margin:0 0 4px;">Predicted finish if race-day pace matches your recent marathon-pace work. ${conf}</p>
-    <div class="card" style="margin-top:12px;padding:8px 14px 10px;">${tierMeter(p.avgPredictedSec)}</div>
+    <div class="card" style="margin-top:12px;padding:8px 14px 10px;"><div id="tier-meter"></div></div>
     <div class="stats" style="margin-top:14px;">
       <div class="stat"><div class="l">Likely range</div><div class="v num" style="font-size:17px;">${p.range?.available ? `${esc(p.range.lowLabel)}–${esc(p.range.highLabel)}` : '<span class="pending">Not yet</span>'}</div><div class="s">${p.range?.available ? 'from session-to-session spread' : 'needs 2+ sessions'}</div></div>
       <div class="stat"><div class="l">With your long-run fade</div><div class="v num" style="font-size:17px;">${ff?.available ? esc(ff.forecastFinishLabel) : '<span class="pending">Not yet</span>'}</div><div class="s">${ff?.available ? (ff.appliedFadePenaltySecPerKm > 0 ? `${ff.avgFadeSecPerKm} s/km second-half fade` : 'no fade so far') : 'needs a long run'}</div></div>
     </div>
     ${heat ? `<p class="small muted" style="margin:12px 0 0;">Heat: at ${heat.tempC}&nbsp;°C your goal times need ${heat.penaltyPct > 0 ? `+${heat.penaltyPct}%` : 'no adjustment'} &mdash; your two finishes at ${heat.personalHistory.map((h) => `${h.avgTempC}°C`).join(' and ')} already set that baseline.</p>` : ''}`;
+  const tm = $('tier-meter');
+  registerChart(tm, () => { tm.innerHTML = tierMeter(p.avgPredictedSec, tm.clientWidth || 320); });
 }
 
 function renderExecution() {
@@ -1092,7 +1171,7 @@ function renderPlan() {
         <div class="sub small">${sub}</div>
       </div></summary><div class="body"><div class="rows">
       ${rows.map((r) => { const s = sessionFor(r.date) || {}; return `<div class="row"><span class="dot ${icon[r.status]}" title="${word[r.status]}"></span>
-        <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))} &middot; ${esc(s.paceHi)}–${esc(s.paceLo)}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
+        <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))} &middot; ${esc(s.paceHi)}–${esc(s.paceLo)}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}${feelFor(r) != null ? ` &middot; felt ${feelFor(r)}/10` : ''}</div></div>
         <div class="r">${r.actualKm != null ? `${fmtKm(r.actualKm)} km<br><span class="small muted">${esc(r.actualPaceLabel || '')}</span>` : `${fmtKm(r.plannedKm)} km`}</div></div>`; }).join('')}
     </div></div></details>`;
   }).join('');
@@ -1252,26 +1331,50 @@ $('sweat-form').addEventListener('submit', async (e) => {
   } catch (err) { out.innerHTML = `<p class="err" style="margin:12px 0 0;">${esc(err.message)}</p>`; }
 });
 
-$('signout-btn').addEventListener('click', async () => { await postJSON('/api/logout', {}); location.reload(); });
+/* ---------- settings sheet ---------- */
+const settingsDlg = $('settings-dialog');
+$('settings-btn').addEventListener('click', () => { $('settings-synced').textContent = $('synced').textContent; settingsDlg.showModal(); });
+$('settings-close').addEventListener('click', () => settingsDlg.close());
+settingsDlg.addEventListener('click', (e) => {
+  // A click on the backdrop lands on the dialog element itself, outside its box.
+  const r = settingsDlg.getBoundingClientRect();
+  if (e.target === settingsDlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) settingsDlg.close();
+});
+$('signout-btn').addEventListener('click', async () => {
+  if (!confirm('Sign out of Garmin? The app stops syncing until the owner signs in again.')) return;
+  await postJSON('/api/logout', {}); location.reload();
+});
 
 /* ---------- tabs & boot ---------- */
-const loaded = {};
+const loaded = {}; // tab -> the promise of its load, so a tap mid-prefetch waits on the same request
 const loaders = { today: loadToday, progress: loadProgress, body: loadBody, gear: loadGearTab };
+function loadTab(name, force = false) {
+  if (!loaded[name] || force) {
+    const p = (async () => {
+      if (name !== 'today' && !S.progress) await loadTab('today');
+      await loaders[name](force);
+    })();
+    loaded[name] = p;
+    p.catch(() => { if (loaded[name] === p) loaded[name] = null; });
+  }
+  return loaded[name];
+}
 async function showTab(name, force = false) {
   document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
   document.querySelectorAll('section.view').forEach((s) => { s.hidden = s.id !== `view-${name}`; });
   if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
   charts.forEach((c) => c.el.offsetParent && c.draw());
-  if (!loaded[name] || force) {
-    loaded[name] = true;
-    try {
-      if (name !== 'today' && !S.progress) await loadToday(force);
-      await loaders[name](force);
-    } catch (e) {
-      loaded[name] = false;
-      if (e.message !== 'locked') $(`view-${name}`).insertAdjacentHTML('afterbegin', `<p class="err">Couldn't load from Garmin: ${esc(e.message)}</p>`);
-    }
-    bootEnd();
+  try {
+    await loadTab(name, force);
+  } catch (e) {
+    if (e.message !== 'locked') $(`view-${name}`).insertAdjacentHTML('afterbegin', `<p class="err">Couldn't load from Garmin: ${esc(e.message)}</p>`);
+  }
+  bootEnd();
+}
+// Once the first screen is up, warm the other tabs one at a time so they're ready when tapped.
+async function prefetchTabs() {
+  for (const name of ['progress', 'gear', 'body']) {
+    try { await loadTab(name); } catch { /* the tab shows the error when opened */ }
   }
 }
 document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.addEventListener('click', () => { showTab(b.dataset.tab); window.scrollTo({ top: 0 }); }));
@@ -1282,8 +1385,9 @@ document.querySelectorAll('.jump [data-to]').forEach((b) => b.addEventListener('
 $('refresh-btn').addEventListener('click', async () => {
   const btn = $('refresh-btn'); btn.classList.add('spin'); btn.disabled = true;
   const current = document.querySelector('nav.tabs [aria-selected=true]').dataset.tab;
-  Object.keys(loaded).forEach((k) => { loaded[k] = false; });
+  Object.keys(loaded).forEach((k) => { loaded[k] = null; });
   try { await showTab(current, true); } finally { btn.classList.remove('spin'); btn.disabled = false; }
+  prefetchTabs();
 });
 
 /* ---------- Garmin connection ---------- */
@@ -1317,10 +1421,10 @@ $('mfa-form').addEventListener('submit', async (e) => {
 
 function enterApp(state) {
   $('connect-view').hidden = true; $('app-view').hidden = false;
-  $('lock-form').hidden = !state.gateEnabled;
+  $('lock-form').hidden = $('lock-help').hidden = !state.gateEnabled;
   $('weight-date').valueAsDate = new Date();
   const start = ['today', 'progress', 'body', 'gear'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'today';
-  showTab(start);
+  showTab(start).then(() => setTimeout(prefetchTabs, 300));
 }
 
 (async function init() {

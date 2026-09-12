@@ -23,6 +23,7 @@ from flask import Flask, Response, jsonify, redirect, render_template, request
 from flask import session as flask_session
 
 from build_workouts import session_distance_km, session_duration_min, session_steps
+from feel_store import all_feels, friendly_error, save_feel
 from fuel import DEFAULT_WEIGHT_KG, all_day_types, day_guidance
 from garmin_session import session
 from race_plan import carb_load, fuel_plan, pacing_plan, race_morning
@@ -467,6 +468,38 @@ def _latest_weight_kg() -> tuple[float, bool]:
 
 def _session_on(on_date: str) -> dict | None:
     return next((s for s in SESSIONS if s["date"] == on_date), None)
+
+
+@app.get("/api/feel")
+def api_feel_get():
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    try:
+        return jsonify({"feels": all_feels()})
+    except Exception as exc:
+        # Degrade to "no ratings yet" so the rest of Today still renders.
+        return jsonify({"feels": {}, "error": friendly_error(exc)})
+
+
+@app.post("/api/feel")
+def api_feel_post():
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        activity_id = int(data["activityId"])
+        rpe = int(data["rpe"])
+        run_date = str(data["date"])
+        datetime.strptime(run_date, "%Y-%m-%d")
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "activityId, date (YYYY-MM-DD) and rpe are required"}), 400
+    if activity_id <= 0 or not 1 <= rpe <= 10:
+        return jsonify({"error": "rpe must be between 1 and 10"}), 400
+    try:
+        save_feel(activity_id, run_date, rpe)
+    except Exception as exc:
+        return jsonify({"error": friendly_error(exc)}), 503
+    return jsonify({"ok": True})
 
 
 @app.get("/api/fuel")

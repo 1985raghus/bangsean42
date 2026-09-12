@@ -165,15 +165,26 @@ environment variables on the host:
 |---|---|
 | `APP_PASSWORD` | Turns on the password page. Visitors only ever see this one field, never your Garmin email. |
 | `FLASK_SECRET_KEY` | Any long random string; keeps you signed in across restarts. |
-| `SUPABASE_URL`, `SUPABASE_KEY` | Where the Garmin token is kept so it survives restarts. Use the **secret** key — the server is the only thing that talks to Supabase. |
+| `SUPABASE_URL`, `SUPABASE_KEY` | Where the Garmin token and your post-run ratings are kept so they survive restarts. Use the **secret** key — the server is the only thing that talks to Supabase. |
 | `TZ` | Optional. Defaults to `Asia/Bangkok` so "today" is your day, not the server's UTC day. |
 
-Supabase needs one table (enable Row Level Security, no policies — only the
-secret key can reach it):
+Supabase needs two tables (Row Level Security on, no policies — only the
+secret key can reach them):
 
 ```sql
 create table garmin_token (id text primary key, token_json jsonb, updated_at timestamptz default now());
+
+-- post-run "how did it feel" (session RPE, 1-10), one row per Garmin activity
+create table run_feel (
+  activity_id bigint primary key,
+  run_date date not null,
+  rpe smallint not null check (rpe between 1 and 10),
+  updated_at timestamptz default now()
+);
+alter table run_feel enable row level security;
 ```
+
+Without Supabase (a local run), ratings are kept in `~/.bangsaen/run_feel.json`.
 
 Garmin rotates the refresh token every time the session refreshes, so the
 server re-saves the token to Supabase whenever the file changes. Don't run
