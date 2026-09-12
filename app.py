@@ -22,8 +22,11 @@ from datetime import date, datetime
 from flask import Flask, Response, jsonify, redirect, render_template, request
 from flask import session as flask_session
 
-from build_workouts import session_distance_km
+from build_workouts import session_distance_km, session_duration_min, session_steps
+from fuel import DEFAULT_WEIGHT_KG, all_day_types, day_guidance
 from garmin_session import session
+from race_plan import carb_load, fuel_plan, pacing_plan, race_morning
+from token_store import sync_if_changed
 from health import (
     compute_sleep_summary,
     compute_sweat_rate,
@@ -36,10 +39,10 @@ from health import (
 )
 from fitness_snapshot import fetch_fitness_snapshot
 from gear import fetch_shoes, project_to_race_day
-from heat import DEFAULT_HUMIDITY_PCT, DEFAULT_TEMP_C, heat_adjusted_goals
+from heat import DEFAULT_HUMIDITY_PCT, DEFAULT_TEMP_C, heat_adjusted_goals, heat_penalty_pct
 from history import fetch_history, fetch_race_splits, race_pacing_summary, summarize
 from insights import generate_insights
-from plan_data import FLOOR_TIME_SEC, PACES, PRIMARY_TIME_SEC, RACE, SESSIONS, STRETCH_TIME_SEC
+from plan_data import ACTIVE_PACE_SET, FLOOR_TIME_SEC, PACES, PRIMARY_TIME_SEC, RACE, SESSIONS, STRETCH_TIME_SEC
 from readiness import compute_readiness, pivot_suggestion
 from weekly_summary import generate_week_review
 from progress import (
@@ -53,6 +56,12 @@ from progress import (
     refine_quality_pace,
     rows_to_csv,
 )
+
+# Cloud hosts run on UTC, 7 hours behind the runner - before 7am Bangkok time
+# the server would think it's still yesterday and serve the wrong day's session.
+if hasattr(time, "tzset"):  # Unix only; a local Windows run already uses the machine's own clock
+    os.environ.setdefault("TZ", "Asia/Bangkok")
+    time.tzset()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
@@ -68,6 +77,20 @@ def _require_app_password():
         return None
     if flask_session.get("authed"):
         return None
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "locked"}), 401  # fetch() can't follow a redirect to an HTML page usefully
+    return redirect("/gate")
+
+
+@app.before_request
+def _sync_garmin_token():
+    if session.status == "logged_in":
+        sync_if_changed()  # no-op locally; keeps the Supabase copy current when deployed
+
+
+@app.post("/gate/logout")
+def gate_logout():
+    flask_session.clear()
     return redirect("/gate")
 
 
@@ -183,7 +206,7 @@ def index():
 
 @app.get("/api/session")
 def api_session():
-    return jsonify(session.state())
+    return jsonify({**session.state(), "gateEnabled": bool(_APP_PASSWORD)})
 
 
 @app.post("/api/login")
@@ -236,6 +259,9 @@ def api_plan():
             "paceLo": lo,
             "paceHi": hi,
             "strides": bool(s.get("note")),
+            "note": s.get("note"),
+            "steps": session_steps(s),
+            "durationMin": session_duration_min(s),
         })
     return jsonify({"race": RACE, "sessions": sessions, "plannedKpis": planned_weekly_kpis(SESSIONS)})
 
@@ -419,6 +445,77 @@ def api_gear():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 502
     return jsonify({**data, "cacheAgeSec": _cache_age("gear"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+
+
+def _latest_weight_kg() -> tuple[float, bool]:
+    """Latest logged weight, or a default - returns (kg, was_assumed)."""
+    try:
+        entries = _cached("weight", lambda: fetch_weight_entries(session.client))
+    except Exception:
+        entries = []
+    if entries:
+        return entries[-1]["weightKg"], False
+    return DEFAULT_WEIGHT_KG, True
+
+
+def _session_on(on_date: str) -> dict | None:
+    return next((s for s in SESSIONS if s["date"] == on_date), None)
+
+
+@app.get("/api/fuel")
+def api_fuel():
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    on_date = request.args.get("date") or date.today().isoformat()
+    s = _session_on(on_date)
+    kind = next((b["kind"] for b in s["blocks"] if b["role"] in ("main", "repeat")), None) if s else None
+    duration = session_duration_min(s) if s else None
+    weight, assumed = _latest_weight_kg()
+    return jsonify({
+        **day_guidance(weight, kind, duration, DEFAULT_TEMP_C),
+        "date": on_date,
+        "sessionKind": kind,
+        "durationMin": duration,
+        "weightAssumed": assumed,
+        "dayTypes": all_day_types(weight),
+    })
+
+
+_TIER_GOAL_SEC = {"floor": FLOOR_TIME_SEC, "primary": PRIMARY_TIME_SEC, "stretch": STRETCH_TIME_SEC}
+
+
+@app.get("/api/race-plan")
+def api_race_plan():
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    tier = request.args.get("tier", ACTIVE_PACE_SET)
+    if tier not in _TIER_GOAL_SEC:
+        return jsonify({"error": f"tier must be one of {sorted(_TIER_GOAL_SEC)}"}), 400
+    try:
+        temp_c = float(request.args.get("tempC", DEFAULT_TEMP_C))
+        humidity = float(request.args.get("humidity", DEFAULT_HUMIDITY_PCT))
+        sweat_arg = request.args.get("sweatRate")
+        sweat_rate = float(sweat_arg) if sweat_arg else None
+    except ValueError:
+        return jsonify({"error": "tempC, humidity and sweatRate must be numbers"}), 400
+
+    # Goal times are anchored to the runner's own proven race-morning heat
+    # (see heat.py), so this only shifts the pacing when the forecast differs.
+    penalty = heat_penalty_pct(temp_c, humidity)
+    goal_sec = _TIER_GOAL_SEC[tier] * (1 + penalty)
+    weight, assumed = _latest_weight_kg()
+    return jsonify({
+        "tier": tier,
+        "activeTier": ACTIVE_PACE_SET,
+        "tempC": temp_c,
+        "humidityPct": humidity,
+        "heatPenaltyPct": round(penalty * 100, 1),
+        "pacing": pacing_plan(goal_sec),
+        "fuel": fuel_plan(goal_sec, temp_c, sweat_rate),
+        "raceMorning": race_morning(weight),
+        "carbLoad": carb_load(weight),
+        "weightAssumed": assumed,
+    })
 
 
 @app.get("/api/fitness-snapshot")

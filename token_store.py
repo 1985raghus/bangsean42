@@ -51,19 +51,44 @@ def restore_token_to_disk() -> bool:
     return True
 
 
-def save_token_from_disk() -> None:
-    """After a successful login, pushes the current token to Supabase so it
-    survives a restart. No-op if Supabase isn't configured, or there's no
-    local token file yet.
+def save_token_from_disk() -> bool:
+    """Pushes the current token file to Supabase so it survives a restart.
+    Returns False (without raising) if Supabase isn't configured, there's no
+    token file yet, or the write failed - persistence is never worth failing
+    a login over.
     """
     client = _supabase_client()
     if not client or not _TOKEN_FILE.exists():
-        return
+        return False
     try:
         token_json = json.loads(_TOKEN_FILE.read_text())
         client.table("garmin_token").upsert({"id": _ROW_ID, "token_json": token_json}).execute()
     except Exception:
-        pass  # persistence is a nice-to-have here, not worth failing login over
+        return False
+    return True
+
+
+_last_synced_mtime: float | None = None
+
+
+def sync_if_changed() -> None:
+    """Pushes the token file to Supabase whenever it has changed since the last push.
+
+    Garmin rotates the refresh token every time garminconnect refreshes the
+    session, and garminconnect rewrites only the local file when it does. A
+    Supabase copy saved just at login therefore goes stale within hours -
+    the next restart restores a refresh token Garmin has already retired.
+    Checking the file's mtime on each request is cheap and keeps the cloud
+    copy current. No-op when Supabase isn't configured.
+    """
+    global _last_synced_mtime
+    if not _SUPABASE_URL or not _SUPABASE_KEY or not _TOKEN_FILE.exists():
+        return
+    mtime = _TOKEN_FILE.stat().st_mtime
+    if mtime == _last_synced_mtime:
+        return
+    if save_token_from_disk():
+        _last_synced_mtime = mtime
 
 
 def delete_token() -> None:

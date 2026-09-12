@@ -26,15 +26,20 @@ pace in plain text (e.g. "Target pace: Tempo 5:21-5:11/km"), since the
 pace-zone data on the steps isn't visible everywhere the workout shows up.
 
 - `plan_data.py` — the plan itself: the three pace tiers and every session (edit this to change dates/distances/paces).
-- `insights.py` — mistake-detection rules (effort mismatch, positive splits, ramp spikes, missed sessions) that generate specific suggestions, not just flags.
-- `health.py` — weight logging and trend analysis, backed by Garmin Connect's own body-composition record.
-- `build_workouts.py` — converts a session into a Garmin Connect structured workout, including interval repeat groups and the plain-text pace description.
+- `build_workouts.py` — converts a session into a Garmin Connect structured workout (interval repeat groups, plain-text pace description), and exposes its steps and estimated duration to the web app.
 - `push_to_garmin.py` — logs into Garmin Connect, creates or updates each workout, and schedules it on your calendar so it syncs to the watch.
-- `progress.py` — shared logic for comparing the plan to what actually happened (adherence + race-time prediction); used by both `track_progress.py` and `app.py`.
-- `history.py` — pulls and summarizes training history from before the plan started (prior races, VO2max trend, base volume); used by `app.py`'s "Reality check" view.
+- `progress.py` — plan vs. actual: adherence, work-interval pace for quality sessions (warmup/recovery/cooldown laps excluded), recency-weighted race prediction, fade forecast, CSV export.
+- `insights.py` — mistake-detection rules (easy runs too hard, quality too fast or slow, long-run fade, aerobic decoupling, short sleep, ramp spikes, missed sessions), each with a specific suggestion.
+- `readiness.py` — daily readiness score from sleep, resting HR and training load, plus a "swap today's quality session" suggestion when it's low.
+- `fuel.py` — daily carb/protein targets scaled to body weight, and before/during/after-run fueling by session.
+- `race_plan.py` — race-day pacing (a deliberately slower first 5 km), gel/fluid/sodium timeline, carb-load and race-morning guidance.
+- `heat.py` — heat-adjusted goal times, anchored to the temperatures of your own two prior Bangsaen finishes.
+- `health.py` — weight, sleep, hydration and sweat rate, backed by Garmin Connect's own records.
+- `history.py` — prior races (km-by-km splits), training-block comparisons, VO2max history.
+- `gear.py` / `fitness_snapshot.py` — shoe mileage from Garmin Gear; Garmin's own VO2max and training-load range.
+- `garmin_session.py` + `token_store.py` — the web app's Garmin login (background-thread MFA) and token persistence (local file, or Supabase when deployed).
 - `track_progress.py` — CLI: pulls your actual runs back from Garmin Connect and compares them against the plan.
-- `garmin_session.py` — manages the Garmin Connect login for the web app (background-thread MFA handling, token caching).
-- `app.py` + `templates/index.html` — local web app: Garmin Connect login, live progress, and training analysis in the browser.
+- `app.py` + `templates/index.html` — the web app (Flask API + a single-page, mobile-first frontend).
 
 ## Setup
 
@@ -81,9 +86,8 @@ python push_to_garmin.py --clean
 This only deletes workouts matching this plan's `W<n> ...` naming that are no
 longer in `plan_data.py` — it never touches anything else in your account.
 
-Race day (2026-11-15, Bangsaen Marathon, goal 4:15:00) is intentionally
-**not** uploaded as a workout — add it to your Garmin Connect calendar as a
-race event by hand.
+Race day (2026-11-15, Bangsaen Marathon) is intentionally **not** uploaded
+as a workout — add it to your Garmin Connect calendar as a race event by hand.
 
 ### Tracking progress & race-time prediction
 
@@ -112,9 +116,11 @@ compared against the primary (4:35:00), floor (4:45:00), and stretch
 - **Behind floor** — switch `ACTIVE_PACE_SET` to `"floor"` in `plan_data.py`
   (or ask me to) and re-push; same distances and structure, easier paces.
 
-This is a rough estimate — it uses each session's whole-activity average
-pace, which runs a little slower than true rep pace since it includes
-warmup/cooldown/recovery jogs. Read it as a trend, not a lab number.
+For tempo and MP sessions the pace used is the work-interval laps only —
+warmup, recovery jogs and cooldown are filtered out by comparing each lap
+against easy pace, which works whatever the watch's auto-lap setting does.
+The last three sessions are recency-weighted (1x/2x/3x). With only a few
+sessions it's still a direction, not a promise.
 
 ### Web app
 
@@ -124,42 +130,56 @@ For the same data in a browser instead of the terminal:
 python app.py
 ```
 
-Then open http://127.0.0.1:5000. First run shows a login screen (Garmin
-Connect email/password, with an MFA field that appears if your account
-needs it); after that it logs back in silently from the cached token at
-`~/.garminconnect` — no password prompt until that token expires or you log
-out with "forget this device."
+Then open http://127.0.0.1:5000. The first time, use **Owner sign-in**
+(Garmin email/password, plus the MFA code if your account asks for one);
+after that it reconnects silently from the cached token at
+`~/.garminconnect`. Your password is never stored — only the session token
+Garmin returns.
 
-It runs on your machine only (127.0.0.1, not exposed to the network) and
-never stores your password — only garminconnect's own session token is
-cached, the same file the CLI scripts already use.
+Three tabs, mobile-first, each answering one question:
 
-The dashboard is tabbed (it grew past a single scroll's worth of content):
+- **Today** — *Am I ready, and what do I run?* Readiness with its reason,
+  the next session with its target pace band and steps, a coaching cue from
+  your last run of the same type, today's fueling (carbs, protein,
+  before/during/after, water), your last run against its target, this week,
+  and any coach flags from the past 7 days.
+- **Progress** — *Am I on track for race day?* Predicted finish against the
+  floor/primary/stretch tiers, a pace-vs-target chart for every run,
+  easy-vs-hard heart-rate gap, all coach flags, weekly volume, the race plan
+  (pacing, fuel timeline, race-week eating, race-day conditions), the
+  2024/2025 pacing lessons, and the full 11-week plan with CSV export.
+- **Body** — sleep, weight (logs to Garmin Connect), carb targets by day
+  type, a sweat test that feeds the race-day fluid plan, and shoe mileage.
 
-- **Today** — the tiles, distance-covered progress ring, and the **Coach
-  Insights** feed (`insights.py`): live mistake-detection rules checked
-  against this account's own history - easy days run too hard, quality
-  sessions off target, a missed session, a ramp-rate spike about to happen,
-  or (the one that closes the loop) a completed long run positive-splitting
-  the same way both prior marathons did. Each insight names what happened
-  and what to actually do about it, most-severe first.
-- **Training** — race-time prediction, Coach KPIs (ramp rate, long-run
-  share, pace-zone compliance, avg HR by session type), weekly volume and
-  MP-pace-trend charts, and the full week-by-week schedule.
-- **Health** — log weight (writes to Garmin Connect's own body-composition
-  record via `health.py`, the same place a synced smart scale would land -
-  no separate database), a trend chart, and a nutrition-coach card that
-  reads the weekly rate of change against the current training load.
-- **History** — the Reality Check (prior finishes, VO2max trend, base
-  volume) and "3 Marathons, One Pattern" (km-by-km pacing charts for both
-  prior races, a 3-cycle effort-variation comparison, and a data-driven
-  coach's verdict).
+Data is pulled on demand (page load, tab switch, or the refresh button) and
+cached for 5 minutes (history for an hour) — no background polling. The app
+and the CLI share `progress.py`, so the numbers always agree.
 
-Data is pulled on demand (page load, tab switch, or the Refresh button) and
-cached for 5 minutes (history for an hour, since it barely changes) — no
-background polling. The app and the CLI share `progress.py`, so the
-numbers always agree; `track_progress.py` prints the same Coach KPIs and
-Coach Insights the app shows.
+### Deploying (e.g. Render)
+
+The repo deploys as-is: `Procfile` runs gunicorn with a **single worker** —
+required, because the Garmin session and cache live in memory. Set these
+environment variables on the host:
+
+| Variable | What it does |
+|---|---|
+| `APP_PASSWORD` | Turns on the password page. Visitors only ever see this one field, never your Garmin email. |
+| `FLASK_SECRET_KEY` | Any long random string; keeps you signed in across restarts. |
+| `SUPABASE_URL`, `SUPABASE_KEY` | Where the Garmin token is kept so it survives restarts. Use the **secret** key — the server is the only thing that talks to Supabase. |
+| `TZ` | Optional. Defaults to `Asia/Bangkok` so "today" is your day, not the server's UTC day. |
+
+Supabase needs one table (enable Row Level Security, no policies — only the
+secret key can reach it):
+
+```sql
+create table garmin_token (id text primary key, token_json jsonb, updated_at timestamptz default now());
+```
+
+Garmin rotates the refresh token every time the session refreshes, so the
+server re-saves the token to Supabase whenever the file changes. Don't run
+a second copy (e.g. locally) from the *same* saved token — the two will
+invalidate each other. A separate owner sign-in on each machine gives each
+its own independent session.
 
 ## Assumptions to check
 

@@ -127,6 +127,34 @@ def session_distance_km(session: dict) -> float:
     return sum(_block_distance_km(block) for block in session["blocks"])
 
 
+def session_duration_min(session: dict) -> int:
+    """Estimated duration at the middle of each block's target pace range."""
+    return round(sum(_block_duration_secs(block) for block in session["blocks"]) / 60)
+
+
+def session_steps(session: dict) -> list[dict]:
+    """The session's blocks as display-ready steps, with each block's own pace range."""
+    steps = []
+    for block in session["blocks"]:
+        slow, fast = PACES[block["kind"]]
+        if block["role"] == "repeat":
+            rec_slow, rec_fast = PACES[block.get("recovery_kind", "recovery")]
+            steps.append({
+                "role": "repeat",
+                "kind": block["kind"],
+                "reps": block["reps"],
+                "km": block["rep_km"],
+                "paceSlow": slow,
+                "paceFast": fast,
+                "recoveryKm": block["recovery_km"],
+                "recoveryPaceSlow": rec_slow,
+                "recoveryPaceFast": rec_fast,
+            })
+        else:
+            steps.append({"role": block["role"], "kind": block["kind"], "km": block["km"], "paceSlow": slow, "paceFast": fast})
+    return steps
+
+
 def _block_duration_secs(block: dict) -> float:
     if block["role"] == "repeat":
         return block["reps"] * (

@@ -36,11 +36,13 @@ class GarminSession:
         with self._lock:
             if self.status == "logged_in":
                 return True
-            restore_token_to_disk()  # no-op locally; pulls from Supabase when deployed
+            restored = restore_token_to_disk()  # no-op locally; pulls from Supabase when deployed
             client = Garmin()
             try:
                 client.login(TOKEN_STORE_PATH)
-            except Exception:
+            except Exception as exc:
+                source = "the saved cloud session" if restored else "the saved session"
+                self.error = f"Couldn't reconnect using {source} ({exc}). Sign in to Garmin once to refresh it."
                 return False
             self.client = client
             self.status = "logged_in"

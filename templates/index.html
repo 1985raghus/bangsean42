@@ -2,1862 +2,1115 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bangsaen Marathon &middot; Garmin Tracker</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Big+Shoulders+Display:wght@600;700;800&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bangsaen">
+<title>Bangsaen Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
-  /* Deliberately single-theme: high-energy pop-art palette, not a neutral
-     utility scheme, so it doesn't flip with the viewer's OS setting. */
   :root {
     color-scheme: light;
-    --page: #1652f0; --surface: #ffffff; --surface-2: #f2f3f7;
-    --ink: #0a0a0a; --ink-2: #2b2b2e; --muted: #62626a;
-    --line: #0a0a0a; --line-strong: #0a0a0a;
-    --accent: #ff2d2d; --warn: #a66900; --warn-bg: #ffd400;
-    --good: #00874d; --good-bg: #baffdf; --bad: #d0021b; --bad-bg: #ffc9c9;
-    --violet: #6a3df5; --yellow: #ffd400;
-    --k-easy: #1652f0; --k-tempo: #ff7a00; --k-recovery: #00874d;
-    --k-long: #6a3df5; --k-mp: #ff2d2d; --k-rest: #8a8a8a;
-    --shadow-off: 5px;
+    --brand: #1652f0; --brand-deep: #0b35b8; --brand-text: #1652f0;
+    --page: #eef1f8; --surface: #ffffff; --surface-2: #f1f3f9;
+    --ink: #0c1222; --ink-2: #4a5169; --muted: #858ba0;
+    --hair: rgba(12, 18, 34, .08); --grid: #e6e8ef; --axis: #c5c9d6; --planned: #d3d7e3;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b; --good-text: #006300;
+    --shadow: 0 1px 2px rgba(12, 18, 34, .05), 0 12px 32px -16px rgba(22, 82, 240, .28);
+    --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --display: "Anton", Impact, "Arial Narrow", sans-serif;
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --brand: #1f5cff; --brand-deep: #0a2a8f; --brand-text: #8fb0ff;
+      --page: #0b1020; --surface: #151b2e; --surface-2: #1e2540;
+      --ink: #ffffff; --ink-2: #b9c0d6; --muted: #7f88a6;
+      --hair: rgba(255, 255, 255, .08); --grid: #242c47; --axis: #333c5c; --planned: #3b4466;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --good-text: #0ca30c;
+      --shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+    }
+  }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--page); color: var(--ink); font-family: 'Figtree', system-ui, sans-serif; line-height: 1.5; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 70px; }
-  .display { font-family: 'Anton', 'Big Shoulders Display', sans-serif; font-weight: 400; letter-spacing: .01em; }
-  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-  .muted { color: var(--muted); }
-  h1 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: clamp(30px, 5vw, 44px); margin: 4px 0 0; text-transform: uppercase; color: #fff; text-shadow: 3px 3px 0 var(--ink); }
-  h2 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 21px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: .01em; }
-  .section-sub { color: var(--ink-2); font-size: 13.5px; margin: 0 0 14px; max-width: 68ch; }
-  /* these three <section>s sit directly on the blue page background, not in a white card */
-  #insights-section h2, #insights-section > p.section-sub,
-  #reality-section h2, #reality-section > p.section-sub,
-  #pattern-section h2, #pattern-section > p.section-sub { color: #fff; }
-  #insights-section > p.section-sub, #reality-section > p.section-sub, #pattern-section > p.section-sub { opacity: .9; }
-  .page-heading h2, .page-heading p { color: #fff; }
-  .page-heading p { opacity: .9; }
-  .page-heading-inline { color: #fff; margin: 0 0 10px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 var(--font); }
+  button, input { font: inherit; color: inherit; }
+  a { color: inherit; }
+  :is(button, a, input, summary, select):focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
+  .band :focus-visible { outline-color: #fff; }
 
-  .weekly-select { font-family: 'Anton', sans-serif; font-size: 14px; text-transform: uppercase; padding: 7px 14px; border: 3px solid var(--ink); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
+  .app { max-width: 720px; margin: 0 auto; padding: 20px 16px calc(96px + env(safe-area-inset-bottom)); }
 
-  .positive-card { display: flex; gap: 12px; background: var(--good-bg); border: 3px solid var(--good); border-left-width: 8px; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 4px 4px 0 var(--ink); }
-  .positive-card .p-icon { font-size: 20px; flex: none; }
-  .positive-card .p-title { font-family: 'Anton', sans-serif; font-size: 15px; color: var(--good); }
-  .positive-card .p-detail { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+  /* brand band: countdown, readiness and (on wide screens) the navigation */
+  .band { background: radial-gradient(120% 160% at 100% 0%, #4a86ff 0%, var(--brand) 42%, var(--brand-deep) 100%); color: #fff; }
+  .band-inner { max-width: 720px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top)) 16px 22px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .eyebrow { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+  .band .eyebrow { color: rgba(255, 255, 255, .82); font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+  h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; letter-spacing: .01em; text-transform: uppercase; margin: 6px 0 0; text-wrap: balance; }
+  .band h1 { font-size: 40px; }
+  .icon-btn { flex: none; width: 44px; height: 44px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .24); background: rgba(255, 255, 255, .14); display: grid; place-items: center; cursor: pointer; color: #fff; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.spin svg { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .icon-btn.spin svg { animation: none; } }
+  .band-loading { font-size: 13.5px; color: rgba(255, 255, 255, .8); margin-top: 14px; }
 
-  .lookahead-card { background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .lookahead-card .la-note { font-size: 13.5px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); border: 2px solid var(--ink); margin-bottom: 14px; }
-  .la-session { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-strong); font-size: 13.5px; }
-  .la-session:last-child { border-bottom: none; }
-  .la-session .day { font-family: 'Anton', sans-serif; font-size: 13px; width: 42px; flex: none; }
-  .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-  #login-view .eyebrow, header .eyebrow { color: #fff; opacity: .85; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding: 22px 0 18px; margin-bottom: 0; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; font-family: 'Anton', sans-serif; font-size: 13px; font-weight: 400; text-transform: uppercase; letter-spacing: .03em; padding: 6px 14px; border-radius: 100px; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); background: #fff; }
-  .pill.ok { background: var(--good-bg); color: var(--good); }
-  .pill.warn { background: var(--warn-bg); color: var(--ink); }
-  .pill.bad { background: var(--bad-bg); color: var(--bad); }
-  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-
-  /* scrolling energy ticker, under the header */
-  .ticker { background: var(--ink); color: #fff; overflow: hidden; white-space: nowrap; border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink); margin-bottom: 22px; }
-  .ticker-track { display: inline-block; padding-left: 100%; animation: ticker-scroll 48s linear infinite; font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
-  .ticker-track span { padding: 8px 28px; display: inline-block; }
-  .ticker-track span.hot { color: var(--yellow); }
-  @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-  @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; padding-left: 0; } }
-
-  section { margin-bottom: 30px; }
-  .card { background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-
-  /* login */
-  #login-view { max-width: 380px; margin: 60px auto; }
-  #login-view .card { text-align: left; }
-  #login-view label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: .03em; }
-  #login-view input { width: 100%; padding: 10px 12px; border: 3px solid var(--line-strong); border-radius: 8px; background: var(--surface-2); color: var(--ink); font-size: 14px; font-family: inherit; }
-  #login-view button, .btn { margin-top: 16px; width: 100%; padding: 11px; border: 3px solid var(--ink); border-radius: 10px; background: var(--accent); color: #fff; font-family: 'Anton', sans-serif; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; cursor: pointer; box-shadow: 4px 4px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
-  #login-view button:active, .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
-  #login-view button:disabled { opacity: .6; cursor: default; }
-  #login-error { color: var(--bad); font-size: 13px; margin-top: 10px; display: none; }
-  #login-hint { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
-
-  /* tiles */
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; background: var(--ink); border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .tile { background: var(--surface); padding: 14px 16px; }
-  .tile .value { font-size: 30px; font-family: 'Anton', sans-serif; line-height: 1; }
-  .tile .sub { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
-  @media (max-width: 700px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
-
-  .reality-banner { background: var(--bad-bg); border: 3px solid var(--bad); border-radius: 14px; padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .reality-banner .tag { display: inline-flex; align-items: center; gap: 6px; font-family: 'Anton', sans-serif; font-size: 12px; letter-spacing: .05em; color: var(--bad); margin-bottom: 8px; }
-  .reality-banner .tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
-  .reality-banner p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
-  .reality-banner b { color: var(--ink); }
-  .reality-tiles .tile .value { color: var(--bad); }
-
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  td { padding: 8px 10px; font-size: 13px; border-bottom: 1px solid var(--line); color: var(--ink-2); }
-  td.strong { color: var(--ink); }
-  tr.upcoming td { opacity: .5; }
-  .status-chip { font-size: 10.5px; font-weight: 800; text-transform: uppercase; padding: 2px 9px; border-radius: 100px; border: 2px solid var(--ink); }
-  .status-chip.done { background: var(--good-bg); color: var(--good); }
-  .status-chip.partial { background: var(--warn-bg); color: var(--ink); }
-  .status-chip.missed { background: var(--bad-bg); color: var(--bad); }
-  .status-chip.today, .status-chip.upcoming { background: var(--surface-2); color: var(--muted); border-color: var(--line-strong); }
-
-  /* progress hero */
-  .progress-hero { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .progress-ring-wrap { position: relative; width: 90px; height: 90px; flex: none; }
-  .progress-ring-wrap svg { transform: rotate(-90deg); }
-  .progress-ring-track { fill: none; stroke: var(--surface-2); stroke-width: 9; }
-  .progress-ring-fill { fill: none; stroke: var(--accent); stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset .4s; }
-  .progress-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Anton', sans-serif; font-size: 18px; }
-  .progress-stats { flex: 1; min-width: 200px; }
-  .progress-stats .big { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 32px; }
-  .progress-stats .lbl { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
-
-  /* week cards */
-  .week-card { background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .week-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; background: var(--surface-2); border-bottom: 3px solid var(--ink); flex-wrap: wrap; }
-  .week-head .left { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .week-head .wk { font-family: 'Anton', sans-serif; font-size: 22px; }
-  .week-head .dates { font-size: 12px; color: var(--muted); }
-  .phase-pill { font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 100px; border: 2px solid var(--line-strong); color: var(--ink-2); }
-  .phase-pill.peak { color: var(--k-mp); border-color: color-mix(in srgb, var(--k-mp) 45%, transparent); }
-  .phase-pill.cutback, .phase-pill.taper { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-  .phase-pill.race { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
-  .week-vol { font-size: 12.5px; color: var(--ink-2); text-align: right; }
-  .week-vol b { color: var(--ink); font-family: 'JetBrains Mono', monospace; }
-  .week-vol .actual { color: var(--accent); }
-
-  table.sessions-table { width: 100%; border-collapse: collapse; }
-  table.sessions-table td { padding: 9px 18px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; color: var(--ink-2); }
-  table.sessions-table tr:last-child td { border-bottom: none; }
-  .day-cell { width: 56px; font-weight: 700; color: var(--ink-2); font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
-  .date-cell { width: 76px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
-  .kind-chip-sm { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
-  .kind-chip-sm .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-  .title-cell { color: var(--ink); }
-  .reps-tag-sm { display: inline-block; margin-left: 6px; font-size: 10.5px; font-family: 'JetBrains Mono', monospace; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); padding: 1px 6px; border-radius: 100px; }
-  .num-cell { font-family: 'JetBrains Mono', monospace; text-align: right; white-space: nowrap; }
-  .num-cell b { color: var(--ink); }
-  .pace-cell { font-family: 'JetBrains Mono', monospace; text-align: right; white-space: nowrap; font-size: 12px; }
-  .pace-cell .planned { color: var(--muted); }
-  .pace-cell .arrow { margin: 0 4px; color: var(--muted); }
-  .pace-cell .hit { color: var(--good); }
-  .pace-cell .miss { color: var(--warn); }
-  .rest-row td { color: var(--muted); }
-  .rest-row .kind-chip-sm .dot { background: var(--k-rest); }
-
-  /* 3-marathons pattern section */
-  .cycle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 760px) { .cycle-grid { grid-template-columns: 1fr; } }
-  .cycle-card { background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .cycle-card.current { border-color: var(--bad); background: var(--bad-bg); }
-  .cycle-card .cyc-label { font-family: 'Anton', sans-serif; font-size: 22px; }
-  .cycle-card .cyc-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
-  .cycle-stat { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--line-strong); font-size: 12.5px; }
-  .cycle-stat:last-child { border-bottom: none; }
-  .cycle-stat .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--ink); }
-  .cycle-stat .v.warn { color: var(--bad); }
-
-  .race-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  @media (max-width: 820px) { .race-grid { grid-template-columns: 1fr; } }
-  .race-card { background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .race-card .race-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-  .race-card .race-title { font-family: 'Anton', sans-serif; font-size: 20px; }
-  .race-card .race-time { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
-  .race-card .fade-note { font-size: 12.5px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 2px solid; }
-  .race-card .fade-note.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
-  .race-card .fade-note.warn { background: var(--warn-bg); color: var(--ink); border-color: var(--ink); }
-
-  .verdict-card { background: var(--yellow); border: 3px solid var(--ink); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); }
-  .verdict-card .v-eyebrow { font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink); margin-bottom: 8px; }
-  .verdict-card p { font-size: 14.5px; line-height: 1.6; margin: 0 0 10px; color: var(--ink); }
-  .verdict-card p:last-child { margin-bottom: 0; }
-  .verdict-card b { color: var(--ink); }
-  .verdict-card ul { margin: 10px 0 0; padding-left: 20px; font-size: 13.5px; }
-  .verdict-card li { margin-bottom: 6px; }
-
-  /* coach insights feed */
-  .insight-card { display: flex; gap: 12px; background: var(--surface); border: 3px solid var(--ink); border-left-width: 8px; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 4px 4px 0 var(--ink); }
-  .insight-card.critical { border-left-color: var(--bad); }
-  .insight-card.warning { border-left-color: var(--warn-bg); }
-  .insight-card.info { border-left-color: var(--accent); }
-  .insight-card.good { border-left-color: var(--good); }
-  .insight-icon { font-size: 20px; flex: none; line-height: 1.3; }
-  .insight-body { flex: 1; min-width: 0; }
-  .insight-title { font-family: 'Anton', sans-serif; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .insight-title .idate { font-size: 11px; font-weight: 500; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; text-transform: none; }
-  .insight-detail { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
-  .insight-suggestion { font-size: 12.5px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 2px solid var(--line-strong); }
-  .insight-suggestion b { color: var(--accent); }
-
-  /* insight spotlight - the one thing to watch, above the full feed */
-  .spotlight-card { background: var(--surface); border: 4px solid var(--ink); border-radius: 16px; padding: 20px 22px; box-shadow: 6px 6px 0 var(--ink); margin-bottom: 18px; }
-  .spotlight-card.critical { background: var(--bad-bg); }
-  .spotlight-card.warning { background: var(--warn-bg); }
-  .spotlight-card.good { background: var(--good-bg); }
-  .spotlight-tag { font-family: 'Anton', sans-serif; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; opacity: .75; margin-bottom: 8px; }
-  .spotlight-title { font-family: 'Anton', sans-serif; font-size: 20px; margin-bottom: 8px; }
-  .spotlight-detail { font-size: 14px; line-height: 1.5; margin-bottom: 12px; }
-  .spotlight-suggestion { font-size: 13px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.55); border: 2px solid var(--ink); }
-  .spotlight-suggestion b { color: var(--accent); }
-
-  /* readiness card */
-  /* Score is a small secondary chip; the reason it's that score is the dominant text -
-     a number alone ("Red") doesn't tell a runner what to actually do about it. */
-  .readiness-card { background: var(--surface); border: 3px solid var(--ink); border-left-width: 8px; border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink); margin-bottom: 18px; }
-  .readiness-card.green { border-left-color: var(--good); }
-  .readiness-card.amber { border-left-color: var(--warn-bg); }
-  .readiness-card.red { border-left-color: var(--bad); }
-  .readiness-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-  .readiness-headline { font-family: 'Anton', sans-serif; font-size: 18px; }
-  .readiness-chip { flex: none; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; padding: 4px 11px; border-radius: 100px; border: 2px solid var(--ink); }
-  .readiness-chip.green { background: var(--good-bg); color: var(--good); }
-  .readiness-chip.amber { background: var(--warn-bg); color: var(--ink); }
-  .readiness-chip.red { background: var(--bad-bg); color: var(--bad); }
-  .readiness-why { font-size: 15px; color: var(--ink); line-height: 1.55; max-width: 68ch; }
-  .readiness-extra { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; padding-left: 18px; }
-  .readiness-extra li { margin-bottom: 3px; }
-  .readiness-pivot { margin-top: 12px; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--ink); font-size: 14px; line-height: 1.5; }
-  .readiness-pivot.critical { background: var(--bad-bg); }
-  .readiness-pivot.warning { background: var(--warn-bg); }
-  .readiness-pivot .pivot-tag { display: block; font-family: 'Anton', sans-serif; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 5px; opacity: .8; }
-
-  /* heat-adjusted pace */
-  .heat-form { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-  .heat-form label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 5px; }
-  .heat-form input { padding: 9px 11px; border: 3px solid var(--line-strong); border-radius: 8px; background: var(--surface-2); color: var(--ink); font-size: 14px; font-family: inherit; width: 110px; }
-  .heat-form .btn-ghost, .heat-form .btn { width: auto; margin-top: 0; }
-  .heat-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ink); border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
-  .heat-tiles .tile { background: var(--surface); padding: 12px 14px; }
-  .heat-tiles .tile .dry { font-size: 11.5px; color: var(--muted); text-decoration: line-through; }
-  .heat-note { font-size: 13.5px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 2px solid var(--line-strong); }
-  .range-note { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 2px solid var(--line-strong); }
-  .fade-forecast-note { font-size: 13px; color: var(--ink); line-height: 1.55; margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: var(--warn-bg); border: 2px solid var(--ink); }
-  .fade-forecast-note.flat { background: var(--good-bg); }
-  .fade-forecast-split { display: flex; gap: 16px; margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
-
-  /* tab nav */
-  .tab-nav { display: flex; gap: 10px; margin-bottom: 22px; overflow-x: auto; padding-bottom: 4px; }
-  .tab-btn { background: #fff; border: 3px solid var(--ink); border-radius: 100px; padding: 8px 18px; font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: .02em; text-transform: uppercase; color: var(--ink); cursor: pointer; white-space: nowrap; box-shadow: 3px 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
-  .tab-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
-  .tab-btn.active { background: var(--yellow); }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  /* health tab */
-  .weight-form { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
-  .weight-form label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 5px; }
-  .weight-form input { padding: 9px 11px; border: 3px solid var(--line-strong); border-radius: 8px; background: var(--surface-2); color: var(--ink); font-size: 14px; font-family: inherit; width: 160px; }
-  .weight-form .btn-ghost, .weight-form .btn { width: auto; margin-top: 0; }
-
-  /* hydration */
-  .hydro-bar-track { height: 22px; border: 3px solid var(--ink); border-radius: 100px; overflow: hidden; background: var(--surface-2); margin-bottom: 8px; }
-  .hydro-bar-fill { height: 100%; background: var(--accent); transition: width .3s; }
-  .hydro-label { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
-
-  /* gear / shoe mileage */
-  .gear-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-  .gear-tile { background: var(--surface); border: 3px solid var(--ink); border-radius: 12px; padding: 14px 16px; box-shadow: 4px 4px 0 var(--ink); }
-  .gear-tile .g-name { font-family: 'Anton', sans-serif; font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .gear-tile .g-race-tag { font-size: 10px; font-family: 'JetBrains Mono', monospace; background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 100px; }
-  .gear-tile .g-model { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
-  .gear-tile .g-km { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; }
-  .gear-tile .g-km-sub { font-size: 11.5px; color: var(--muted); }
-  .gear-tile .g-badge { display: inline-block; font-size: 11px; font-family: 'Anton', sans-serif; text-transform: uppercase; letter-spacing: .02em; padding: 3px 10px; border-radius: 100px; margin-top: 8px; }
-  .gear-tile .g-badge.good { background: var(--good-bg); color: var(--good); }
-  .gear-tile .g-badge.warn { background: var(--warn-bg); color: var(--ink); }
-  .gear-tile .g-badge.bad { background: var(--bad-bg); color: var(--bad); }
-  .gear-tile .g-note { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
-
-  /* checklist */
-  .checklist-next { font-size: 13.5px; color: var(--ink-2); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed var(--line-strong); }
-  .checklist-next b { color: var(--ink); }
-  .checklist-item { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 13.5px; }
-  .checklist-item .box { width: 18px; height: 18px; flex: none; border: 2.5px solid var(--ink); border-radius: 5px; margin-top: 1px; }
-
-  /* fitness snapshot (native Garmin training status) */
-  .fitness-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ink); border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
-  .fitness-tiles .tile { background: var(--surface); padding: 12px 14px; }
-  .status-chip.status-good { background: var(--good-bg); color: var(--good); }
-  .status-chip.status-warn { background: var(--warn-bg); color: var(--ink); }
-  .status-chip.status-bad { background: var(--bad-bg); color: var(--bad); }
-  .status-chip.status-neutral { background: var(--surface-2); color: var(--muted); }
-  .load-tunnel-wrap { margin-top: 4px; }
-  .load-tunnel-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
-  .load-tunnel-track { position: relative; height: 16px; border: 3px solid var(--ink); border-radius: 100px; background: var(--surface-2); overflow: visible; }
-  .load-tunnel-range { position: absolute; top: 0; bottom: 0; background: var(--good-bg); border-radius: 100px; }
-  .load-tunnel-marker { position: absolute; top: -4px; width: 4px; height: 24px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); }
-
-  /* sweat result */
-  .sweat-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ink); border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
-  .sweat-tiles .tile { background: var(--surface); padding: 12px 14px; }
-  .sweat-verdict { font-size: 13.5px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 2px solid var(--line-strong); }
-
-  /* meal plan */
-  .meal-day { border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
-  .meal-day .md-title { font-family: 'Anton', sans-serif; font-size: 15px; margin-bottom: 6px; }
-  .meal-day .md-row { display: flex; gap: 10px; font-size: 13px; padding: 3px 0; }
-  .meal-day .md-row .lbl { flex: none; width: 78px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 10.5px; padding-top: 2px; }
-
-  .table-scroll { overflow-x: auto; }
-  svg.chart { display: block; min-width: 560px; width: 100%; }
-  .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 8px; flex-wrap: wrap; }
-  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
-
-  .topbar-actions { display: flex; gap: 10px; align-items: center; }
-  .btn-ghost { background: #fff; border: 3px solid var(--ink); color: var(--ink); padding: 7px 14px; border-radius: 8px; font-family: 'Anton', sans-serif; font-size: 12.5px; text-transform: uppercase; letter-spacing: .02em; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
-  .btn-ghost:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
-  .btn-ghost:hover { background: var(--yellow); }
-  .freshness { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  #insights-freshness { color: #fff; opacity: .85; }
-
-  .grid-2 { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; }
-  @media (max-width: 820px) { .grid-2 { grid-template-columns: 1fr; } }
-
-  .hr-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
-  .hr-row:last-child { border-bottom: none; }
-  .hr-row .k { text-transform: capitalize; color: var(--ink-2); }
-  .hr-note { font-size: 12.5px; color: var(--warn); margin-top: 8px; }
-
-  .rec-card { border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); }
-  .rec-card .eyebrow { color: var(--accent); }
-
-  #hidden { display: none; }
-
-  /* mobile: collapse every multi-column layout to one column, keep tap targets usable */
-  @media (max-width: 640px) {
-    .wrap { padding: 0 14px 50px; }
-    header { padding: 16px 0 14px; }
-    .tiles, .heat-tiles, .fitness-tiles, .sweat-tiles, .gear-tiles, .kpi-story-strip { grid-template-columns: 1fr; }
-    .cycle-grid, .race-grid, .grid-2 { grid-template-columns: 1fr; }
-    .readiness-top { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .weight-form, .heat-form { flex-direction: column; align-items: stretch; }
-    .weight-form input, .heat-form input, .weight-form .btn, .weight-form .btn-ghost, .heat-form .btn, .heat-form .btn-ghost { width: 100%; }
-    table.sessions-table td { padding: 8px 10px; font-size: 12px; }
-    .tab-btn { padding: 8px 14px; font-size: 12.5px; }
-    h1 { font-size: 26px; }
-    .topbar-actions { width: 100%; justify-content: space-between; }
+  /* navigation: bottom bar on phones, pill switcher inside the band on wide screens */
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; background: var(--surface); box-shadow: 0 -8px 28px -14px rgba(12, 18, 34, .35); padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); }
+  nav.tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 54px; padding: 4px 0; border: 0; border-radius: 12px; background: none; color: var(--muted); font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  nav.tabs svg { width: 22px; height: 22px; padding: 3px 16px; border-radius: 999px; box-sizing: content-box; }
+  nav.tabs button[aria-selected="true"] { color: var(--brand-text); }
+  nav.tabs button[aria-selected="true"] svg { background: color-mix(in srgb, var(--brand) 16%, transparent); }
+  @media (min-width: 900px) {
+    .app { padding-bottom: 56px; }
+    nav.tabs { position: static; display: inline-flex; gap: 4px; margin: 18px 0 0; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, .14); box-shadow: none; }
+    nav.tabs button { flex: none; flex-direction: row; gap: 8px; min-height: 0; padding: 8px 18px; border-radius: 999px; font-size: 14px; color: rgba(255, 255, 255, .85); }
+    nav.tabs svg { width: 18px; height: 18px; padding: 0; }
+    nav.tabs button[aria-selected="true"] { background: #fff; color: var(--brand); }
+    nav.tabs button[aria-selected="true"] svg { background: none; }
   }
+
+  /* type & blocks */
+  .block { margin: 0 0 28px; }
+  h2 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 2px; }
+  .lede { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 62ch; }
+  .muted { color: var(--ink-2); }
+  .small { font-size: 12.5px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 12px; }
+  .sep { height: 1px; background: var(--hair); margin: 14px 0; }
+  .link { background: none; border: 0; padding: 0; color: var(--brand-text); font-weight: 700; font-size: 13.5px; cursor: pointer; }
+  .err { color: var(--crit); font-size: 13.5px; }
+  .loading { font-size: 13.5px; color: var(--muted); padding: 12px 0; }
+
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 600px) { .stats.s3 { grid-template-columns: repeat(3, 1fr); } .stats.s4 { grid-template-columns: repeat(4, 1fr); } }
+  .stat .l { font-size: 12.5px; color: var(--ink-2); }
+  .stat .v { font-family: var(--display); font-weight: 400; font-size: 30px; letter-spacing: .01em; line-height: 1.05; margin-top: 4px; }
+  .stat .v small { font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; margin-left: 3px; }
+  .stat .s { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+  .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.serious { background: var(--serious); }
+  .dot.crit { background: var(--crit); } .dot.info { background: var(--s1); } .dot.none { background: var(--axis); }
+  .dot.ring { background: none; box-shadow: inset 0 0 0 2px var(--axis); }
+  .dot.today { background: none; box-shadow: inset 0 0 0 2px var(--ink); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 14px; background: var(--brand); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; text-decoration: none; }
+  .btn.secondary { background: color-mix(in srgb, var(--brand) 10%, var(--surface)); color: var(--brand-text); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type="number"], input[type="text"], input[type="email"], input[type="password"], input[type="date"] {
+    width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 12px; background: var(--surface); font-size: 16px;
+  }
+  label.f { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+  /* readiness, shown inside the band */
+  .ready { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, .12); }
+  .ready .dot { width: 10px; height: 10px; margin-top: 6px; box-shadow: 0 0 0 2px #fff; }
+  .ready .head { font-size: 16px; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ready .chip { background: #fff; color: var(--brand); }
+  .ready .why { font-size: 14px; color: rgba(255, 255, 255, .85); margin-top: 2px; }
+
+  /* session card */
+  .when { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+  .session { background: linear-gradient(155deg, color-mix(in srgb, var(--k, var(--brand)) 20%, var(--surface)) 0%, var(--surface) 58%); }
+  .kind-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--k) 16%, var(--surface)); font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .kind-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
+  .session h3 { font-size: 21px; font-weight: 800; letter-spacing: -.01em; margin: 8px 0 0; }
+  .session .meta { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; }
+  .pace-hero { font-family: var(--display); font-weight: 400; font-size: 64px; letter-spacing: .005em; line-height: .95; margin: 14px 0 0; }
+  .pace-hero small { font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; margin-left: 6px; }
+  .pace-cap { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+  ol.steps { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid var(--hair); }
+  ol.steps li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  ol.steps .p { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13.5px; }
+  .note { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; line-height: 1.5; }
+  .note .tag { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brand-text); margin-bottom: 4px; }
+
+  /* definition rows (fuel etc.) */
+  dl.kv { display: grid; grid-template-columns: 68px 1fr; gap: 10px 12px; margin: 12px 0 0; font-size: 14px; }
+  dl.kv dt { font-size: 13px; color: var(--ink-2); font-weight: 600; padding-top: 1px; }
+  dl.kv dd { margin: 0; }
+  .meter { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 8px 0; }
+  .meter > i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), #4a86ff); border-radius: 999px; }
+
+  /* lists */
+  .rows { border-top: 1px solid var(--hair); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .row .grow { flex: 1; min-width: 0; }
+  .row .t { font-weight: 600; }
+  .row .d { font-size: 12.5px; color: var(--ink-2); }
+  .row .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13.5px; }
+  .flag { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+  .flag:first-child { border-top: 1px solid var(--hair); }
+  .flag .dot { margin-top: 7px; }
+  .flag .t { font-weight: 600; font-size: 14.5px; }
+  .flag .d { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; }
+  .flag .a { font-size: 13.5px; margin-top: 6px; }
+
+  /* accordions */
+  details.acc { border-bottom: 1px solid var(--hair); }
+  details.acc:first-of-type { border-top: 1px solid var(--hair); }
+  details.acc > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; cursor: pointer; font-weight: 600; min-height: 48px; }
+  details.acc > summary::-webkit-details-marker { display: none; }
+  details.acc > summary .sub { font-weight: 500; font-size: 13px; color: var(--ink-2); }
+  details.acc > summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin-right: 4px; transition: transform .15s; }
+  details.acc[open] > summary::after { transform: rotate(-135deg); }
+  details.acc > .body { padding: 0 0 16px; }
+
+  /* segmented control */
+  .seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--surface-2); gap: 2px; flex-wrap: wrap; }
+  .seg button { border: 0; background: none; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--ink-2); min-height: 40px; }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; }
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  table.tbl th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--ink-2); padding: 8px 8px 8px 0; border-bottom: 1px solid var(--hair); }
+  table.tbl td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+
+  /* charts */
+  .chart-wrap { position: relative; }
+  svg.chart { display: block; width: 100%; overflow: visible; }
+  svg .ax { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+  svg .ax-b { fill: var(--ink-2); font-size: 11px; font-weight: 600; font-family: var(--font); }
+  svg .gl { stroke: var(--grid); stroke-width: 1; }
+  svg .base { stroke: var(--axis); stroke-width: 1; }
+  svg .ref { stroke: var(--ink-2); stroke-width: 1.5; }
+  svg .hit { fill: transparent; cursor: default; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); margin: 0 0 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .key-rect { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .key-line { width: 14px; height: 2px; border-radius: 2px; display: inline-block; }
+  .tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: var(--page); font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 10px; white-space: nowrap; opacity: 0; transition: opacity .1s; }
+  .tip b { font-size: 14px; font-weight: 700; }
+  .tip .lk { display: inline-block; width: 10px; height: 2px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+  details.tv > summary { font-size: 12.5px; color: var(--ink-2); padding: 8px 0 0; cursor: pointer; }
+
+  /* hero figure (progress) */
+  .hero { font-family: var(--display); font-weight: 400; font-size: 72px; letter-spacing: .005em; line-height: .95; margin: 8px 0 10px; color: var(--brand-text); }
+
+  /* connect view */
+  .connect-page { min-height: 100vh; padding: calc(40px + env(safe-area-inset-top)) 16px 40px; background: radial-gradient(120% 160% at 100% 0%, #4a86ff 0%, var(--brand) 42%, var(--brand-deep) 100%); }
+  .connect { max-width: 400px; margin: 0 auto; background: var(--surface); border-radius: 20px; padding: 26px 22px; box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .45); }
+  .connect .stack { display: grid; gap: 12px; margin-top: 16px; }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div id="login-view">
-    <div class="eyebrow" style="text-align:center;margin-bottom:6px;">Bangsaen Marathon</div>
-    <h1 class="display" style="text-align:center;">Garmin Tracker</h1>
-    <div class="card">
-      <div id="login-form">
-        <label for="email">Garmin Connect email</label>
-        <input id="email" type="email" autocomplete="username">
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password">
-        <button id="login-btn" class="btn">Log in</button>
-        <div id="login-hint">Runs locally on your machine only. Your password goes straight to Garmin's login and is never stored — only the resulting session token is cached at <span class="mono">~/.garminconnect</span>, the same file the CLI scripts use.</div>
-      </div>
-      <div id="mfa-form" style="display:none;">
-        <label for="mfa">MFA code</label>
-        <input id="mfa" type="text" inputmode="numeric" autocomplete="one-time-code">
-        <button id="mfa-btn" class="btn">Submit code</button>
-      </div>
-      <div id="login-error"></div>
-    </div>
+<main id="connect-view" class="connect-page" hidden>
+  <div class="connect">
+    <div class="eyebrow">Bangsaen Marathon training</div>
+    <h1>Not connected to Garmin</h1>
+    <p class="lede" style="margin-top:8px;">This app reads its training data from its owner's Garmin account.</p>
+    <p class="err" id="connect-error" hidden></p>
+    <p class="loading" id="connect-busy" hidden>Connecting to Garmin&hellip;</p>
+    <button class="btn secondary" id="owner-btn">Owner sign-in</button>
+    <form id="login-form" class="stack" hidden>
+      <div><label class="f" for="email">Garmin email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div><label class="f" for="password">Garmin password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn" type="submit" id="login-btn">Sign in to Garmin</button>
+      <p class="small muted" style="margin:0;">Your password goes straight to Garmin and is never stored &mdash; only the session token Garmin returns is kept.</p>
+    </form>
+    <form id="mfa-form" class="stack" hidden>
+      <div><label class="f" for="mfa">Code from Garmin</label><input id="mfa" type="text" inputmode="numeric" autocomplete="one-time-code" required></div>
+      <button class="btn" type="submit">Verify</button>
+    </form>
   </div>
+</main>
 
-  <div id="app-view" style="display:none;">
-    <header>
-      <div>
-        <div class="eyebrow">Bangsaen Marathon &middot; Training Tracker</div>
-        <h1 class="display">Training Progress</h1>
-      </div>
-      <div class="topbar-actions">
-        <span id="prediction-pill" class="pill warn"><span class="dot"></span>&hellip;</span>
-        <button class="btn-ghost" id="logout-btn">Log out</button>
-      </div>
-    </header>
-
-    <div class="ticker"><div class="ticker-track" id="ticker-track"></div></div>
-
-    <nav class="tab-nav" id="tab-nav">
-      <button class="tab-btn active" data-tab="today">Control Tower</button>
-      <button class="tab-btn" data-tab="training">Training</button>
-      <button class="tab-btn" data-tab="weekly">Weekly Review</button>
-      <button class="tab-btn" data-tab="health">Health</button>
-      <button class="tab-btn" data-tab="history">History</button>
-    </nav>
-
-    <div class="tab-panel active" id="tab-today">
-      <div id="readiness-section"></div>
-
-      <div class="tiles" id="tiles"></div>
-      <div class="tiles" id="kpi-story-strip"></div>
-
-      <div class="card">
-        <h2>This Week</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Pulled in from the schedule so it isn't a separate stop.</p>
-        <div class="tiles" id="this-week-strip" style="margin-bottom:0;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Distance covered</h2>
-        <div class="progress-hero" id="distance-hero"></div>
-      </div>
-
-      <div id="insight-spotlight"></div>
-
-      <section id="insights-section">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">
-          <h2 style="margin-bottom:2px;">All coach insights</h2>
-          <span class="freshness" id="insights-freshness"></span>
+<div id="app-view" hidden>
+  <header class="band">
+    <div class="band-inner">
+      <div class="top">
+        <div>
+          <div class="eyebrow" id="hdr-eyebrow">&nbsp;</div>
+          <h1 id="hdr-title">Bangsaen Marathon</h1>
         </div>
-        <p class="section-sub">Live mistake-detection, checked against the patterns from your own history.</p>
-        <div id="insights-feed"></div>
-      </section>
+        <button class="icon-btn" id="refresh-btn" aria-label="Refresh data" title="Refresh data">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+        </button>
+      </div>
+      <div id="t-ready" class="band-loading">Checking readiness&hellip;</div>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="today" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      Today
+    </button>
+    <button role="tab" data-tab="progress" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16l4-5 3 3 5-7"/></svg>
+      Progress
+    </button>
+    <button role="tab" data-tab="body" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 5.6a5.4 5.4 0 0 0-7.7 0L12 6.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 22l8.8-8.7a5.4 5.4 0 0 0 0-7.7z"/></svg>
+      Body
+    </button>
+  </nav>
     </div>
+  </header>
 
-    <div class="tab-panel" id="tab-training">
-      <div class="card">
-        <h2>Race-time prediction</h2>
-        <div id="prediction-body" class="muted" style="font-size:13.5px;">Loading&hellip;</div>
-        <div id="prediction-range"></div>
-        <div id="fade-forecast"></div>
+  <div class="app">
+  <!-- TODAY: am I ready, what do I run, what do I eat, how did the last one go -->
+  <section class="view" id="view-today" role="tabpanel">
+    <div class="block"><div id="t-session"></div></div>
+    <div class="block"><div id="t-fuel"></div></div>
+    <div class="block" id="t-last-wrap"><h2>Last run</h2><div id="t-last"></div></div>
+    <div class="block" id="t-week-wrap"><h2 id="t-week-title">This week</h2><div id="t-week"></div></div>
+    <div class="block" id="t-flags-wrap"><h2>Coach flags</h2><div id="t-flags"></div></div>
+  </section>
+
+  <!-- PROGRESS: am I on track for race day -->
+  <section class="view" id="view-progress" role="tabpanel" hidden>
+    <div class="block" id="p-outlook"><div class="loading">Loading&hellip;</div></div>
+    <div class="block">
+      <h2>Are you running the right paces?</h2>
+      <p class="lede">Each run plotted by how far it strayed from its own target zone. Above the line means harder than planned &mdash; the habit behind both earlier races.</p>
+      <div class="stats" id="p-exec-stats" style="margin-bottom:16px;"></div>
+      <div class="card"><div id="p-pace-chart"></div></div>
+    </div>
+    <div class="block" id="p-flags-wrap"><h2>All coach flags</h2><div id="p-flags"></div></div>
+    <div class="block">
+      <h2>Is the load building safely?</h2>
+      <p class="lede">Planned versus completed distance each week.</p>
+      <div class="stats s3" id="p-vol-stats" style="margin-bottom:16px;"></div>
+      <div class="card"><div id="p-vol-chart"></div></div>
+    </div>
+    <div class="block">
+      <h2>Race plan</h2>
+      <p class="lede">Pacing, fueling and race-week eating for the goal you pick.</p>
+      <div id="p-race"><div class="loading">Loading&hellip;</div></div>
+    </div>
+    <div class="block">
+      <h2>Lessons from 2024 and 2025</h2>
+      <p class="lede">Both earlier races started too fast and faded. This is the shape to avoid.</p>
+      <div class="card"><div id="p-history-chart"><div class="loading">Loading&hellip;</div></div></div>
+      <div id="p-cycles" style="margin-top:12px;"></div>
+    </div>
+    <div class="block">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+        <h2>Full plan</h2>
+        <a class="link" href="/api/export/progress.csv">Export CSV</a>
       </div>
+      <p class="lede">All 11 weeks. The current week is open.</p>
+      <div id="p-plan"></div>
+    </div>
+  </section>
 
+  <!-- BODY: recovery, weight, eating, sweat, gear -->
+  <section class="view" id="view-body" role="tabpanel" hidden>
+    <div class="block">
+      <h2>Sleep</h2>
+      <p class="lede">From the watch. Short nights are the most common reason readiness drops.</p>
+      <div class="stats s4" id="b-sleep-stats" style="margin-bottom:16px;"><div class="loading">Loading&hellip;</div></div>
+      <div class="card"><div id="b-sleep-chart"></div></div>
+    </div>
+    <div class="block">
+      <h2>Weight</h2>
       <div class="card">
-        <h2>Heat-adjusted goal pace</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Anchored to your own prior Bangsaen finishes, not a generic lab curve &mdash; only shows a penalty when conditions are hotter than what you've already raced.</p>
-        <div class="heat-form">
-          <div><label for="heat-temp">Temp &deg;C</label><input type="number" id="heat-temp" step="0.5" /></div>
-          <div><label for="heat-humidity">Humidity %</label><input type="number" id="heat-humidity" step="1" /></div>
-          <button class="btn-ghost" id="heat-recalc-btn">Recalculate</button>
-        </div>
-        <div id="heat-body">Loading&hellip;</div>
-      </div>
-
-      <div class="card">
-        <h2>Gear &mdash; shoe mileage</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Straight from Garmin Connect's own Gear tracking, projected forward to race day.</p>
-        <div id="gear-body">Loading&hellip;</div>
-      </div>
-
-      <div class="card">
-        <h2>Session Mix &amp; Effort</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Ramp rate and pace compliance are on the Control Tower tab &mdash; this is what's specific to how volume and effort break down.</p>
-        <div class="tiles" id="kpi-tiles" style="margin-bottom:0;"></div>
-        <div id="hr-breakdown" style="margin-top:14px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Fitness snapshot</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Garmin's own Training Status algorithm &mdash; not something this app computes.</p>
-        <div id="fitness-snapshot-body">Loading&hellip;</div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <h2 style="margin:0;">Weekly volume — planned vs. actual</h2>
-          <div class="freshness"><span id="freshness-label">—</span><button class="btn-ghost" id="refresh-btn">Refresh</button></div>
-        </div>
-        <div class="legend" style="margin-top:10px;">
-          <span><span class="sw" style="background:var(--line-strong)"></span>Planned</span>
-          <span><span class="sw" style="background:var(--accent)"></span>Actual</span>
-        </div>
-        <div class="table-scroll"><svg class="chart" id="volume-chart" viewBox="0 0 900 260"></svg></div>
-      </div>
-
-      <div class="card">
-        <h2>Marathon-pace effort trend</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Each point is a completed MP session's predicted finish time, against the primary/floor/stretch lines.</p>
-        <div class="table-scroll"><svg class="chart" id="pace-chart" viewBox="0 0 900 220"></svg></div>
-      </div>
-
-      <div class="page-heading">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">
-          <h2 style="margin-bottom:2px;">Full schedule</h2>
-          <a href="/api/export/progress.csv" class="btn-ghost" style="width:auto;margin-top:0;text-decoration:none;display:inline-block;">Export CSV</a>
-        </div>
-        <p style="font-size:13px;margin:0 0 12px;">Planned vs. actual pace and distance, week by week &mdash; the export is a permanent record independent of the Garmin API.</p>
-        <div id="weeks-container"></div>
+        <div id="b-weight"><div class="loading">Loading&hellip;</div></div>
+        <div class="sep"></div>
+        <form id="weight-form" class="form-grid" style="align-items:end;">
+          <div><label class="f" for="weight-input">Log weight (kg)</label><input id="weight-input" type="number" step="0.1" inputmode="decimal" placeholder="64.5" required></div>
+          <div><label class="f" for="weight-date">Date</label><input id="weight-date" type="date"></div>
+          <button class="btn" type="submit" style="grid-column:1/-1;">Log weight</button>
+        </form>
+        <p class="small" id="weight-msg" style="margin:8px 0 0;"></p>
       </div>
     </div>
-
-    <div class="tab-panel" id="tab-weekly">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-          <h2 style="margin:0;">Week in review</h2>
-          <select id="weekly-select" class="weekly-select"></select>
+    <div class="block">
+      <h2>Eating by day</h2>
+      <p class="lede" id="b-eat-lede">Daily targets scaled to your weight.</p>
+      <div id="b-eat"></div>
+    </div>
+    <div class="block">
+      <h2>Sweat test</h2>
+      <p class="lede">Weigh yourself just before and after a long run to find your real fluid needs. The result feeds the race-day fluid plan on this device.</p>
+      <form id="sweat-form" class="card">
+        <div class="form-grid">
+          <div><label class="f" for="sweat-pre">Before (kg)</label><input id="sweat-pre" type="number" step="0.1" inputmode="decimal" required></div>
+          <div><label class="f" for="sweat-post">After (kg)</label><input id="sweat-post" type="number" step="0.1" inputmode="decimal" required></div>
+          <div><label class="f" for="sweat-fluid">Drank during (ml)</label><input id="sweat-fluid" type="number" step="50" inputmode="numeric" value="0"></div>
+          <div><label class="f" for="sweat-min">Duration (min)</label><input id="sweat-min" type="number" step="1" inputmode="numeric" required></div>
         </div>
-        <div id="weekly-stats" class="tiles" style="margin-top:14px;margin-bottom:0;"></div>
-      </div>
-
-      <div>
-        <h2 class="page-heading-inline">What went well</h2>
-        <div id="weekly-positives"></div>
-      </div>
-
-      <div>
-        <h2 class="page-heading-inline">Looking ahead</h2>
-        <div id="weekly-lookahead"></div>
+        <button class="btn" type="submit" style="margin-top:12px;width:100%;">Calculate</button>
+        <div id="sweat-result"></div>
+      </form>
+    </div>
+    <div class="block">
+      <h2>Shoes</h2>
+      <div id="b-shoes"><div class="loading">Loading&hellip;</div></div>
+    </div>
+    <div class="block">
+      <h2>Settings</h2>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn secondary" id="signout-btn">Sign out of Garmin</button>
+        <form method="post" action="/gate/logout" id="lock-form" hidden><button class="btn secondary" type="submit">Lock app</button></form>
       </div>
     </div>
-
-    <div class="tab-panel" id="tab-health">
-      <div class="card">
-        <h2>Log weight</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Writes straight to your Garmin Connect body-composition record — same place a smart scale would sync to.</p>
-        <div class="weight-form">
-          <div>
-            <label for="weight-input">Weight (kg)</label>
-            <input id="weight-input" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 64.0">
-          </div>
-          <div>
-            <label for="weight-date">Date</label>
-            <input id="weight-date" type="date">
-          </div>
-          <button class="btn" id="weight-log-btn" style="margin-top:0;width:auto;padding:9px 20px;">Log</button>
-        </div>
-        <div id="weight-msg" style="font-size:12.5px;margin-top:8px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Weight trend</h2>
-        <div id="weight-stats" class="tiles" style="margin-bottom:12px;"></div>
-        <div class="table-scroll"><svg class="chart" id="weight-chart" viewBox="0 0 900 220"></svg></div>
-      </div>
-
-      <div class="card rec-card">
-        <h2>Nutrition coach</h2>
-        <div id="nutrition-body" class="muted" style="font-size:13.5px;">Log at least two weigh-ins to see a trend.</div>
-      </div>
-
-      <div class="card">
-        <h2>Sleep</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Read straight from the watch — nothing to log here.</p>
-        <div id="sleep-stats" class="tiles" style="margin-bottom:12px;"></div>
-        <div class="legend">
-          <span><span class="sw" style="background:var(--violet)"></span>Hours slept</span>
-          <span><span class="sw" style="background:var(--k-mp)"></span>&lt;6h night</span>
-        </div>
-        <div class="table-scroll"><svg class="chart" id="sleep-chart" viewBox="0 0 900 220"></svg></div>
-      </div>
-
-      <div class="card rec-card">
-        <h2>Recovery coach</h2>
-        <div id="recovery-body" class="muted" style="font-size:13.5px;">Loading&hellip;</div>
-      </div>
-
-      <div class="card">
-        <h2>Pre-run checklist</h2>
-        <div id="checklist-body">Loading&hellip;</div>
-      </div>
-
-      <div class="card">
-        <h2>Hydration today</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Same running total as the Garmin Connect app's water widget.</p>
-        <div id="hydration-body"></div>
-        <div class="weight-form" style="margin-top:12px;">
-          <button class="btn-ghost" data-add-ml="250">+250ml</button>
-          <button class="btn-ghost" data-add-ml="500">+500ml</button>
-          <button class="btn-ghost" data-add-ml="750">+750ml</button>
-        </div>
-        <div id="hydration-msg" style="font-size:12.5px;margin-top:8px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Sweat rate calculator</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Weigh yourself right before and right after a run (same scale, minimal clothing) to find your real sweat rate.</p>
-        <div class="weight-form">
-          <div><label for="sweat-pre">Pre-run (kg)</label><input id="sweat-pre" type="number" step="0.1" placeholder="65.0"></div>
-          <div><label for="sweat-post">Post-run (kg)</label><input id="sweat-post" type="number" step="0.1" placeholder="64.2"></div>
-          <div><label for="sweat-fluid">Fluid drunk during (ml)</label><input id="sweat-fluid" type="number" step="50" placeholder="400"></div>
-          <div><label for="sweat-duration">Duration (min)</label><input id="sweat-duration" type="number" step="1" placeholder="60"></div>
-          <button class="btn" id="sweat-calc-btn" style="margin-top:0;width:auto;padding:9px 20px;">Calculate</button>
-        </div>
-        <div id="sweat-result" style="margin-top:14px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Meal plan &mdash; chicken &amp; vegetarian</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">Built around your two protein sources, keyed to what kind of session is on that day.</p>
-        <div id="meal-plan-body"></div>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="tab-history">
-      <section id="reality-section" style="display:none;">
-        <h2>Reality check: your Garmin history</h2>
-        <p class="section-sub">Pulled live from this account — two prior finishes at this race, current fitness, and the base you're actually starting from.</p>
-        <div class="reality-banner" id="reality-banner"></div>
-        <div class="tiles reality-tiles" id="reality-tiles"></div>
-        <div class="grid-2">
-          <div class="card">
-            <div class="legend">
-              <span><span class="sw" style="background:var(--line-strong)"></span>Actual (16 wks before plan)</span>
-              <span><span class="sw" style="background:var(--accent)"></span>Planned (this block)</span>
-            </div>
-            <div class="table-scroll"><svg class="chart" id="history-chart" viewBox="0 0 1000 240"></svg></div>
-          </div>
-          <div class="card">
-            <div class="legend"><span><span class="sw" style="background:var(--bad)"></span>VO2max estimate</span></div>
-            <div class="table-scroll"><svg class="chart" id="vo2-chart" viewBox="0 0 560 240"></svg></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pattern-section" style="display:none;">
-        <h2>3 marathons, one pattern</h2>
-        <p class="section-sub">Same training gap, three years running. Here's the data on what actually happened each time, and what's different about breaking it this time.</p>
-
-        <div class="cycle-grid" id="cycle-grid"></div>
-
-        <div class="race-grid" id="race-grid"></div>
-
-        <div class="verdict-card" id="verdict-card"></div>
-      </section>
-    </div>
+  </section>
   </div>
-
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+const RACE_DATE = '2026-11-15';
+const PHASE = { W1: 'Build', W2: 'Build', W3: 'Build', W4: 'Cutback', W5: 'Build', W6: 'Build', W7: 'Build', W8: 'Peak', W9: 'Taper', W10: 'Taper', W11: 'Race week' };
+const KIND = { easy: 'Easy run', recovery: 'Recovery run', long: 'Long run', tempo: 'Tempo', mp: 'Marathon pace' };
+const GROUP = { easy: 'easy', recovery: 'easy', long: 'long', tempo: 'quality', mp: 'quality' };
+const GROUP_META = {
+  easy: { label: 'Easy', color: 'var(--s1)', shape: 'circle' },
+  quality: { label: 'Tempo / MP', color: 'var(--s2)', shape: 'diamond' },
+  long: { label: 'Long', color: 'var(--s3)', shape: 'square' },
+};
+const SEV = { critical: 'crit', warning: 'warn', info: 'info', good: 'good' };
+const SEV_LABEL = { critical: 'Critical', warning: 'Watch', info: 'Note', good: 'All clear' };
+const S = {}; // loaded responses
+
+/* ---------- helpers ---------- */
 async function getJSON(url, opts) {
   const res = await fetch(url, opts);
   const body = await res.json().catch(() => ({}));
+  if (res.status === 401 && body.error === 'locked') { location.href = '/gate'; throw new Error('locked'); }
   if (!res.ok) throw new Error(body.error || res.statusText);
   return body;
 }
-
-let pollTimer = null;
-
-function showLogin(state) {
-  $('login-view').style.display = 'block';
-  $('app-view').style.display = 'none';
-  const inMfa = state.status === 'awaiting_mfa';
-  $('login-form').style.display = inMfa ? 'none' : 'block';
-  $('mfa-form').style.display = inMfa ? 'block' : 'none';
-  $('login-btn').disabled = state.status === 'logging_in';
-  $('login-btn').textContent = state.status === 'logging_in' ? 'Logging in…' : 'Log in';
-  if (state.error) {
-    $('login-error').textContent = state.error;
-    $('login-error').style.display = 'block';
-  }
+const postJSON = (url, data) => getJSON(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) });
+const toSec = (p) => { const [m, s] = String(p).split(':').map(Number); return m * 60 + s; };
+const fmtPace = (sec) => { if (sec == null || !isFinite(sec)) return '–'; const r = Math.round(sec); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
+const fmtHMS = (sec) => { const r = Math.round(sec); const h = Math.floor(r / 3600), m = Math.floor((r % 3600) / 60), s = r % 60; return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; };
+const fmtKm = (n) => (n == null ? '–' : (Math.round(n * 10) / 10).toString());
+const fmtDur = (min) => (min == null ? '' : min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`);
+const d8 = (iso) => new Date(iso + 'T00:00:00');
+const fmtDate = (iso) => d8(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtShort = (iso) => d8(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const addDays = (iso, n) => { const d = d8(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const dayDiff = (a, b) => Math.round((d8(b) - d8(a)) / 86400000);
+function whenLabel(iso, todayIso) {
+  const n = dayDiff(todayIso, iso);
+  if (n === 0) return 'Today';
+  if (n === 1) return 'Tomorrow';
+  return fmtDate(iso);
+}
+function sessionFor(date) { return (S.plan?.sessions || []).find((s) => s.date === date); }
+function rowFor(date) { return (S.progress?.rows || []).find((r) => r.date === date); }
+function curWeek() {
+  const rows = S.progress?.rows || [];
+  const due = rows.filter((r) => r.status !== 'upcoming');
+  return due.length ? due[due.length - 1].week : rows[0]?.week;
+}
+// Effort vs the session's own zone: positive = faster/harder than planned, negative = slower, 0 = inside.
+function effortDev(row) {
+  const s = sessionFor(row.date);
+  if (!s || row.actualPace == null) return null;
+  const slow = toSec(s.paceLo), fast = toSec(s.paceHi);
+  if (row.actualPace < fast) return fast - row.actualPace;
+  if (row.actualPace > slow) return -(row.actualPace - slow);
+  return 0;
+}
+function devChip(dev) {
+  if (dev == null) return '';
+  if (dev === 0) return `<span class="chip"><span class="dot good"></span>In zone</span>`;
+  const s = Math.round(Math.abs(dev));
+  return dev > 0
+    ? `<span class="chip"><span class="dot warn"></span>${s} s/km too fast</span>`
+    : `<span class="chip"><span class="dot none"></span>${s} s/km slow</span>`;
 }
 
-async function pollUntilResolved() {
-  const state = await getJSON('/api/session');
-  if (state.status === 'logged_in') {
-    clearInterval(pollTimer);
-    pollTimer = null;
-    await enterApp();
-    return;
-  }
-  if (state.status === 'error') {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-  showLogin(state);
+/* ---------- chart kit (SVG drawn at the container's real width, so text stays legible on phones) ---------- */
+const charts = []; // {el, draw}
+function registerChart(el, draw) {
+  const i = charts.findIndex((c) => c.el === el);
+  if (i >= 0) charts.splice(i, 1);
+  charts.push({ el, draw });
+  draw();
 }
+let resizeT;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => charts.forEach((c) => c.el.offsetParent && c.draw()), 150); });
 
-$('login-btn').addEventListener('click', async () => {
-  $('login-error').style.display = 'none';
-  await getJSON('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: $('email').value, password: $('password').value }),
-  });
-  if (!pollTimer) pollTimer = setInterval(pollUntilResolved, 1200);
-});
-
-$('mfa-btn').addEventListener('click', async () => {
-  await getJSON('/api/mfa', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: $('mfa').value }),
-  });
-  if (!pollTimer) pollTimer = setInterval(pollUntilResolved, 1200);
-});
-
-$('logout-btn').addEventListener('click', async () => {
-  await getJSON('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-  location.reload();
-});
-
-$('refresh-btn').addEventListener('click', () => enterApp(true));
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    $('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'health' && !window.__weightLoaded) loadWeightTab();
-    if (btn.dataset.tab === 'weekly' && !window.__weeklyLoaded) { window.__weeklyLoaded = true; loadWeeklyReview(); }
-  });
-});
-
-$('weight-date').valueAsDate = new Date();
-
-$('weight-log-btn').addEventListener('click', async () => {
-  const weight = parseFloat($('weight-input').value);
-  const dateStr = $('weight-date').value;
-  const msg = $('weight-msg');
-  if (!weight || weight <= 0) { msg.textContent = 'Enter a weight first.'; msg.style.color = 'var(--bad)'; return; }
-  msg.textContent = 'Logging…'; msg.style.color = 'var(--muted)';
-  try {
-    await getJSON('/api/weight', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weight, date: dateStr }),
-    });
-    msg.textContent = `Logged ${weight}kg for ${dateStr}.`; msg.style.color = 'var(--good)';
-    $('weight-input').value = '';
-    await loadWeightTab(true);
-  } catch (e) {
-    msg.textContent = 'Failed: ' + e.message; msg.style.color = 'var(--bad)';
-  }
-});
-
-function renderWeightChart(entries) {
-  const svg = $('weight-chart');
-  if (!entries.length) {
-    svg.innerHTML = `<text x="450" y="110" text-anchor="middle" fill="var(--muted)" font-size="13">No weigh-ins logged yet</text>`;
-    return;
-  }
-  const W = 900, H = 220, padL = 44, padR = 16, padT = 16, padB = 30;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const weights = entries.map(e => e.weightKg);
-  const minV = Math.min(...weights) - 1, maxV = Math.max(...weights) + 1;
-  const x = i => padL + (entries.length === 1 ? plotW / 2 : (plotW * i) / (entries.length - 1));
-  const y = v => padT + plotH - ((v - minV) / (maxV - minV)) * plotH;
-  let parts = [];
-  [minV, (minV + maxV) / 2, maxV].forEach(v => {
-    const yy = y(v);
-    parts.push(`<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`);
-    parts.push(`<text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${v.toFixed(1)}</text>`);
-  });
-  const pts = entries.map((e, i) => `${x(i)},${y(e.weightKg)}`).join(' ');
-  parts.push(`<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>`);
-  entries.forEach((e, i) => parts.push(`<circle cx="${x(i)}" cy="${y(e.weightKg)}" r="3.5" fill="var(--accent)"><title>${e.date}: ${e.weightKg}kg</title></circle>`));
-  parts.push(`<text x="${padL}" y="${H - 8}" font-size="10" fill="var(--ink-2)">${entries[0].date}</text>`);
-  parts.push(`<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="10" fill="var(--ink-2)">${entries[entries.length - 1].date}</text>`);
-  svg.innerHTML = parts.join('');
+function niceStep(range, target = 4) {
+  const raw = range / target, mag = 10 ** Math.floor(Math.log10(raw)), n = raw / mag;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
 }
-
-function renderWeightStats(data) {
-  const t = data.trend || {};
-  $('weight-stats').innerHTML = `
-    <div class="tile"><div class="eyebrow">Latest</div><div class="value mono">${t.latestKg != null ? t.latestKg + 'kg' : '—'}</div><div class="sub">${t.latestDate || '—'}</div></div>
-    <div class="tile"><div class="eyebrow">Change / week</div><div class="value mono">${t.perWeekKg != null ? (t.perWeekKg > 0 ? '+' : '') + t.perWeekKg + 'kg' : '—'}</div><div class="sub">over ${t.spanDays || 0} days logged</div></div>
-    <div class="tile"><div class="eyebrow">Entries</div><div class="value mono">${(data.entries || []).length}</div><div class="sub">logged weigh-ins</div></div>
-  `;
+function barPath(x, yTop, w, yBase, r = 4) {
+  const h = yBase - yTop; if (h <= 0) return '';
+  r = Math.min(r, h, w / 2);
+  return `M${x},${yBase}V${yTop + r}Q${x},${yTop} ${x + r},${yTop}H${x + w - r}Q${x + w},${yTop} ${x + w},${yTop + r}V${yBase}Z`;
 }
-
-function renderNutritionCoach(data) {
-  const t = data.trend || {};
-  const el = $('nutrition-body');
-  if (t.perWeekKg == null) {
-    el.textContent = (t.spanDays || 0) > 0
-      ? `Only ${t.spanDays} day(s) between weigh-ins so far — a weekly trend needs at least a week of logging to rise above normal day-to-day water-weight swings.`
-      : 'Log at least two weigh-ins, a week or so apart, to see a trend and get nutrition guidance.';
-    return;
-  }
-  const rate = t.perWeekKg;
-  let msg;
-  if (rate <= -0.6) {
-    msg = `Losing <b>${Math.abs(rate).toFixed(1)}kg/week</b> — faster than the ~0.5kg/week upper bound generally considered safe during marathon training. Combined with the ambitious volume/pace you're on, this is a real under-fueling risk: increase daily carbs, and don't skip the post-long-run refuel window (30-60 min after).`;
-  } else if (rate <= -0.2) {
-    msg = `Losing <b>${Math.abs(rate).toFixed(1)}kg/week</b> — mild, plausible as training volume ramps up. Keep an eye on it; if it accelerates, add carbs before it becomes a deficit that costs you recovery.`;
-  } else if (rate >= 0.3) {
-    msg = `Gaining <b>${rate.toFixed(1)}kg/week</b>. Not necessarily a problem this early in a build, but worth checking whether it's fueling around long runs specifically, or general intake creeping up.`;
-  } else {
-    msg = `Weight is essentially stable (<b>${rate >= 0 ? '+' : ''}${rate.toFixed(1)}kg/week</b>) while volume increases — a reasonable sign intake is roughly matching the added training load.`;
-  }
-  el.innerHTML = `<p style="margin:0 0 10px;">${msg}</p><p style="margin:0;font-size:12.5px;">This reads your logged weight against calendar time only — it doesn't know body composition (fat vs. muscle), so use it as a directional signal, not a verdict.</p>`;
+function shape(kind, cx, cy, color, r = 5) {
+  const st = `style="fill:${color};stroke:var(--surface);stroke-width:2"`;
+  if (kind === 'square') return `<rect x="${cx - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}" rx="1.5" ${st}/>`;
+  if (kind === 'diamond') { const q = r * 1.3; return `<path d="M${cx},${cy - q}L${cx + q},${cy}L${cx},${cy + q}L${cx - q},${cy}Z" ${st}/>`; }
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" ${st}/>`;
 }
-
-function renderSleepStats(summary) {
-  $('sleep-stats').innerHTML = `
-    <div class="tile"><div class="eyebrow">Avg / night</div><div class="value mono">${summary.avgHours != null ? summary.avgHours + 'h' : '—'}</div><div class="sub">last ${summary.nightsLogged || 0} nights logged</div></div>
-    <div class="tile"><div class="eyebrow">Last night</div><div class="value mono">${summary.latestHours != null ? summary.latestHours + 'h' : '—'}</div><div class="sub">${summary.latestDate || '—'}</div></div>
-    <div class="tile"><div class="eyebrow">Avg resting HR</div><div class="value mono">${summary.avgRestingHr != null ? summary.avgRestingHr : '—'}</div><div class="sub">bpm</div></div>
-    <div class="tile"><div class="eyebrow">Short nights</div><div class="value mono ${summary.shortNights > 2 ? '' : ''}" style="${summary.shortNights > 2 ? 'color:var(--bad)' : ''}">${summary.shortNights ?? 0}</div><div class="sub">under 6h, of ${summary.nightsLogged || 0}</div></div>
-  `;
-}
-
-function renderSleepChart(entries) {
-  const svg = $('sleep-chart');
-  if (!entries.length) {
-    svg.innerHTML = `<text x="450" y="110" text-anchor="middle" fill="var(--muted)" font-size="13">No sleep data synced yet</text>`;
-    return;
-  }
-  const W = 900, H = 220, padL = 34, padR = 16, padT = 16, padB = 30;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxV = Math.max(9, ...entries.map(e => e.hours));
-  const barW = Math.min(28, plotW / entries.length * 0.6);
-  const x = i => padL + (plotW * (i + 0.5)) / entries.length;
-  const y = v => padT + plotH - (v / maxV) * plotH;
-  let parts = [];
-  [0, 6, 8].forEach(v => {
-    const yy = y(v);
-    parts.push(`<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="${v === 6 ? 'var(--k-mp)' : 'var(--line-strong)'}" stroke-width="1" stroke-dasharray="${v === 6 ? '4 3' : 'none'}"/>`);
-    parts.push(`<text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}h</text>`);
-  });
-  entries.forEach((e, i) => {
-    const cx = x(i), yy = y(e.hours), color = e.hours < 6 ? 'var(--k-mp)' : 'var(--violet)';
-    parts.push(`<rect x="${cx - barW / 2}" y="${yy}" width="${barW}" height="${padT + plotH - yy}" fill="${color}" rx="2"><title>${e.date}: ${e.hours}h, RHR ${e.restingHr || '—'}bpm</title></rect>`);
-  });
-  parts.push(`<text x="${padL}" y="${H - 8}" font-size="10" fill="var(--ink-2)">${entries[0].date}</text>`);
-  parts.push(`<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="10" fill="var(--ink-2)">${entries[entries.length - 1].date}</text>`);
-  svg.innerHTML = parts.join('');
-}
-
-function renderRecoveryCoach(summary) {
-  const el = $('recovery-body');
-  if (!summary.nightsLogged) {
-    el.textContent = 'No sleep data synced from the watch yet.';
-    return;
-  }
-  const rate = summary.shortNights / summary.nightsLogged;
-  let msg;
-  if (rate >= 0.35) {
-    msg = `<b>${summary.shortNights} of the last ${summary.nightsLogged} nights</b> were under 6 hours. Given the ambitious pace/volume on this plan, sleep debt is a real limiter here — it directly degrades the effort-control the Coach Insights feed keeps flagging (easy days run too hard). This is worth fixing before anything else on this page.`;
-  } else if (rate > 0) {
-    msg = `${summary.shortNights} short night(s) out of ${summary.nightsLogged} logged — occasional, not yet a pattern. Worth checking whether they line up with the days flagged in Coach Insights.`;
-  } else {
-    msg = `Sleep has been consistently 6h+ across the last ${summary.nightsLogged} logged nights. Good recovery foundation for the volume this plan asks for.`;
-  }
-  el.innerHTML = `<p style="margin:0;">${msg}</p>`;
-}
-
-function estimateMinutes(planSession) {
-  const [loM, loS] = planSession.paceLo.split(':').map(Number);
-  const [hiM, hiS] = planSession.paceHi.split(':').map(Number);
-  const avgSecPerKm = ((loM * 60 + loS) + (hiM * 60 + hiS)) / 2;
-  return Math.round((planSession.km * avgSecPerKm) / 60);
-}
-
-function renderChecklist(plan, progress) {
-  const sessionsByDate = {};
-  plan.sessions.forEach(s => { sessionsByDate[s.date] = s; });
-  const next = progress.rows.find(r => r.status === 'today' || r.status === 'upcoming');
-  const el = $('checklist-body');
-  if (!next) { el.innerHTML = '<p class="muted">No upcoming session found.</p>'; return; }
-
-  const planS = sessionsByDate[next.date] || {};
-  const mins = estimateMinutes(planS);
-  const needsGel = mins >= 75;
-  const borderline = mins >= 60 && mins < 75;
-  const isLong = next.kind === 'long';
-  const isQuality = next.kind === 'tempo' || next.kind === 'mp';
-
-  const items = [
-    'Shoes, watch charged, GPS locked before you start moving',
-    `Route/treadmill picked for ~${mins} min`,
-  ];
-  if (needsGel) {
-    const gelCount = Math.max(1, Math.round(mins / 42));
-    items.push(`Bring ${gelCount} gel(s) - first one ~40min in, then every 40-45min`);
-    items.push('Electrolyte tab or drink, not just water - especially in heat/humidity');
-  } else if (borderline) {
-    items.push('Water is enough; optional gel only if practicing race-day fueling');
-  } else {
-    items.push('Water only - no fueling needed for this one');
-  }
-  if (isLong) {
-    items.push('Light carb snack beforehand if fasted (banana, toast)');
-    items.push('Plan the post-run refuel (carbs + protein) within 30-60min of finishing');
-  }
-  if (isQuality) {
-    items.push('Eat something with carbs 1.5-2h before if possible - don\'t go into intervals empty');
-  }
-  if (planS.strides) {
-    items.push('Finish with strides - 4-6 x 20s relaxed, full recovery between');
-  }
-
-  $('checklist-body').innerHTML = `
-    <div class="checklist-next">Next up: <b>${next.label}</b> &middot; ${planS.day || ''} ${fmtDate(next.date)} &middot; ~${mins} min</div>
-    ${items.map(t => `<div class="checklist-item"><span class="box"></span><span>${t}</span></div>`).join('')}
-  `;
-}
-
-function renderHydration(data) {
-  const pct = data.goalMl ? Math.min(100, Math.round(100 * data.valueMl / data.goalMl)) : 0;
-  $('hydration-body').innerHTML = `
-    <div class="hydro-label"><span>${Math.round(data.valueMl)}ml</span><span class="muted">goal ${data.goalMl ? Math.round(data.goalMl) + 'ml' : '—'}</span></div>
-    <div class="hydro-bar-track"><div class="hydro-bar-fill" style="width:${pct}%;"></div></div>
-  `;
-}
-
-async function loadHydration(force) {
-  try {
-    const data = await getJSON('/api/hydration' + (force ? '?refresh=1' : ''));
-    renderHydration(data);
-  } catch (e) {
-    $('hydration-body').textContent = "Couldn't load hydration: " + e.message;
-  }
-}
-
-document.querySelectorAll('[data-add-ml]').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const ml = Number(btn.dataset.addMl);
-    const msg = $('hydration-msg');
-    msg.textContent = 'Logging…'; msg.style.color = 'var(--muted)';
-    try {
-      await getJSON('/api/hydration', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ml }),
-      });
-      msg.textContent = `+${ml}ml logged.`; msg.style.color = 'var(--good)';
-      await loadHydration(true);
-    } catch (e) {
-      msg.textContent = 'Failed: ' + e.message; msg.style.color = 'var(--bad)';
-    }
-  });
-});
-
-$('sweat-calc-btn').addEventListener('click', async () => {
-  const preKg = parseFloat($('sweat-pre').value);
-  const postKg = parseFloat($('sweat-post').value);
-  const fluidMl = parseFloat($('sweat-fluid').value) || 0;
-  const durationMin = parseFloat($('sweat-duration').value);
-  const resultEl = $('sweat-result');
-  if (!preKg || !postKg || !durationMin) {
-    resultEl.innerHTML = '<p style="color:var(--bad);font-size:13px;">Pre-run weight, post-run weight, and duration are required.</p>';
-    return;
-  }
-  resultEl.textContent = 'Calculating…';
-  try {
-    const r = await getJSON('/api/sweat-rate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preKg, postKg, fluidMl, durationMin }),
-    });
-    resultEl.innerHTML = `
-      <div class="sweat-tiles">
-        <div class="tile"><div class="eyebrow">Sweat rate</div><div class="value mono">${r.sweatRateLPerHr}<small>L/hr</small></div></div>
-        <div class="tile"><div class="eyebrow">Total loss</div><div class="value mono">${r.sweatLossL}<small>L</small></div></div>
-        <div class="tile"><div class="eyebrow">Sodium lost (est.)</div><div class="value mono">${r.sodiumLossMg}<small>mg</small></div></div>
-      </div>
-      <div class="sweat-verdict"><b style="text-transform:capitalize;">${r.tier} sweater.</b> ${r.guidance}</div>
-    `;
-  } catch (e) {
-    resultEl.innerHTML = `<p style="color:var(--bad);font-size:13px;">${e.message}</p>`;
-  }
-});
-
-function renderMealPlan() {
-  const days = [
-    {
-      title: 'Easy / rest day',
-      breakfast: 'Oats with banana, peanut butter, milk',
-      lunch: 'Grilled chicken, rice, mixed vegetables',
-      dinner: 'Chickpea & vegetable curry with rice, or chicken stir-fry',
-      snack: 'Greek yogurt + fruit',
-    },
-    {
-      title: 'Quality day (tempo/MP)',
-      breakfast: 'Toast + honey + banana, coffee (1.5-2h before the session)',
-      lunch: 'Chicken & rice bowl with vegetables - carb-forward',
-      dinner: 'Paneer or tofu stir-fry with noodles/rice + extra carb side',
-      snack: 'Post-session: chocolate milk or a carb+protein shake within 30-60min',
-    },
-    {
-      title: 'Long-run day',
-      breakfast: 'Light, high-carb, low-fibre if early: toast + honey, or rice porridge',
-      lunch: 'Post-run refuel: chicken, rice, vegetables - bigger portion, don\'t skimp on carbs',
-      dinner: 'Lentil dal with rice, or chicken curry with extra rice - replace the day\'s deficit',
-      snack: 'Electrolyte drink through the day, not just during the run',
-    },
-    {
-      title: 'Day before a long run / race',
-      breakfast: 'Normal, carb-leaning',
-      lunch: 'Pasta or rice with chicken or paneer, light on fibre/fat',
-      dinner: 'Simple, familiar carbs (rice/pasta/potatoes) + lean chicken or tofu - nothing new or spicy',
-      snack: 'Avoid excess fibre/legumes (bloating risk) and alcohol',
-    },
-  ];
-  $('meal-plan-body').innerHTML = days.map(d => `
-    <div class="meal-day">
-      <div class="md-title">${d.title}</div>
-      <div class="md-row"><span class="lbl">Breakfast</span><span>${d.breakfast}</span></div>
-      <div class="md-row"><span class="lbl">Lunch</span><span>${d.lunch}</span></div>
-      <div class="md-row"><span class="lbl">Dinner</span><span>${d.dinner}</span></div>
-      <div class="md-row"><span class="lbl">Note</span><span>${d.snack}</span></div>
-    </div>
-  `).join('') + '<p class="muted" style="font-size:12px;margin-top:4px;">Built around chicken + vegetarian ingredients only (no red meat/pork/fish assumed) - swap specific dishes for whatever\'s available, keep the carb-timing logic.</p>';
-}
-
-function renderWeeklyStats(data) {
-  const pct = data.sessionsDue ? Math.round(100 * data.sessionsCompleted / data.sessionsDue) : 0;
-  $('weekly-stats').innerHTML = `
-    <div class="tile"><div class="eyebrow">Sessions</div><div class="value mono">${data.sessionsCompleted}/${data.sessionsDue}</div><div class="sub">${pct}% of this week done</div></div>
-    <div class="tile"><div class="eyebrow">Distance</div><div class="value mono">${data.totalActualKm}<small>/${data.totalPlannedKm}km</small></div><div class="sub">actual vs. planned</div></div>
-    <div class="tile"><div class="eyebrow">Pace compliance</div><div class="value mono">${data.paceCompliancePct != null ? data.paceCompliancePct + '%' : '—'}</div><div class="sub">in target zone</div></div>
-    <div class="tile"><div class="eyebrow">Dates</div><div class="value" style="font-size:16px;">${data.dateRange ? fmtDate(data.dateRange.start) + '–' + fmtDate(data.dateRange.end) : '—'}</div></div>
-  `;
-}
-
-function renderPositives(positives) {
-  $('weekly-positives').innerHTML = (positives || []).map(p => `
-    <div class="positive-card">
-      <span class="p-icon">🌟</span>
-      <div>
-        <div class="p-title">${p.title}</div>
-        <div class="p-detail">${p.detail}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderLookahead(lookAhead) {
-  if (!lookAhead || !lookAhead.week) {
-    $('weekly-lookahead').innerHTML = `<div class="lookahead-card">${(lookAhead && lookAhead.note) || 'No further weeks in the plan.'}</div>`;
-    return;
-  }
-  const rows = lookAhead.sessions.map(s => `
-    <div class="la-session">
-      <span class="day">${s.day}</span>
-      <span class="kind-chip-sm" style="color:var(--k-${s.kind})"><span class="dot" style="background:var(--k-${s.kind})"></span>${KIND_LABEL[s.kind] || s.kind}</span>
-      <span style="flex:1;">${s.label}</span>
-      <span class="mono">${s.plannedKm}K</span>
-    </div>
-  `).join('');
-  $('weekly-lookahead').innerHTML = `
-    <div class="lookahead-card">
-      <div class="la-note">${lookAhead.note}</div>
-      ${rows}
-    </div>
-  `;
-}
-
-async function loadWeeklyReview(week, force) {
-  try {
-    const q = new URLSearchParams();
-    if (week) q.set('week', week);
-    if (force) q.set('refresh', '1');
-    const data = await getJSON('/api/weekly-summary' + (q.toString() ? '?' + q.toString() : ''));
-
-    const select = $('weekly-select');
-    if (!select.options.length) {
-      select.innerHTML = data.availableWeeks.map(w => `<option value="${w}">${w}</option>`).join('');
-    }
-    select.value = data.week;
-
-    renderWeeklyStats(data);
-    renderPositives(data.positives);
-    renderLookahead(data.lookAhead);
-  } catch (e) {
-    $('weekly-positives').innerHTML = `<p style="color:#fff;">Couldn't load weekly review: ${e.message}</p>`;
-  }
-}
-
-$('weekly-select').addEventListener('change', (e) => loadWeeklyReview(e.target.value, false));
-
-const GEAR_BADGE_META = {
-  sweet_spot: { cls: 'good', label: 'Sweet spot' },
-  still_breaking_in: { cls: 'warn', label: 'Breaking in' },
-  past_sweet_spot: { cls: 'warn', label: 'Past sweet spot' },
-  over_retirement: { cls: 'bad', label: 'Retire soon' },
-  training_shoe_ok: { cls: 'good', label: 'Training shoe · OK' },
-  nearing_retirement: { cls: 'warn', label: 'Nearing retirement' },
-};
-
-function renderGear(data) {
-  const el = $('gear-body');
-  const shoes = data.shoes || [];
-  if (!shoes.length) { el.innerHTML = '<p class="muted" style="font-size:13px;">No shoes registered in Garmin Connect\'s Gear yet.</p>'; return; }
-  el.innerHTML = `<div class="gear-tiles">${shoes.map(s => {
-    const proj = s.raceProjection || {};
-    const isRaceShoe = proj.isRaceShoe;
-    const badge = GEAR_BADGE_META[proj.verdict];
-    return `<div class="gear-tile">
-      <div class="g-name">${s.name}${isRaceShoe ? '<span class="g-race-tag">RACE DAY</span>' : ''}</div>
-      <div class="g-model">${s.model || ''}</div>
-      <div class="g-km">${s.totalKm}km</div>
-      <div class="g-km-sub">${s.totalActivities} activities logged</div>
-      ${badge ? `<div class="g-badge ${badge.cls}">${badge.label}</div>` : ''}
-      ${proj.available ? `<div class="g-note">${proj.note}</div>` : ''}
-    </div>`;
-  }).join('')}</div>`;
-}
-
-const TRAINING_STATUS_CHIP = {
-  Productive: 'status-good', Peaking: 'status-good', Maintaining: 'status-good', Recovery: 'status-good',
-  Detraining: 'status-warn', Unproductive: 'status-warn',
-  Overreaching: 'status-bad', Strained: 'status-bad',
-};
-const LOAD_VERDICT_NOTE = {
-  in_range: 'Inside Garmin’s personalized range for your recent training history.',
-  below_range: 'Below Garmin’s personalized range — recent volume has eased off.',
-  above_range: 'Above Garmin’s personalized range — real overreach risk per Garmin’s own algorithm.',
-};
-
-function renderFitnessSnapshot(data) {
-  const el = $('fitness-snapshot-body');
-  if (!data || !data.available) { el.innerHTML = '<p class="muted" style="font-size:13px;">Not enough Training Status history from Garmin yet.</p>'; return; }
-
-  const statusCls = TRAINING_STATUS_CHIP[data.trainingStatusLabel] || 'status-neutral';
-  const statusHtml = data.trainingStatusLabel
-    ? `<span class="status-chip ${statusCls}">${data.trainingStatusLabel}</span>`
-    : '<span class="muted">&mdash;</span>';
-
-  let tunnelHtml = '';
-  if (data.weeklyTrainingLoad != null && data.loadTunnelMin != null && data.loadTunnelMax != null) {
-    const span = data.loadTunnelMax - data.loadTunnelMin;
-    const axisMin = Math.min(data.loadTunnelMin, data.weeklyTrainingLoad) - span * 0.15;
-    const axisMax = Math.max(data.loadTunnelMax, data.weeklyTrainingLoad) + span * 0.15;
-    const pct = v => Math.max(0, Math.min(100, 100 * (v - axisMin) / (axisMax - axisMin)));
-    const rangeLo = pct(data.loadTunnelMin), rangeHi = pct(data.loadTunnelMax), markerPos = pct(data.weeklyTrainingLoad);
-    tunnelHtml = `
-      <div class="load-tunnel-wrap">
-        <div class="load-tunnel-label"><span>Weekly training load</span><span>${data.weeklyTrainingLoad} (range ${data.loadTunnelMin}&ndash;${data.loadTunnelMax})</span></div>
-        <div class="load-tunnel-track">
-          <div class="load-tunnel-range" style="left:${rangeLo}%;width:${rangeHi - rangeLo}%;"></div>
-          <div class="load-tunnel-marker" style="left:${markerPos}%;"></div>
-        </div>
-      </div>
-      <div class="muted" style="font-size:12px;margin-top:6px;">${LOAD_VERDICT_NOTE[data.loadVerdict] || ''}</div>
-    `;
-  }
-
-  el.innerHTML = `
-    <div class="fitness-tiles">
-      <div class="tile"><div class="eyebrow">VO2max</div><div class="value mono">${data.vo2Max != null ? data.vo2Max : '—'}</div><div class="sub">${data.vo2MaxDate ? fmtDate(data.vo2MaxDate) : ''}</div></div>
-      <div class="tile"><div class="eyebrow">Fitness age</div><div class="value mono">${data.fitnessAge != null ? data.fitnessAge : '—'}</div><div class="sub">Garmin's estimate</div></div>
-      <div class="tile"><div class="eyebrow">Training status</div><div class="value" style="font-size:15px;">${statusHtml}</div><div class="sub">last 7 days &middot; best-effort label<sup title="Garmin doesn't publish this code's meaning. Cross-check against the Garmin Connect app if this looks wrong.">*</sup></div></div>
-    </div>
-    ${tunnelHtml}
-  `;
-}
-
-async function loadFitnessSnapshot(force) {
-  try {
-    const data = await getJSON('/api/fitness-snapshot' + (force ? '?refresh=1' : ''));
-    renderFitnessSnapshot(data);
-  } catch (e) {
-    $('fitness-snapshot-body').innerHTML = `<p class="muted" style="font-size:13px;">Couldn't load fitness snapshot: ${e.message}</p>`;
-  }
-}
-
-async function loadGear(force) {
-  try {
-    const data = await getJSON('/api/gear' + (force ? '?refresh=1' : ''));
-    renderGear(data);
-    window.__gear = data;
-    if (window.__plan && window.__progress && window.__analysis) {
-      renderTodayKpiStrip(window.__plan, window.__progress, window.__analysis, data);
-    }
-  } catch (e) {
-    $('gear-body').innerHTML = `<p class="muted" style="font-size:13px;">Couldn't load gear data: ${e.message}</p>`;
-  }
-}
-
-async function loadWeightTab(force) {
-  window.__weightLoaded = true;
-  try {
-    const data = await getJSON('/api/weight' + (force ? '?refresh=1' : ''));
-    renderWeightStats(data);
-    renderWeightChart(data.entries || []);
-    renderNutritionCoach(data);
-  } catch (e) {
-    $('nutrition-body').textContent = "Couldn't load weight data: " + e.message;
-  }
-
-  try {
-    const sleep = await getJSON('/api/sleep' + (force ? '?refresh=1' : ''));
-    renderSleepStats(sleep.summary || {});
-    renderSleepChart(sleep.entries || []);
-    renderRecoveryCoach(sleep.summary || {});
-  } catch (e) {
-    $('recovery-body').textContent = "Couldn't load sleep data: " + e.message;
-  }
-
-  if (window.__plan && window.__progress) {
-    try { renderChecklist(window.__plan, window.__progress); }
-    catch (e) { $('checklist-body').textContent = "Couldn't build checklist: " + e.message; }
-  } else {
-    $('checklist-body').textContent = 'Load the Today tab first so the checklist knows what session is next.';
-  }
-
-  await loadHydration(force);
-  renderMealPlan();
-}
-
-const KIND_LABEL = { easy: 'Easy', tempo: 'Tempo', recovery: 'Recovery', long: 'Long', mp: 'MP' };
-const STATUS_LABEL = { done: 'Done', partial: 'Partial', missed: 'Missed', today: 'Today', upcoming: 'Upcoming' };
-const VERDICT_META = {
-  ahead_of_stretch: { cls: 'ok', label: 'Ahead of sub-4:00 stretch' },
-  on_track_primary: { cls: 'ok', label: 'On track for primary (4:35)' },
-  between_primary_and_floor: { cls: 'warn', label: 'Between primary & floor' },
-  behind_floor: { cls: 'bad', label: 'Behind the 4:45 floor' },
-};
-
-function fmtDate(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-function fmtHMS(sec) {
-  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
-  return h + ':' + String(m).padStart(2, '0');
-}
-
-function renderTicker(progress) {
-  const daysToRace = Math.round((new Date('2026-11-15T00:00:00') - new Date(progress.today + 'T00:00:00')) / 86400000);
-  const pct = progress.dueCount ? Math.round((progress.completedCount / progress.dueCount) * 100) : 0;
-  const curWeek = currentWeekFromRows(progress.rows);
-  const nextUp = progress.rows.find(r => r.status === 'upcoming' || r.status === 'today');
-  const items = [
-    `🏁 ${daysToRace} DAYS TO BANGSAEN`,
-    `🎯 STRETCH GOAL: SUB-4:00`,
-    `📅 WEEK ${curWeek ? curWeek.replace('W', '') : '—'} OF 11`,
-    `✅ ${pct}% ADHERENCE`,
-    nextUp ? `⏭️ NEXT: ${nextUp.label.toUpperCase()}` : null,
-    `😤 EASY DAYS EASY, HARD DAYS HARD`,
-  ].filter(Boolean);
-  const html = items.map((t, i) => `<span${i === 1 ? ' class="hot"' : ''}>${t}</span>`).join('');
-  $('ticker-track').innerHTML = html + html; // duplicate for a seamless scroll loop
-}
-
-function renderTiles(progress) {
-  const pct = progress.dueCount ? Math.round((progress.completedCount / progress.dueCount) * 100) : 0;
-  const daysToRace = Math.round((new Date('2026-11-15T00:00:00') - new Date(progress.today + 'T00:00:00')) / 86400000);
-  $('tiles').innerHTML = `
-    <div class="tile"><div class="eyebrow">Days to race</div><div class="value mono">${daysToRace}</div><div class="sub">Sun Nov 15, 2026</div></div>
-    <div class="tile"><div class="eyebrow">Adherence</div><div class="value mono">${pct}%</div><div class="sub">${progress.completedCount}/${progress.dueCount} due sessions</div></div>
-    <div class="tile"><div class="eyebrow">Active pace set</div><div class="value" style="text-transform:capitalize;">${(progress.prediction.activePaceSet || '—')}</div><div class="sub">primary 4:35 &middot; floor 4:45 &middot; stretch sub-4:00</div></div>
-    <div class="tile"><div class="eyebrow">Predicted finish</div><div class="value mono">${progress.prediction.avgPredictedLabel || '—:—:—'}</div><div class="sub">${progress.prediction.available ? 'avg of last ' + progress.prediction.sampleSize + ' MP sessions' : 'no data yet'}</div></div>
-  `;
-}
-
-function renderInsightSpotlight(insights) {
-  const el = $('insight-spotlight');
-  if (!insights || !insights.length) { el.innerHTML = ''; return; }
-  const top = insights[0];
-  const meta = SEVERITY_META[top.severity] || SEVERITY_META.info;
-  const tag = top.severity === 'good' ? 'All clear'
-    : top.severity === 'critical' ? 'Biggest risk right now'
-    : top.severity === 'warning' ? 'Worth watching'
-    : 'Heads up';
-  el.innerHTML = `
-    <div class="spotlight-card ${top.severity}">
-      <div class="spotlight-tag">${meta.icon} ${tag}</div>
-      <div class="spotlight-title">${top.title}</div>
-      <div class="spotlight-detail">${top.detail}</div>
-      ${top.suggestion ? `<div class="spotlight-suggestion"><b>Do this:</b> ${top.suggestion}</div>` : ''}
-    </div>`;
-}
-
-function renderTodayKpiStrip(plan, progress, analysis, gear) {
-  const el = $('kpi-story-strip');
-  if (!el) return;
-  const curWeek = currentWeekFromRows(progress.rows);
-  const wk = (plan.plannedKpis || []).find(w => w.week === curWeek);
-  const rampPct = wk && wk.rampPct != null ? wk.rampPct : null;
-  const rampCls = rampPct == null ? '' : rampPct > 20 ? 'style="color:var(--bad)"' : rampPct > 15 ? 'style="color:var(--warn)"' : 'style="color:var(--good)"';
-  const compliance = analysis.paceCompliancePct;
-  const complianceCls = compliance == null ? '' : compliance >= 70 ? 'style="color:var(--good)"' : compliance >= 50 ? 'style="color:var(--warn)"' : 'style="color:var(--bad)"';
-
-  const shoes = (gear && gear.shoes) || [];
-  const raceShoe = shoes.find(s => s.raceProjection && s.raceProjection.isRaceShoe);
-  const gearBadge = raceShoe ? GEAR_BADGE_META[raceShoe.raceProjection.verdict] : null;
-
-  el.innerHTML = `
-    <div class="tile"><div class="eyebrow">Pace-zone compliance</div><div class="value mono" ${complianceCls}>${compliance != null ? compliance + '%' : '—'}</div><div class="sub">completed sessions in target zone</div></div>
-    <div class="tile"><div class="eyebrow">${curWeek || '—'} ramp rate</div><div class="value mono" ${rampCls}>${rampPct != null ? (rampPct > 0 ? '+' : '') + rampPct + '%' : '—'}</div><div class="sub">vs. previous week &middot; flag above +20%</div></div>
-    <div class="tile"><div class="eyebrow">Race-day shoe</div><div class="value" style="font-size:16px;">${raceShoe ? raceShoe.name : '—'}</div><div class="sub">${raceShoe && gearBadge ? gearBadge.label : 'no race shoe tagged yet'}</div></div>
-  `;
-}
-
-function renderThisWeek(progress) {
-  const el = $('this-week-strip');
-  if (!el) return;
-  const curWeek = currentWeekFromRows(progress.rows);
-  const weekRows = progress.rows.filter(r => r.week === curWeek);
-  const due = weekRows.filter(r => r.status !== 'upcoming');
-  const completed = due.filter(r => r.status === 'done' || r.status === 'partial');
-  const plannedKm = weekRows.reduce((s, r) => s + r.plannedKm, 0);
-  const actualKm = weekRows.reduce((s, r) => s + (r.actualKm || 0), 0);
-  const next = weekRows.find(r => r.status === 'upcoming' || r.status === 'today');
-
-  el.innerHTML = `
-    <div class="tile"><div class="eyebrow">${curWeek || '—'} sessions</div><div class="value mono">${completed.length}/${due.length}</div><div class="sub">done of due so far</div></div>
-    <div class="tile"><div class="eyebrow">${curWeek || '—'} distance</div><div class="value mono">${actualKm.toFixed(1)}/${plannedKm.toFixed(1)}km</div><div class="sub">actual / planned</div></div>
-    <div class="tile"><div class="eyebrow">Next up</div><div class="value" style="font-size:16px;">${next ? next.label : 'Week complete'}</div><div class="sub">${next ? fmtDate(next.date) : ''}</div></div>
-  `;
-}
-
-function renderPredictionPill(prediction) {
-  const pill = $('prediction-pill');
-  if (!prediction.available) {
-    pill.className = 'pill warn';
-    pill.innerHTML = '<span class="dot"></span>No prediction yet';
-    return;
-  }
-  const meta = VERDICT_META[prediction.verdict] || { cls: 'warn', label: 'Unknown' };
-  pill.className = 'pill ' + meta.cls;
-  pill.innerHTML = `<span class="dot"></span>${meta.label}`;
-}
-
-function renderPredictionBody(prediction) {
-  const el = $('prediction-body');
-  if (!prediction.available) {
-    el.textContent = prediction.message;
-    return;
-  }
-  el.innerHTML = `
-    <div style="margin-bottom:8px;">Latest MP session (${fmtDate(prediction.latestDate)}) predicts <b class="mono">${prediction.latestPredictedLabel}</b>;
-    average of the last ${prediction.sampleSize} predicts <b class="mono">${prediction.avgPredictedLabel}</b>.</div>
-    <div>${prediction.message}</div>
-  `;
-}
-
-const PHASE = {
-  W1: 'Build', W2: 'Build', W3: 'Build', W4: 'Cutback', W5: 'Build',
-  W6: 'Build', W7: 'Build', W8: 'Peak', W9: 'Taper', W10: 'Taper', W11: 'Race Week',
-};
-
-function renderDistanceHero(rows) {
-  const totalPlanned = rows.reduce((s, r) => s + r.plannedKm, 0);
-  const totalActual = rows.reduce((s, r) => s + (r.actualKm || 0), 0);
-  const pct = totalPlanned ? Math.min(100, Math.round(100 * totalActual / totalPlanned)) : 0;
-  const r = 34, c = 2 * Math.PI * r;
-  const offset = c * (1 - pct / 100);
-  $('distance-hero').innerHTML = `
-    <div class="progress-ring-wrap">
-      <svg width="84" height="84" viewBox="0 0 84 84">
-        <circle class="progress-ring-track" cx="42" cy="42" r="${r}"/>
-        <circle class="progress-ring-fill" cx="42" cy="42" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"/>
-      </svg>
-      <div class="progress-ring-label">${pct}%</div>
-    </div>
-    <div class="progress-stats">
-      <div class="big mono">${totalActual.toFixed(1)} <span class="muted" style="font-size:16px;">/ ${totalPlanned.toFixed(1)} km</span></div>
-      <div class="lbl">covered of the full 11-week plan &middot; ${Math.max(0, totalPlanned - totalActual).toFixed(1)}km remaining</div>
-    </div>
-  `;
-}
-
-function renderWeeks(plan, progress) {
-  const sessionsByDate = {};
-  plan.sessions.forEach(s => { sessionsByDate[s.date] = s; });
-
-  const byWeek = {};
-  const weekOrder = [];
-  progress.rows.forEach(r => {
-    if (!byWeek[r.week]) { byWeek[r.week] = []; weekOrder.push(r.week); }
-    byWeek[r.week].push(r);
-  });
-
-  let html = '';
-  weekOrder.forEach(week => {
-    const rows = byWeek[week];
-    const plannedTotal = rows.reduce((s, r) => s + r.plannedKm, 0);
-    const actualRows = rows.filter(r => r.actualKm != null);
-    const actualTotal = actualRows.reduce((s, r) => s + r.actualKm, 0);
-    const phase = PHASE[week] || '';
-    const phaseClass = phase === 'Peak' ? 'peak' : (phase === 'Cutback' || phase === 'Taper') ? 'cutback' : (phase === 'Race Week' ? 'race' : '');
-    const first = rows[0].date, last = rows[rows.length - 1].date;
-
-    const usedDays = new Set(rows.map(r => (sessionsByDate[r.date] || {}).day).filter(Boolean));
-    const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const isLastWeek = week === weekOrder[weekOrder.length - 1];
-    let restDays = ALL_DAYS.filter(d => !usedDays.has(d));
-    let raceDayNote = '';
-    if (isLastWeek && !usedDays.has('Sun')) {
-      restDays = restDays.filter(d => d !== 'Sun');
-      raceDayNote = ' &middot; Sun is race day';
-    }
-
-    let rowsHtml = rows.map(r => {
-      const planS = sessionsByDate[r.date] || {};
-      const kindColor = `var(--k-${r.kind})`;
-      const reps = planS.reps ? `<span class="reps-tag-sm">${planS.reps}</span>` : '';
-      const strides = planS.strides ? ' ⚡' : '';
-      const plannedPace = planS.paceLo && planS.paceHi ? `${planS.paceLo}-${planS.paceHi}` : '—';
-      let paceCell;
-      if (r.actualKm != null && r.actualPaceLabel) {
-        const hitCls = r.inZone ? 'hit' : 'miss';
-        const hitIcon = r.inZone ? '✓' : '⚠';
-        const workNote = r.wholeActivityPaceLabel
-          ? `<div class="muted" style="font-size:10.5px;margin-top:1px;" title="Whole-activity average, including warmup/recovery/cooldown">reps only &middot; whole run: ${r.wholeActivityPaceLabel}</div>`
-          : '';
-        paceCell = `<span class="planned">${plannedPace}</span><span class="arrow">&rarr;</span><span class="${hitCls}">${r.actualPaceLabel} ${hitIcon}</span>${workNote}`;
-      } else {
-        paceCell = `<span class="planned">${plannedPace}</span>`;
+function attachTips(wrap) {
+  let tip = wrap.querySelector('.tip');
+  if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; wrap.appendChild(tip); }
+  const hide = () => { tip.style.opacity = 0; wrap.querySelectorAll('.hl').forEach((n) => n.remove()); };
+  wrap.querySelectorAll('[data-tip]').forEach((node) => {
+    const show = (ev) => {
+      tip.innerHTML = node.dataset.tip;
+      const box = wrap.getBoundingClientRect();
+      const px = ev && ev.clientX != null ? ev.clientX - box.left : Number(node.dataset.x || 0);
+      const py = ev && ev.clientY != null ? ev.clientY - box.top : Number(node.dataset.y || 0);
+      tip.style.opacity = 1;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.max(0, Math.min(box.width - tw, px - tw / 2)) + 'px';
+      tip.style.top = Math.max(-th, py - th - 14) + 'px';
+      if (node.dataset.cx) {
+        wrap.querySelectorAll('.hl').forEach((n) => n.remove());
+        const svg = wrap.querySelector('svg');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'hl'); line.setAttribute('x1', node.dataset.cx); line.setAttribute('x2', node.dataset.cx);
+        line.setAttribute('y1', node.dataset.y0); line.setAttribute('y2', node.dataset.y1);
+        line.setAttribute('style', 'stroke:var(--ink-2);stroke-width:1');
+        svg.insertBefore(line, svg.firstChild.nextSibling);
       }
-      return `<tr>
-        <td class="day-cell">${planS.day || ''}</td>
-        <td class="date-cell">${fmtDate(r.date)}</td>
-        <td><span class="kind-chip-sm" style="color:${kindColor}"><span class="dot" style="background:${kindColor}"></span>${KIND_LABEL[r.kind]}</span></td>
-        <td class="title-cell">${r.label}${reps}${strides}<div><span class="status-chip ${r.status}" style="margin-top:3px;display:inline-block;">${STATUS_LABEL[r.status]}</span>${r.actualDate ? `<span class="muted" style="font-size:11px;margin-left:6px;">ran ${fmtDate(r.actualDate)}</span>` : ''}</div></td>
-        <td class="num-cell">${r.plannedKm}K</td>
-        <td class="num-cell">${r.actualKm != null ? '<b>' + r.actualKm + 'K</b>' : '—'}</td>
-        <td class="pace-cell">${paceCell}</td>
-      </tr>`;
-    }).join('');
-
-    rowsHtml += `<tr class="rest-row">
-      <td class="day-cell">&mdash;</td>
-      <td class="date-cell">&mdash;</td>
-      <td><span class="kind-chip-sm"><span class="dot"></span>Rest</span></td>
-      <td class="title-cell" colspan="4">${restDays.join(' / ')} &mdash; full rest, no scheduled workout${raceDayNote}</td>
-    </tr>`;
-
-    html += `<div class="week-card">
-      <div class="week-head">
-        <div class="left">
-          <span class="wk">${week}</span>
-          <span class="dates">${fmtDate(first)} &ndash; ${fmtDate(last)}</span>
-          ${phase ? `<span class="phase-pill ${phaseClass}">${phase}</span>` : ''}
-        </div>
-        <div class="week-vol">Planned <b>${plannedTotal.toFixed(1)}</b>km${actualRows.length ? ` &middot; Actual <b class="actual">${actualTotal.toFixed(1)}</b>km` : ''}</div>
-      </div>
-      <div class="table-scroll"><table class="sessions-table"><tbody>${rowsHtml}</tbody></table></div>
-    </div>`;
+    };
+    node.addEventListener('pointerenter', show); node.addEventListener('pointermove', show);
+    node.addEventListener('pointerleave', hide); node.addEventListener('focus', () => show(null)); node.addEventListener('blur', hide);
   });
-  $('weeks-container').innerHTML = html;
+}
+function tableView(headers, rows) {
+  return `<details class="tv"><summary>Show as table</summary><div class="tbl-wrap"><table class="tbl"><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
 }
 
-function renderVolumeChart(weekly) {
-  const svg = $('volume-chart');
-  const W = 900, H = 260, padL = 34, padR = 12, padT = 10, padB = 26;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxVal = Math.max(50, ...weekly.map(w => Math.max(w.plannedKm, w.actualKm || 0)));
-  const groupW = plotW / weekly.length;
-  const barW = groupW * 0.32;
-  const y = (v) => padT + plotH - (v / maxVal) * plotH;
-
-  let parts = [];
-  [0, Math.round(maxVal/3), Math.round(2*maxVal/3), Math.round(maxVal)].forEach(v => {
-    const yy = y(v);
-    parts.push(`<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`);
-    parts.push(`<text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`);
-  });
-
-  weekly.forEach((w, i) => {
-    const cx = padL + groupW * i + groupW / 2;
-    const plannedY = y(w.plannedKm);
-    parts.push(`<rect x="${cx - barW - 2}" y="${plannedY}" width="${barW}" height="${padT + plotH - plannedY}" fill="var(--line-strong)" rx="2"><title>${w.week} planned: ${w.plannedKm}km</title></rect>`);
-    if (w.actualKm != null) {
-      const actualY = y(w.actualKm);
-      parts.push(`<rect x="${cx + 2}" y="${actualY}" width="${barW}" height="${padT + plotH - actualY}" fill="var(--accent)" rx="2"><title>${w.week} actual: ${w.actualKm}km</title></rect>`);
-    }
-    parts.push(`<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="12" fill="var(--ink-2)">${w.week}</text>`);
-  });
-  svg.innerHTML = parts.join('');
-}
-
-function renderPaceChart(history, prediction) {
-  const svg = $('pace-chart');
-  const W = 900, H = 220, padL = 46, padR = 16, padT = 16, padB = 30;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-
-  if (!history.length) {
-    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)" font-size="13">No marathon-pace sessions completed yet</text>`;
-    return;
+// Weekly volume: planned (neutral) vs completed (blue), grouped per week.
+function drawVolume(el, weeks, current) {
+  const W = el.clientWidth || 340, H = 210, m = { t: 12, r: 6, b: 26, l: 34 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const top = Math.max(...weeks.map((w) => Math.max(w.plannedKm, w.actualKm || 0)), 10);
+  const step = niceStep(top, 3), maxV = Math.ceil(top / step) * step;
+  const y = (v) => m.t + ph - (v / maxV) * ph;
+  const band = pw / weeks.length, bw = Math.max(3, Math.min(12, (band - 8) / 2));
+  let g = '';
+  for (let v = 0; v <= maxV + 1e-9; v += step) {
+    g += `<line class="${v === 0 ? 'base' : 'gl'}" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+    g += `<text class="ax" x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
   }
-
-  const lines = [
-    { sec: prediction.stretchTimeSec, label: 'Stretch 4:00', color: 'var(--violet)' },
-    { sec: prediction.primaryTimeSec, label: 'Primary 4:35', color: 'var(--good)' },
-    { sec: prediction.floorTimeSec, label: 'Floor 4:45', color: 'var(--warn)' },
-  ];
-  const vals = history.map(h => h.predictedSec);
-  const minV = Math.min(...lines.map(l=>l.sec), ...vals) - 300, maxV = Math.max(...lines.map(l=>l.sec), ...vals) + 300;
-  const x = (i) => padL + (history.length === 1 ? plotW / 2 : (plotW * i) / (history.length - 1));
-  const y = (v) => padT + plotH - ((v - minV) / (maxV - minV)) * plotH;
-
-  let parts = [];
-  lines.forEach(l => {
-    const yy = y(l.sec);
-    parts.push(`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="${l.color}" stroke-width="1.5" stroke-dasharray="4 4"/>`);
-    parts.push(`<text x="${W-padR}" y="${yy - 4}" text-anchor="end" font-size="11" fill="${l.color}">${l.label}</text>`);
+  weeks.forEach((w, i) => {
+    const cx = m.l + band * i + band / 2, base = y(0);
+    g += `<path d="${barPath(cx - bw - 1, y(w.plannedKm), bw, base)}" style="fill:var(--planned)"/>`;
+    if (w.actualKm != null) g += `<path d="${barPath(cx + 1, y(w.actualKm), bw, base)}" style="fill:var(--s1)"/>`;
+    const lbl = band >= 30 ? w.week : w.week.replace('W', '');
+    g += `<text class="${w.week === current ? 'ax-b' : 'ax'}" x="${cx}" y="${H - 8}" text-anchor="middle">${lbl}</text>`;
+    const tip = `<b>${esc(w.week)}</b> &middot; ${esc(PHASE[w.week] || '')}<br>Planned ${fmtKm(w.plannedKm)} km<br>${w.actualKm != null ? `Completed ${fmtKm(w.actualKm)} km` : 'Not started'}`;
+    g += `<rect class="hit" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ph}" data-tip="${esc(tip)}" data-x="${cx}" data-y="${y(w.plannedKm)}" tabindex="0"/>`;
   });
+  el.innerHTML = `<div class="legend"><span><i class="key-rect" style="background:var(--planned)"></i>Planned</span><span><i class="key-rect" style="background:var(--s1)"></i>Completed</span><span class="small">km per week</span></div>
+    <div class="chart-wrap"><svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly distance, planned versus completed">${g}</svg></div>
+    ${tableView(['Week', 'Phase', 'Planned km', 'Completed km'], weeks.map((w) => [w.week, PHASE[w.week] || '', fmtKm(w.plannedKm), w.actualKm != null ? fmtKm(w.actualKm) : '–']))}`;
+  attachTips(el.querySelector('.chart-wrap'));
+}
 
-  const points = history.map((h, i) => `${x(i)},${y(h.predictedSec)}`).join(' ');
-  parts.push(`<polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2"/>`);
-  history.forEach((h, i) => {
-    parts.push(`<circle cx="${x(i)}" cy="${y(h.predictedSec)}" r="4" fill="var(--accent)"><title>${h.date}: predicted ${h.predictedLabel}</title></circle>`);
+// Pace vs target: seconds/km outside each run's own zone, above = harder than planned.
+function drawPaceDots(el, pts) {
+  const W = el.clientWidth || 340, H = 230, m = { t: 22, r: 12, b: 26, l: 40 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  if (!pts.length) { el.innerHTML = '<p class="loading">No completed runs yet.</p>'; return; }
+  const maxAbs = Math.max(30, ...pts.map((p) => Math.abs(p.dev)));
+  const step = maxAbs > 60 ? 30 : 15, lim = Math.ceil(maxAbs / step) * step;
+  const y = (v) => m.t + ph / 2 - (v / lim) * (ph / 2);
+  const t0 = d8(pts[0].date).getTime(), t1 = d8(pts[pts.length - 1].date).getTime();
+  const x = (iso) => (t1 === t0 ? m.l + pw / 2 : m.l + 8 + ((d8(iso).getTime() - t0) / (t1 - t0)) * (pw - 16));
+  let g = `<rect x="${m.l}" y="${y(0) - 5}" width="${pw}" height="10" rx="5" style="fill:var(--surface-2)"/>`;
+  for (let v = -lim; v <= lim; v += step) {
+    if (v !== 0) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+    const lbl = v === 0 ? 'zone' : `${v > 0 ? '+' : '−'}${Math.abs(v)}s`;
+    g += `<text class="ax" x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${lbl}</text>`;
+  }
+  g += `<text class="ax" x="${m.l + 4}" y="${m.t - 8}">Harder than planned</text>`;
+  g += `<text class="ax" x="${m.l + 4}" y="${y(-lim) - 6}">Easier than planned</text>`;
+  const labels = [pts[0], pts[pts.length - 1]];
+  labels.forEach((p, i) => { if (i === 1 && p.date === labels[0].date) return; g += `<text class="ax" x="${x(p.date)}" y="${H - 8}" text-anchor="${i ? 'end' : 'start'}">${fmtShort(p.date)}</text>`; });
+  pts.forEach((p) => {
+    const meta = GROUP_META[p.group], cx = x(p.date), cy = y(Math.max(-lim, Math.min(lim, p.dev)));
+    g += shape(meta.shape, cx, cy, meta.color);
+    const verdict = p.dev === 0 ? 'In its zone' : p.dev > 0 ? `${Math.round(p.dev)} s/km faster than planned` : `${Math.round(-p.dev)} s/km slower than planned`;
+    const tip = `<b>${esc(p.pace)}/km</b> &middot; ${esc(verdict)}<br>${esc(p.label)}<br>${esc(fmtDate(p.date))} &middot; target ${esc(p.zone)}`;
+    g += `<circle class="hit" cx="${cx}" cy="${cy}" r="14" data-tip="${esc(tip)}" data-x="${cx}" data-y="${cy}" tabindex="0"/>`;
   });
-  parts.push(`<text x="${x(0)}" y="${H-8}" text-anchor="start" font-size="11" fill="var(--ink-2)">${history[0].date}</text>`);
-  parts.push(`<text x="${x(history.length-1)}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--ink-2)">${history[history.length-1].date}</text>`);
-  svg.innerHTML = parts.join('');
+  const keys = Object.values(GROUP_META).map((mt) => `<span><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">${shape(mt.shape, 6, 6, mt.color, 4)}</svg>${mt.label}</span>`).join('');
+  el.innerHTML = `<div class="legend">${keys}</div>
+    <div class="chart-wrap"><svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Each run's pace relative to its target zone">${g}</svg></div>
+    ${tableView(['Date', 'Session', 'Pace', 'Target', 'Verdict'], pts.map((p) => [fmtShort(p.date), p.label, p.pace, p.zone, p.dev === 0 ? 'In zone' : p.dev > 0 ? `${Math.round(p.dev)}s fast` : `${Math.round(-p.dev)}s slow`]))}`;
+  attachTips(el.querySelector('.chart-wrap'));
 }
 
-function renderHistorySection(history, planWeekly) {
-  if (!history || !history.races) { $('reality-section').style.display = 'none'; return; }
-  $('reality-section').style.display = 'block';
-
-  const races = history.races.slice().sort((a,b)=>a.date.localeCompare(b.date));
-  const lastRace = races[races.length-1];
-  const lastRaceLabel = lastRace ? fmtHMS(lastRace.durationSec) + ':' + String(Math.round(lastRace.durationSec%60)).padStart(2,'0') : '—';
-  const raceSummary = races.map(r => `${r.date.slice(0,4)}: ${fmtHMS(r.durationSec)}`).join(' &middot; ');
-
-  $('reality-banner').innerHTML = `
-    <div class="tag"><span class="dot"></span>Live from your Garmin history</div>
-    <p>${races.length >= 2 ? `Your last two Bangsaen finishes: <b>${raceSummary}</b>.` : races.length === 1 ? `Your last Bangsaen finish: <b>${raceSummary}</b>.` : 'No prior marathon-distance efforts found in the last 3 years.'}
-    Current VO2max <b>${history.vo2Current ?? '—'}</b> (peak recorded: ${history.vo2Peak ?? '—'}), off a <b>${history.baseKmPerWeek12wk} km/week</b> base over the 12 weeks before this plan.
-    ${history.bestFiveK ? `Best 5K-effort split (${history.bestFiveK.date}) predicts <b>${fmtHMS(history.riegelPredictionSec)}</b> via Riegel — the gap to actual race results is endurance/pacing/fueling, not raw speed.` : ''}</p>
-  `;
-
-  $('reality-tiles').innerHTML = `
-    <div class="tile"><div class="eyebrow">Last finish</div><div class="value mono">${lastRaceLabel}</div><div class="sub">${races.length} marathon-distance effort(s) on record</div></div>
-    <div class="tile"><div class="eyebrow">Current VO2max</div><div class="value mono">${history.vo2Current ?? '—'}</div><div class="sub">peak was ${history.vo2Peak ?? '—'}</div></div>
-    <div class="tile"><div class="eyebrow">Pre-plan base (12wk)</div><div class="value mono">${history.baseKmPerWeek12wk}<small>km/wk</small></div><div class="sub">this block's W1 asks for more</div></div>
-    <div class="tile"><div class="eyebrow">Riegel prediction</div><div class="value mono">${history.riegelPredictionSec ? fmtHMS(history.riegelPredictionSec) : '—'}</div><div class="sub">from best 5K-effort split</div></div>
-  `;
-
-  // history vs plan timeline
-  const svg = $('history-chart');
-  const W = 1000, H = 240, padL = 34, padR = 12, padT = 14, padB = 30;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const preplan = history.preplanWeekly || [];
-  const allLabels = [...preplan.map(w=>w.label), ...planWeekly.map(w=>w.week)];
-  const maxVal = Math.max(50, ...preplan.map(w=>w.km), ...planWeekly.map(w=>w.plannedKm));
-  const colW = plotW / allLabels.length;
-  const barW = colW * 0.62;
-  const y = (v) => padT + plotH - (v / maxVal) * plotH;
-
-  let parts = [];
-  [0, Math.round(maxVal/2), Math.round(maxVal)].forEach(v => {
-    const yy = y(v);
-    parts.push(`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`);
-    parts.push(`<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`);
+// Prior races km by km, faster at the top, with this year's target pace as a reference.
+function drawRacePacing(el, races, targetSec) {
+  const W = el.clientWidth || 340, H = 240, m = { t: 14, r: 44, b: 26, l: 40 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const colors = ['var(--s1)', 'var(--s2)'];
+  const all = races.flatMap((r) => r.splits.map((s) => s.paceSecPerKm)).concat(targetSec ? [targetSec] : []);
+  const lo = Math.floor((Math.min(...all) - 10) / 30) * 30, hi = Math.ceil((Math.max(...all) + 10) / 30) * 30;
+  const nKm = Math.max(...races.map((r) => r.splits.length));
+  const x = (km) => m.l + ((km - 1) / (nKm - 1)) * pw;
+  const y = (p) => m.t + ((p - lo) / (hi - lo)) * ph; // slower = lower
+  let g = '';
+  const step = hi - lo > 150 ? 60 : 30;
+  for (let p = lo; p <= hi; p += step) {
+    g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(p)}" y2="${y(p)}"/><text class="ax" x="${m.l - 6}" y="${y(p) + 4}" text-anchor="end">${fmtPace(p)}</text>`;
+  }
+  [1, 10, 21, 30, nKm].forEach((k) => { g += `<text class="ax" x="${x(k)}" y="${H - 8}" text-anchor="middle">${k === 1 ? 'km 1' : k}</text>`; });
+  if (targetSec) {
+    g += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(targetSec)}" y2="${y(targetSec)}"/>`;
+    g += `<text class="ax-b" x="${W - m.r - 2}" y="${y(targetSec) - 6}" text-anchor="end">Target ${fmtPace(targetSec)}</text>`;
+  }
+  races.forEach((r, i) => {
+    const d = r.splits.map((s, j) => `${j ? 'L' : 'M'}${x(s.km)},${y(s.paceSecPerKm)}`).join('');
+    g += `<path d="${d}" style="fill:none;stroke:${colors[i]};stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>`;
+    const last = r.splits[r.splits.length - 1];
+    g += `<circle cx="${x(last.km)}" cy="${y(last.paceSecPerKm)}" r="4" style="fill:${colors[i]};stroke:var(--surface);stroke-width:2"/>`;
+    g += `<text class="ax-b" x="${x(last.km) + 8}" y="${y(last.paceSecPerKm) + 4}">${esc(r.date.slice(0, 4))}</text>`;
   });
-  allLabels.forEach((label, i) => {
-    const cx = padL + colW*i + colW/2;
-    const isPast = i < preplan.length;
-    const val = isPast ? preplan[i].km : planWeekly[i-preplan.length].plannedKm;
-    const yy = y(val);
-    const fill = isPast ? 'var(--line-strong)' : 'var(--accent)';
-    parts.push(`<rect x="${cx-barW/2}" y="${yy}" width="${barW}" height="${padT+plotH-yy}" fill="${fill}" rx="2"><title>${label}: ${val}km</title></rect>`);
-    if (i % 2 === 0 || !isPast) parts.push(`<text x="${cx}" y="${H-10}" text-anchor="middle" font-size="10" fill="var(--ink-2)">${label}</text>`);
+  const colW = pw / (nKm - 1);
+  for (let k = 1; k <= nKm; k++) {
+    const rowsTip = races.map((r, i) => { const s = r.splits.find((q) => q.km === k); return s ? `<span class="lk" style="background:${colors[i]}"></span><b>${fmtPace(s.paceSecPerKm)}</b> ${esc(r.date.slice(0, 4))}` : ''; }).filter(Boolean).join('<br>');
+    g += `<rect class="hit" x="${x(k) - colW / 2}" y="${m.t}" width="${colW}" height="${ph}" data-tip="${esc(`Km ${k}<br>${rowsTip}`)}" data-x="${x(k)}" data-y="${m.t + 20}" data-cx="${x(k)}" data-y0="${m.t}" data-y1="${m.t + ph}"/>`;
+  }
+  const keys = races.map((r, i) => `<span><i class="key-line" style="background:${colors[i]}"></i>${esc(r.date.slice(0, 4))} &middot; ${fmtHMS(r.durationSec)}</span>`).join('');
+  el.innerHTML = `<div class="legend">${keys}<span><i class="key-line" style="background:var(--ink-2)"></i>This year's target</span></div>
+    <div class="chart-wrap"><svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pace per kilometre in the 2024 and 2025 races">${g}</svg></div>
+    ${tableView(['Km'].concat(races.map((r) => r.date.slice(0, 4))), Array.from({ length: nKm }, (_, i) => [String(i + 1)].concat(races.map((r) => { const s = r.splits.find((q) => q.km === i + 1); return s ? fmtPace(s.paceSecPerKm) : '–'; }))))}`;
+  attachTips(el.querySelector('.chart-wrap'));
+}
+
+// Sleep: hours per night, 7 h guide, short nights called out.
+function drawSleep(el, entries) {
+  const W = el.clientWidth || 340, H = 190, m = { t: 12, r: 6, b: 26, l: 28 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const maxV = Math.max(9, Math.ceil(Math.max(...entries.map((e) => e.hours))));
+  const y = (v) => m.t + ph - (v / maxV) * ph;
+  const band = pw / entries.length, bw = Math.max(4, Math.min(20, band - 4));
+  let g = '';
+  [0, 3, 6, 9].filter((v) => v <= maxV).forEach((v) => { g += `<line class="${v ? 'gl' : 'base'}" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}h</text>`; });
+  entries.forEach((e, i) => {
+    const cx = m.l + band * i + band / 2, short = e.hours < 6;
+    g += `<path d="${barPath(cx - bw / 2, y(e.hours), bw, y(0))}" style="fill:${short ? 'var(--warn)' : 'var(--s1)'}"/>`;
+    if (i === 0 || i === entries.length - 1 || i === Math.floor(entries.length / 2)) g += `<text class="ax" x="${cx}" y="${H - 8}" text-anchor="middle">${fmtShort(e.date)}</text>`;
+    const tip = `<b>${e.hours} h</b> &middot; ${esc(fmtDate(e.date))}<br>Light ${e.lightMin} &middot; REM ${e.remMin} &middot; Deep ${e.deepMin} min<br>Resting HR ${e.restingHr ?? '–'}`;
+    g += `<rect class="hit" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ph}" data-tip="${esc(tip)}" data-x="${cx}" data-y="${y(e.hours)}" tabindex="0"/>`;
   });
-  const todayX = padL + colW*preplan.length;
-  parts.push(`<line x1="${todayX}" y1="${padT}" x2="${todayX}" y2="${padT+plotH}" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="3 3"/>`);
-  parts.push(`<text x="${todayX+4}" y="${padT+12}" font-size="11" fill="var(--bad)" font-weight="700">Today</text>`);
-  svg.innerHTML = parts.join('');
+  g += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(7)}" y2="${y(7)}"/><text class="ax-b" x="${W - m.r}" y="${y(7) - 6}" text-anchor="end">7 h</text>`;
+  el.innerHTML = `<div class="legend"><span><i class="key-rect" style="background:var(--s1)"></i>Hours slept</span><span><i class="key-rect" style="background:var(--warn)"></i>Under 6 h</span></div>
+    <div class="chart-wrap"><svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Hours of sleep per night">${g}</svg></div>
+    ${tableView(['Night', 'Hours', 'Resting HR'], entries.map((e) => [fmtShort(e.date), String(e.hours), String(e.restingHr ?? '–')]))}`;
+  attachTips(el.querySelector('.chart-wrap'));
+}
 
-  // vo2 chart
-  const svg2 = $('vo2-chart');
-  const W2=560,H2=240,pL=34,pR=16,pT=16,pB=30;
-  const plotW2=W2-pL-pR, plotH2=H2-pT-pB;
-  const vo2 = history.vo2History || [];
-  if (vo2.length) {
-    const minV = Math.min(...vo2.map(h=>h.vo2))-2, maxV = Math.max(...vo2.map(h=>h.vo2))+2;
-    const x2 = (i) => pL + (plotW2*i)/(vo2.length-1);
-    const y2 = (v) => pT + plotH2 - ((v-minV)/(maxV-minV))*plotH2;
-    let p2 = [];
-    const points = vo2.map((h,i)=>`${x2(i)},${y2(h.vo2)}`).join(' ');
-    p2.push(`<polyline points="${points}" fill="none" stroke="var(--bad)" stroke-width="2"/>`);
-    vo2.forEach((h,i)=> p2.push(`<circle cx="${x2(i)}" cy="${y2(h.vo2)}" r="2.5" fill="var(--bad)"><title>${h.date}: VO2max ${h.vo2}</title></circle>`));
-    p2.push(`<text x="${pL}" y="${H2-8}" font-size="10" fill="var(--ink-2)">${vo2[0].date}</text>`);
-    p2.push(`<text x="${W2-pR}" y="${H2-8}" text-anchor="end" font-size="10" fill="var(--ink-2)">${vo2[vo2.length-1].date}</text>`);
-    svg2.innerHTML = p2.join('');
+function sparkline(values, w = 120, h = 36) {
+  if (values.length < 2) return '';
+  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
+  const x = (i) => 4 + (i / (values.length - 1)) * (w - 8), y = (v) => 4 + (1 - (v - lo) / span) * (h - 8);
+  const d = values.map((v, i) => `${i ? 'L' : 'M'}${x(i)},${y(v)}`).join('');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" style="fill:none;stroke:var(--s1);stroke-width:2;stroke-linejoin:round"/><circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="4" style="fill:var(--s1);stroke:var(--surface);stroke-width:2"/></svg>`;
+}
+
+/* ---------- TODAY ---------- */
+function renderHeader() {
+  const today = S.progress.today, wk = curWeek();
+  const days = dayDiff(today, RACE_DATE);
+  $('hdr-eyebrow').textContent = `Week ${wk.replace('W', '')} of 11 · ${PHASE[wk] || ''}`;
+  $('hdr-title').textContent = days > 0 ? `${days} days to Bangsaen` : days === 0 ? 'Race day' : 'Bangsaen Marathon';
+}
+
+function renderReady(r) {
+  const el = $('t-ready');
+  el.className = '';
+  if (!r || !r.available) { el.innerHTML = `<div class="ready"><span class="dot none"></span><div><div class="head">Readiness unavailable</div><div class="why">${esc(r?.message || 'Not enough sleep or heart-rate data yet.')}</div></div></div>`; return; }
+  const cls = r.verdict === 'green' ? 'good' : r.verdict === 'amber' ? 'warn' : 'crit';
+  const [first, ...rest] = r.reasons || [];
+  el.innerHTML = `<div class="ready"><span class="dot ${cls}"></span><div>
+      <div class="head">${esc(r.headline)} <span class="chip num">Readiness ${r.score}</span></div>
+      ${first ? `<div class="why">${esc(first)}</div>` : ''}
+      ${rest.map((t) => `<div class="why small">${esc(t)}</div>`).join('')}
+    </div></div>`;
+}
+
+function stepLine(st) {
+  if (st.role === 'repeat') {
+    return `<li><span>${st.reps} &times; ${fmtKm(st.km)} km ${esc(KIND[st.kind] || st.kind)}<br><span class="small muted">${Math.round(st.recoveryKm * 1000)} m easy jog between</span></span><span class="p">${esc(st.paceFast)}–${esc(st.paceSlow)}</span></li>`;
   }
+  const name = st.role === 'warmup' ? 'Warm up' : st.role === 'cooldown' ? 'Cool down' : (KIND[st.kind] || st.kind);
+  return `<li><span>${esc(name)} &middot; ${fmtKm(st.km)} km</span><span class="p">${esc(st.paceFast)}–${esc(st.paceSlow)}</span></li>`;
 }
 
-function fmtPaceSec(sec) {
-  if (sec == null) return '—';
-  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function renderPatternSection(history) {
-  const profiles = history.cycleProfiles || [];
-  const races = history.races || [];
-  if (!profiles.length && !races.length) { $('pattern-section').style.display = 'none'; return; }
-  $('pattern-section').style.display = 'block';
-
-  // ---- cycle comparison cards ----
-  $('cycle-grid').innerHTML = profiles.map(p => {
-    const isLive = p.label === 'This block so far';
-    return `<div class="cycle-card ${isLive ? 'current' : ''}">
-      <div class="cyc-label">${p.label}${isLive ? ' <span class="mono" style="font-size:10px;font-weight:400;opacity:.7;">&middot; grows daily</span>' : ''}</div>
-      <div class="cyc-sub">${p.windowStart} &ndash; ${p.windowEnd}</div>
-      <div class="cycle-stat"><span>Avg volume</span><span class="v">${p.avgKmPerWeek} km/wk</span></div>
-      <div class="cycle-stat"><span>Longest run</span><span class="v">${p.longestKm} km</span></div>
-      <div class="cycle-stat"><span>Avg pace</span><span class="v">${fmtPaceSec(p.avgPaceSecPerKm)}/km</span></div>
-      <div class="cycle-stat"><span>Effort variation (HR &sigma;)</span><span class="v ${p.hrStdev != null && p.hrStdev < 8 ? 'warn' : ''}">${p.hrStdev != null ? p.hrStdev + ' bpm' : '—'}</span></div>
-    </div>`;
-  }).join('');
-
-  // ---- race pacing cards ----
-  $('race-grid').innerHTML = races.map(r => {
-    const splits = r.splits || [];
-    const pacing = r.pacing || {};
-    const h = Math.floor(r.durationSec / 3600), m = Math.round((r.durationSec % 3600) / 60);
-    const finishLabel = `${h}:${String(m).padStart(2, '0')}:00`;
-
-    let chartSvg = '';
-    if (splits.length) {
-      const W = 460, H = 180, padL = 38, padR = 10, padT = 10, padB = 22;
-      const plotW = W - padL - padR, plotH = H - padT - padB;
-      const paces = splits.map(s => s.paceSecPerKm).filter(Boolean);
-      const minP = Math.min(...paces) - 15, maxP = Math.max(...paces) + 15;
-      const x = i => padL + (plotW * i) / (splits.length - 1);
-      const y = v => padT + plotH - ((v - minP) / (maxP - minP)) * plotH; // faster (lower sec) plots higher
-      const pts = splits.map((s, i) => `${x(i)},${y(s.paceSecPerKm)}`).join(' ');
-      const halfX = x(Math.floor(splits.length / 2));
-      let parts = [];
-      parts.push(`<line x1="${halfX}" y1="${padT}" x2="${halfX}" y2="${padT + plotH}" stroke="var(--line-strong)" stroke-dasharray="3 3"/>`);
-      parts.push(`<text x="${halfX}" y="${padT - 2}" text-anchor="middle" font-size="9" fill="var(--muted)">halfway</text>`);
-      parts.push(`<polyline points="${pts}" fill="none" stroke="${pacing.fadeSecPerKm > 40 ? 'var(--bad)' : 'var(--warn)'}" stroke-width="2"/>`);
-      parts.push(`<text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-2)">km 1</text>`);
-      parts.push(`<text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="var(--ink-2)">km ${splits.length}</text>`);
-      chartSvg = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="min-width:0;">${parts.join('')}</svg>`;
-    }
-
-    const fadeSec = pacing.fadeSecPerKm;
-    const fadeCls = fadeSec > 40 ? 'bad' : 'warn';
-    const fadeText = fadeSec != null
-      ? `<b>${Math.round(fadeSec)} sec/km slower</b> in the second half &mdash; ${fmtPaceSec(pacing.firstHalfAvgPaceSec)}/km opening pace faded to ${fmtPaceSec(pacing.secondHalfAvgPaceSec)}/km.`
-      : 'No split data available.';
-
-    return `<div class="race-card">
-      <div class="race-head"><span class="race-title">${r.date.slice(0, 4)} Bangsaen</span><span class="race-time mono">${finishLabel}</span></div>
-      <div class="table-scroll">${chartSvg}</div>
-      ${pacing.available ? `<div class="fade-note ${fadeCls}">${fadeText}</div>` : ''}
-    </div>`;
-  }).join('');
-
-  // ---- coach's verdict ----
-  const cur = profiles.find(p => p.label === 'Base going in');
-  const past = profiles.filter(p => p.label !== 'Base going in' && p.label !== 'This block so far');
-  const hrTrend = past.map(p => p.hrStdev).filter(v => v != null);
-  const worsening = hrTrend.length >= 2 && hrTrend[hrTrend.length - 1] <= hrTrend[0];
-  const worstFade = races.reduce((max, r) => (r.pacing && r.pacing.fadeSecPerKm > (max || 0)) ? r.pacing.fadeSecPerKm : max, 0);
-
-  let verdict = `<div class="v-eyebrow">Coach's verdict</div>`;
-  verdict += `<p>Across ${past.length} prior Bangsaen ${past.length === 1 ? 'cycle' : 'cycles'}, effort variation ${worsening ? 'has gotten <b>worse</b>, not better' : 'has stayed roughly the same'} `;
-  verdict += `(HR spread ${hrTrend.join(' &rarr; ')}${cur && cur.hrStdev != null ? ' &rarr; <b>' + cur.hrStdev + '</b> this cycle' : ''} bpm) &mdash; `;
-  verdict += `every run has landed at nearly the same effort, whatever the day was supposed to be. `;
-  if (worstFade > 0) {
-    verdict += `Race day made it worse: both finishes were positive splits, with the worst fading <b>${Math.round(worstFade)} sec/km</b> in the second half &mdash; starting faster than fitness supported, every time.</p>`;
-  } else {
-    verdict += `</p>`;
+// What the last run of the same type says about how to run this one.
+function coachCue(s) {
+  const group = GROUP[s.kind];
+  const prev = (S.progress.rows || []).filter((r) => (r.status === 'done' || r.status === 'partial') && GROUP[r.kind] === group && r.date < s.date).pop();
+  const main = s.steps.find((st) => st.role === 'repeat') || s.steps.find((st) => st.kind === s.kind) || s.steps[0];
+  if (!prev) return `First ${group === 'quality' ? 'quality session' : KIND[s.kind].toLowerCase()} of its kind &mdash; start at the slow end, ${esc(main.paceSlow)}, and let it settle.`;
+  const dev = effortDev(prev);
+  const what = group === 'quality' ? (prev.wholeActivityPaceLabel ? 'reps averaged' : 'averaged') : 'averaged';
+  if (dev > 0) {
+    return group === 'quality'
+      ? `Your last session&rsquo;s ${what} <b>${esc(prev.actualPaceLabel)}</b> &mdash; ${Math.round(dev)} s/km faster than planned. Start each rep at <b>${esc(main.paceSlow)}</b> and hold it, even when it feels easy.`
+      : `Your last ${esc(KIND[prev.kind].toLowerCase())} ${what} <b>${esc(prev.actualPaceLabel)}</b> &mdash; ${Math.round(dev)} s/km too fast. Keep this one conversational: the easy-days-too-hard habit is what cost you in 2024 and 2025.`;
   }
-  if (cur) {
-    verdict += `<p>This cycle starts from <b>${cur.avgKmPerWeek} km/week</b>, the lowest of the ${past.length + 1} on record, with a longest run of only <b>${cur.longestKm} km</b>.</p>`;
+  if (dev < 0) return `Your last one ran ${Math.round(-dev)} s/km slower than planned. Fine in the heat &mdash; don&rsquo;t chase the pace, chase the effort.`;
+  return `Your last ${group === 'quality' ? 'quality session' : esc(KIND[prev.kind].toLowerCase())} landed in its zone. Same again.`;
+}
+
+function renderSession() {
+  const el = $('t-session'), today = S.progress.today;
+  const sessions = S.plan.sessions;
+  const todays = sessionFor(today), todayRow = rowFor(today);
+  const todayDone = todayRow && (todayRow.status === 'done' || todayRow.status === 'partial');
+  const focus = todays && !todayDone ? todays : sessions.find((s) => s.date > today);
+  S.focus = focus;
+  if (!focus) { el.innerHTML = `<div class="card session"><div class="when">Training block complete</div><h3>Race day: Sun 15 Nov</h3></div>`; return; }
+  const when = whenLabel(focus.date, today);
+  let lead = when;
+  if (!todays) lead = `Rest day today · Next up ${when.toLowerCase() === 'tomorrow' ? 'tomorrow' : when}`;
+  else if (todayDone) lead = `Today&rsquo;s run is done · Next up ${when.toLowerCase() === 'tomorrow' ? 'tomorrow' : when}`;
+  const main = focus.steps.find((st) => st.role === 'repeat') || focus.steps.find((st) => st.kind === focus.kind) || focus.steps[0];
+  const pivot = when === 'Today' && S.readiness?.pivotSuggestion;
+  const kindColor = GROUP_META[GROUP[focus.kind]].color;
+  el.innerHTML = `<div class="card session" style="--k:${kindColor}">
+    <div class="when">${lead}</div>
+    <span class="kind-chip">${esc(KIND[focus.kind] || focus.kind)}</span>
+    <h3>${esc(focus.title)}</h3>
+    <div class="meta">${fmtKm(focus.km)} km &middot; about ${fmtDur(focus.durationMin)}</div>
+    <div class="pace-hero num">${esc(main.paceFast)}–${esc(main.paceSlow)}<small>/km</small></div>
+    <div class="pace-cap">${focus.steps.length > 1 ? `Target for the ${main.role === 'repeat' ? 'reps' : esc((KIND[main.kind] || '').toLowerCase()) + ' section'}` : 'Target pace &mdash; stay inside this band'}</div>
+    ${focus.steps.length > 1 ? `<ol class="steps">${focus.steps.map(stepLine).join('')}</ol>` : ''}
+    ${focus.note ? `<p class="small muted" style="margin:12px 0 0;">${esc(focus.note)}</p>` : ''}
+    ${pivot ? `<div class="note"><div class="tag"><span class="dot ${pivot.severity === 'critical' ? 'crit' : 'warn'}"></span>${pivot.severity === 'critical' ? 'Suggested swap' : 'Go easier today'}</div>${esc(pivot.message)}</div>` : ''}
+    <div class="note"><div class="tag">Coach</div>${coachCue(focus)}</div>
+  </div>`;
+}
+
+function fuelParts(f) {
+  const rows = [];
+  if (f.before) rows.push(['Before', esc(f.before)]);
+  if (f.during) {
+    const d = f.during, bits = [esc(d.text)];
+    if (d.fluidMlPerHour) bits.push(`Fluid ${d.fluidMlPerHour[0]}–${d.fluidMlPerHour[1]} ml/h${d.sodiumMgPerHour ? `, sodium ${d.sodiumMgPerHour[0]}–${d.sodiumMgPerHour[1]} mg/h` : ''}.`);
+    rows.push(['During', bits.join(' ')]);
   }
-  verdict += `<p><b>What actually changes this time:</b></p><ul>
-    <li>Easy days run genuinely easy &mdash; watch the HR-by-kind KPI above; it's already flagged this twice this week.</li>
-    <li>The 30K peak long run is the first time in 3 years training goes meaningfully past half-marathon distance before race day.</li>
-    <li>Race day: deliberate restraint in the first half. The data says the failure mode is always starting too fast, not running out of fitness.</li>
-  </ul>`;
-  $('verdict-card').innerHTML = verdict;
+  if (f.after) rows.push(['After', esc(f.after)]);
+  return rows.length ? `<dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : '';
 }
 
-const SEVERITY_META = {
-  critical: { icon: '🚨', label: 'Critical' },
-  warning: { icon: '⚠️', label: 'Warning' },
-  info: { icon: 'ℹ️', label: 'Info' },
-  good: { icon: '✅', label: 'All clear' },
-};
-
-function renderInsights(insights, cacheAgeSec) {
-  $('insights-feed').innerHTML = insights.map(ins => {
-    const meta = SEVERITY_META[ins.severity] || SEVERITY_META.info;
-    return `<div class="insight-card ${ins.severity}">
-      <div class="insight-icon">${meta.icon}</div>
-      <div class="insight-body">
-        <div class="insight-title"><span>${ins.title}</span>${ins.date ? `<span class="idate">${fmtDate(ins.date)}</span>` : ''}</div>
-        <div class="insight-detail">${ins.detail}</div>
-        <div class="insight-suggestion"><b>Do this:</b> ${ins.suggestion}</div>
-      </div>
-    </div>`;
-  }).join('');
-  $('insights-freshness').textContent = cacheAgeSec != null ? `checked ${Math.round(cacheAgeSec)}s ago` : '';
-}
-
-function currentWeekFromRows(rows) {
-  const due = rows.filter(r => r.status !== 'upcoming');
-  return due.length ? due[due.length - 1].week : (rows[0] ? rows[0].week : null);
-}
-
-function renderKpis(plan, progress, analysis) {
-  const curWeek = currentWeekFromRows(progress.rows);
-  const wk = (plan.plannedKpis || []).find(w => w.week === curWeek);
-
-  // Ramp rate and pace-zone compliance now live on the Control Tower tab's KPI strip -
-  // no need to repeat the exact same numbers here too.
-  $('kpi-tiles').innerHTML = `
-    <div class="tile"><div class="eyebrow">${curWeek || '—'} long-run share</div><div class="value mono">${wk ? wk.longRunPct + '%' : '—'}</div><div class="sub">of that week's total volume</div></div>
-    <div class="tile"><div class="eyebrow">Sessions w/ HR data</div><div class="value mono">${Object.values(analysis.avgHrByKind || {}).length ? progress.rows.filter(r=>r.actualHr).length : 0}</div><div class="sub">feeds the easy-vs-hard check below</div></div>
-  `;
-
-  const hr = analysis.avgHrByKind || {};
-  const kinds = Object.keys(hr);
-  if (!kinds.length) {
-    $('hr-breakdown').innerHTML = '<p class="muted" style="font-size:12.5px;">No HR data on completed sessions yet.</p>';
-    return;
-  }
-  const order = ['recovery','easy','long','tempo','mp'];
-  const sorted = kinds.sort((a,b) => order.indexOf(a) - order.indexOf(b));
-  let html = '<div class="eyebrow" style="margin-bottom:6px;">Avg HR by session type</div>';
-  html += sorted.map(k => `<div class="hr-row"><span class="k">${KIND_LABEL[k] || k}</span><span class="mono strong">${hr[k]} bpm</span></div>`).join('');
-  const easy = hr.easy;
-  const hard = hr.tempo != null ? hr.tempo : hr.mp;
-  if (easy != null && hard != null) {
-    const gap = Math.round(hard - easy);
-    if (gap < 10) {
-      html += `<div class="hr-note">Only ${gap} bpm between easy and hard efforts — easy days may be run too hard. Aim for a bigger gap by slowing easy runs down.</div>`;
-    }
-  }
-  $('hr-breakdown').innerHTML = html;
-}
-
-const READINESS_META = {
-  green: { cls: 'green', icon: '🟢' },
-  amber: { cls: 'amber', icon: '🟡' },
-  red: { cls: 'red', icon: '🔴' },
-};
-
-function renderReadiness(data) {
-  const el = $('readiness-section');
-  if (!data || !data.available) { el.innerHTML = ''; return; }
-  const meta = READINESS_META[data.verdict] || READINESS_META.amber;
-  const [primary, ...rest] = data.reasons || [];
-  el.innerHTML = `
-    <div class="readiness-card ${meta.cls}">
-      <div class="readiness-top">
-        <div class="readiness-headline">${meta.icon} ${data.headline}</div>
-        <span class="readiness-chip ${meta.cls}">${data.score}/100</span>
-      </div>
-      ${primary ? `<div class="readiness-why">${primary}</div>` : ''}
-      ${rest.length ? `<ul class="readiness-extra">${rest.map(r => `<li>${r}</li>`).join('')}</ul>` : ''}
-      ${data.pivotSuggestion ? `<div class="readiness-pivot ${data.pivotSuggestion.severity}"><span class="pivot-tag">${data.pivotSuggestion.severity === 'critical' ? '🚨 Suggested swap' : '⚠️ Today\'s session'}</span>${data.pivotSuggestion.message}</div>` : ''}
-    </div>`;
-}
-
-function renderPredictionRange(range) {
-  const el = $('prediction-range');
-  if (!el) return;
-  if (!range || !range.available) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="range-note">Realistic range: <b class="mono">${range.lowLabel}&ndash;${range.highLabel}</b>. ${range.note}</div>`;
-}
-
-function renderFadeForecast(forecast) {
-  const el = $('fade-forecast');
-  if (!el) return;
-  if (!forecast || !forecast.available) { el.innerHTML = ''; return; }
-  const isFlat = forecast.appliedFadePenaltySecPerKm <= 0;
-  el.innerHTML = `
-    <div class="fade-forecast-note ${isFlat ? 'flat' : ''}">
-      ${forecast.message}
-      ${!isFlat ? `<div class="fade-forecast-split">
-        <span>First half: ${forecast.firstHalfPaceLabel}/km</span>
-        <span>Second half: ${forecast.secondHalfPaceLabel}/km</span>
-        <span>Fade-adjusted finish: ${forecast.forecastFinishLabel}</span>
-      </div>` : ''}
-    </div>`;
-}
-
-function renderHeatPace(data) {
-  const el = $('heat-body');
-  const t = data.adjustedTimes, goal = data.goalTimes;
-  $('heat-temp').value = data.tempC;
-  $('heat-humidity').value = data.humidityPct;
-  const sign = data.penaltyPct > 0 ? '+' : '';
-  const history = data.personalHistory || [];
-  const historyHtml = history.length
-    ? `<div class="heat-note" style="margin-top:8px;"><b>Your own evidence, not a formula:</b> ${history.map(h => `${fmtDate(h.date)} at <b class="mono">${h.avgTempC}&deg;C</b> &rarr; finished in <b class="mono">${h.finishLabel}</b>`).join(' &middot; ')}.</div>`
-    : '';
-  el.innerHTML = `
-    <div class="heat-tiles">
-      <div class="tile"><div class="eyebrow">Stretch (sub-4:00)</div><div class="value mono">${t.stretch.label}</div><div class="dry">goal: ${goal.stretch.label}</div></div>
-      <div class="tile"><div class="eyebrow">Primary (4:35)</div><div class="value mono">${t.primary.label}</div><div class="dry">goal: ${goal.primary.label}</div></div>
-      <div class="tile"><div class="eyebrow">Floor (4:45)</div><div class="value mono">${t.floor.label}</div><div class="dry">goal: ${goal.floor.label}</div></div>
+function renderFuel() {
+  const el = $('t-fuel'), f = S.fuelToday, nf = S.fuelNext, h = S.hydration, today = S.progress.today;
+  if (!f) { el.innerHTML = ''; return; }
+  const dayName = { rest: 'Rest day', easy: 'Easy-run day', quality: 'Quality day', long: 'Long-run day' }[f.dayType];
+  const focus = S.focus, tomorrowBig = nf && focus && dayDiff(today, focus.date) === 1 && (nf.dayType === 'long' || nf.dayType === 'quality');
+  const pct = h && h.goalMl ? Math.min(100, Math.round((100 * h.valueMl) / h.goalMl)) : 0;
+  el.innerHTML = `<div class="card">
+    <h2>Fuel today</h2>
+    <div class="lede" style="margin:0;">${dayName} &middot; scaled to ${fmtKm(f.weightKg)} kg${f.weightAssumed ? ' (assumed &mdash; log your weight in Body)' : ''}</div>
+    <div class="stats" style="margin-top:12px;">
+      <div class="stat"><div class="l">Carbohydrate</div><div class="v num">${f.carbsG[0]}–${f.carbsG[1]}<small>g</small></div></div>
+      <div class="stat"><div class="l">Protein</div><div class="v num">${f.proteinG[0]}–${f.proteinG[1]}<small>g</small></div></div>
     </div>
-    <div class="heat-note">${sign}${data.penaltyPct}% vs. your own proven ~${data.anchorTempC}&deg;C at ${data.tempC}&deg;C / ${data.humidityPct}% humidity. ${data.tierMessage}${data.isDefault ? ' (Midpoint of your last two Bangsaen race temperatures — replace with an actual forecast closer to race day.)' : ''}</div>
-    ${historyHtml}
-  `;
+    <p class="small muted" style="margin:10px 0 0;">${esc(f.plate)}</p>
+    ${fuelParts(f)}
+    ${tomorrowBig ? `<div class="note"><div class="tag">Tonight</div>Tomorrow&rsquo;s ${esc(focus.title)} runs on tonight&rsquo;s dinner: make it carb-forward &mdash; rice or noodles with chicken, tofu or paneer &mdash; and keep it low in fibre.</div>` : ''}
+    ${nf && focus && focus.date !== today ? `<div class="sep"></div><div class="when">For ${esc(whenLabel(focus.date, today).toLowerCase() === 'tomorrow' ? 'tomorrow' : fmtDate(focus.date))} &middot; ${esc(focus.title)}</div>${fuelParts(nf)}` : ''}
+    <div class="sep"></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="when">Water today</span><span class="small num">${h ? `${Math.round(h.valueMl)} of ${Math.round(h.goalMl || 0)} ml` : '–'}</span></div>
+    <div class="meter" aria-hidden="true"><i style="width:${pct}%"></i></div>
+    <div class="btn-row"><button class="btn secondary" data-add-ml="250">+250 ml</button><button class="btn secondary" data-add-ml="500">+500 ml</button></div>
+    <p class="small" id="water-msg" style="margin:6px 0 0;"></p>
+  </div>`;
+  el.querySelectorAll('[data-add-ml]').forEach((b) => b.addEventListener('click', async () => {
+    const msg = $('water-msg'); b.disabled = true; msg.textContent = 'Logging…';
+    try { await postJSON('/api/hydration', { ml: Number(b.dataset.addMl) }); S.hydration = await getJSON('/api/hydration?refresh=1'); renderFuel(); }
+    catch (e) { msg.textContent = `Couldn't log water: ${e.message}`; msg.className = 'small err'; b.disabled = false; }
+  }));
 }
 
-async function loadHeatPace(tempC, humidity) {
-  try {
-    const q = new URLSearchParams();
-    if (tempC != null && !Number.isNaN(tempC)) q.set('tempC', tempC);
-    if (humidity != null && !Number.isNaN(humidity)) q.set('humidity', humidity);
-    const data = await getJSON('/api/heat-pace' + (q.toString() ? '?' + q.toString() : ''));
-    renderHeatPace(data);
-  } catch (e) {
-    $('heat-body').innerHTML = `<p class="muted" style="font-size:13px;">Couldn't load heat-adjusted pace: ${e.message}</p>`;
+function flagHtml(i, withAction = true, withDetail = true) {
+  return `<div class="flag"><span class="dot ${SEV[i.severity] || 'info'}"></span><div>
+    <div class="t">${esc(i.title)} <span class="small muted">&middot; ${SEV_LABEL[i.severity] || ''}</span></div>
+    ${withDetail ? `<div class="d">${esc(i.detail)}</div>` : ''}
+    ${withAction && i.suggestion ? `<div class="a">${esc(i.suggestion)}</div>` : ''}
+  </div></div>`;
+}
+
+function renderLast() {
+  const el = $('t-last');
+  const done = (S.progress.rows || []).filter((r) => r.status === 'done' || r.status === 'partial');
+  const last = done[done.length - 1];
+  if (!last) { $('t-last-wrap').hidden = true; return; }
+  const s = sessionFor(last.date), dev = effortDev(last), runDate = last.actualDate || last.date;
+  const flags = (S.insights || []).filter((i) => i.date === runDate || i.date === last.date);
+  S.shownFlagIds = new Set(flags.map((i) => i.id));
+  el.innerHTML = `<div class="card">
+    <div class="when">${esc(fmtDate(runDate))}</div>
+    <h3 style="font-size:17px;font-weight:650;margin:2px 0 10px;">${esc(last.label)}</h3>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+      <span class="num" style="font-size:28px;font-weight:700;letter-spacing:-.015em;">${esc(last.actualPaceLabel)}<small class="muted" style="font-size:14px;font-weight:500;"> /km</small></span>
+      ${devChip(dev)}
+    </div>
+    <div class="meta small muted" style="margin-top:4px;">Target ${esc(s?.paceHi)}–${esc(s?.paceLo)} &middot; ${fmtKm(last.actualKm)} km${last.actualHr ? ` &middot; avg HR ${Math.round(last.actualHr)}` : ''}${last.wholeActivityPaceLabel ? ` &middot; reps only (whole run ${esc(last.wholeActivityPaceLabel)})` : ''}</div>
+    ${flags.length ? `<div style="margin-top:12px;">${flags.map((i) => flagHtml(i, true, false)).join('')}</div>` : ''}
+  </div>`;
+}
+
+function renderWeek() {
+  const wk = curWeek(), rows = (S.progress.rows || []).filter((r) => r.week === wk);
+  $('t-week-title').textContent = `This week · ${wk} · ${PHASE[wk] || ''}`;
+  const planned = rows.reduce((a, r) => a + r.plannedKm, 0), actual = rows.reduce((a, r) => a + (r.actualKm || 0), 0);
+  const icon = { done: 'good', partial: 'warn', missed: 'crit', today: 'today', upcoming: 'ring' };
+  const word = { done: 'Done', partial: 'Partial', missed: 'Missed', today: 'Today', upcoming: '' };
+  $('t-week').innerHTML = `<div class="rows">${rows.map((r) => {
+    const s = sessionFor(r.date) || {};
+    const right = r.actualKm != null ? `${fmtKm(r.actualKm)} km<br><span class="small muted">${esc(r.actualPaceLabel || '')}</span>` : `${fmtKm(r.plannedKm)} km`;
+    return `<div class="row"><span class="dot ${icon[r.status]}" title="${word[r.status]}"></span>
+      <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
+      <div class="r">${right}</div></div>`;
+  }).join('')}</div>
+  <p class="small muted" style="margin:8px 0 0;">${fmtKm(actual)} of ${fmtKm(planned)} km done</p>`;
+}
+
+function renderTodayFlags() {
+  const shown = S.shownFlagIds || new Set();
+  // Only what's current belongs on the daily screen - older flags stay on Progress.
+  const recent = (i) => !i.date || dayDiff(i.date, S.progress.today) <= 7;
+  const rest = (S.insights || []).filter((i) => !shown.has(i.id) && recent(i) && i.severity !== 'good' && i.severity !== 'info').slice(0, 2);
+  if (!rest.length) { $('t-flags-wrap').hidden = true; return; }
+  $('t-flags-wrap').hidden = false;
+  $('t-flags').innerHTML = rest.map((i) => flagHtml(i, false)).join('') + `<p style="margin:10px 0 0;"><button class="link" id="to-flags">All coach flags</button></p>`;
+  $('to-flags').addEventListener('click', () => { showTab('progress'); setTimeout(() => $('p-flags-wrap').scrollIntoView({ behavior: 'smooth' }), 60); });
+}
+
+async function loadToday(force) {
+  const q = force ? '?refresh=1' : '';
+  const [plan, progress, readiness, insights, hydration, fuelToday] = await Promise.all([
+    getJSON('/api/plan'), getJSON('/api/progress' + q), getJSON('/api/readiness' + q).catch(() => null),
+    getJSON('/api/insights' + q).catch(() => ({ insights: [] })), getJSON('/api/hydration' + q).catch(() => null),
+    getJSON('/api/fuel').catch(() => null),
+  ]);
+  Object.assign(S, { plan, progress, readiness, insights: insights.insights, hydration, fuelToday });
+  renderHeader(); renderReady(readiness); renderSession();
+  S.fuelNext = S.focus && S.focus.date !== progress.today ? await getJSON(`/api/fuel?date=${S.focus.date}`).catch(() => null) : null;
+  renderFuel(); renderLast(); renderWeek(); renderTodayFlags();
+}
+
+/* ---------- PROGRESS ---------- */
+function tierMeter(pred) {
+  const W = $('p-outlook').clientWidth || 340, H = 78, m = { l: 10, r: 10 };
+  const lo = 3.5 * 3600, hi = 5 * 3600, x = (s) => m.l + ((Math.max(lo, Math.min(hi, s)) - lo) / (hi - lo)) * (W - m.l - m.r);
+  const marks = [
+    { s: 4 * 3600, label: 'Stretch 4:00' }, { s: 4 * 3600 + 35 * 60, label: 'Primary 4:35' }, { s: 4 * 3600 + 45 * 60, label: 'Floor 4:45' },
+  ];
+  let g = `<line class="base" x1="${m.l}" x2="${W - m.r}" y1="40" y2="40"/>`;
+  marks.forEach((mk, i) => { g += `<line class="base" x1="${x(mk.s)}" x2="${x(mk.s)}" y1="34" y2="46"/><text class="ax" x="${x(mk.s)}" y="${i === 1 ? 62 : 62}" text-anchor="${i === 2 ? 'start' : i === 1 ? 'end' : 'middle'}">${mk.label}</text>`; });
+  g += `<text class="ax" x="${m.l}" y="${H - 2}">Faster</text><text class="ax" x="${W - m.r}" y="${H - 2}" text-anchor="end">Slower</text>`;
+  if (pred) g += `<circle cx="${x(pred)}" cy="40" r="7" style="fill:var(--brand);stroke:var(--surface);stroke-width:2"/><text class="ax-b" x="${x(pred)}" y="22" text-anchor="middle">You, now</text>`;
+  return `<svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Predicted finish against the goal tiers">${g}</svg>`;
+}
+
+function renderOutlook() {
+  const p = S.progress.prediction, heat = S.heat, el = $('p-outlook');
+  if (!p.available) {
+    el.innerHTML = `<div class="eyebrow">Race outlook</div><div class="hero">&ndash;</div><p class="lede">${esc(p.message)}</p>`;
+    return;
   }
+  const conf = p.sampleSize < 3 ? `From ${p.sampleSize} marathon-pace session${p.sampleSize > 1 ? 's' : ''} &mdash; treat it as a direction, not a promise, until there are 3.` : `Recency-weighted from your last ${p.sampleSize} marathon-pace sessions.`;
+  const ff = p.fadeForecast;
+  el.innerHTML = `<div class="eyebrow">Race outlook &middot; Sun 15 Nov</div>
+    <div class="hero num">${esc(p.avgPredictedLabel)}</div>
+    <p class="lede" style="margin:0 0 4px;">Predicted finish if race-day pace matches your recent marathon-pace work. ${conf}</p>
+    <div class="card" style="margin-top:12px;padding:8px 14px 10px;">${tierMeter(p.avgPredictedSec)}</div>
+    <div class="stats" style="margin-top:14px;">
+      <div class="stat"><div class="l">Likely range</div><div class="v num" style="font-size:17px;">${p.range?.available ? `${esc(p.range.lowLabel)}–${esc(p.range.highLabel)}` : '–'}</div><div class="s">${p.range?.available ? 'from session-to-session spread' : 'needs 2+ sessions'}</div></div>
+      <div class="stat"><div class="l">With your long-run fade</div><div class="v num" style="font-size:17px;">${ff?.available ? esc(ff.forecastFinishLabel) : '–'}</div><div class="s">${ff?.available ? (ff.appliedFadePenaltySecPerKm > 0 ? `${ff.avgFadeSecPerKm} s/km second-half fade` : 'no fade so far') : 'needs a long run'}</div></div>
+    </div>
+    ${heat ? `<p class="small muted" style="margin:12px 0 0;">Heat: at ${heat.tempC}&nbsp;°C your goal times need ${heat.penaltyPct > 0 ? `+${heat.penaltyPct}%` : 'no adjustment'} &mdash; your two finishes at ${heat.personalHistory.map((h) => `${h.avgTempC}°C`).join(' and ')} already set that baseline.</p>` : ''}`;
 }
 
-$('heat-recalc-btn').addEventListener('click', () => {
-  loadHeatPace(parseFloat($('heat-temp').value), parseFloat($('heat-humidity').value));
+function renderExecution() {
+  const rows = S.progress.rows.filter((r) => (r.status === 'done' || r.status === 'partial') && r.actualPace != null);
+  const pts = rows.map((r) => { const s = sessionFor(r.date); return { date: r.actualDate || r.date, group: GROUP[r.kind], dev: effortDev(r) ?? 0, label: r.label, pace: r.actualPaceLabel, zone: s ? `${s.paceHi}–${s.paceLo}` : '' }; })
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const judged = rows.filter((r) => r.inZone != null), inZone = judged.filter((r) => r.inZone).length;
+  const hr = S.analysis.avgHrByKind || {}, easy = hr.easy, hard = hr.mp ?? hr.tempo;
+  const gap = easy != null && hard != null ? Math.round(hard - easy) : null;
+  const gapCls = gap == null ? 'none' : gap >= 20 ? 'good' : gap >= 12 ? 'warn' : 'crit';
+  $('p-exec-stats').innerHTML = `
+    <div class="stat"><div class="l">Runs inside their zone</div><div class="v num">${judged.length ? Math.round((100 * inZone) / judged.length) : '–'}<small>%</small></div><div class="s">${inZone} of ${judged.length} runs</div></div>
+    <div class="stat"><div class="l">Easy vs. hard heart rate</div><div class="v num">${gap ?? '–'}<small>bpm apart</small></div><div class="s"><span class="dot ${gapCls}"></span> ${gap == null ? 'needs both run types' : `easy ${Math.round(easy)} · hard ${Math.round(hard)} · aim for 20+`}</div></div>`;
+  registerChart($('p-pace-chart'), () => drawPaceDots($('p-pace-chart'), pts));
+}
+
+function renderAllFlags() {
+  const list = (S.insights || []);
+  $('p-flags').innerHTML = list.length ? list.map((i) => flagHtml(i)).join('') : '<p class="loading">Nothing flagged.</p>';
+}
+
+function renderVolume() {
+  const weeks = S.analysis.weekly, wk = curWeek(), rows = S.progress.rows;
+  const cur = weeks.find((w) => w.week === wk) || {};
+  const longs = rows.filter((r) => r.kind === 'long');
+  const longest = Math.max(0, ...longs.filter((r) => r.actualKm != null).map((r) => r.actualKm));
+  const peak = Math.max(...longs.map((r) => r.plannedKm));
+  const kpis = S.plan.plannedKpis || [], idx = kpis.findIndex((k) => k.week === wk), next = kpis[idx + 1];
+  $('p-vol-stats').innerHTML = `
+    <div class="stat"><div class="l">This week</div><div class="v num">${fmtKm(cur.actualKm ?? 0)}<small>of ${fmtKm(cur.plannedKm)} km</small></div></div>
+    <div class="stat"><div class="l">Longest run so far</div><div class="v num">${fmtKm(longest)}<small>km</small></div><div class="s">peak long run is ${fmtKm(peak)} km</div></div>
+    <div class="stat"><div class="l">Next week</div><div class="v num">${next ? fmtKm(next.plannedKm) : '–'}<small>km</small></div><div class="s">${next && next.rampPct != null ? `<span class="dot ${next.rampFlag ? 'warn' : 'good'}"></span> ${next.rampPct > 0 ? '+' : ''}${next.rampPct}% vs this week` : ''}</div></div>`;
+  registerChart($('p-vol-chart'), () => drawVolume($('p-vol-chart'), weeks, wk));
+}
+
+let raceTier = null;
+function renderRace() {
+  const rp = S.racePlan, el = $('p-race');
+  const tiers = [['floor', 'Floor 4:45'], ['primary', 'Primary 4:35'], ['stretch', 'Stretch 4:00']];
+  const shoe = (S.gear?.shoes || []).find((s) => s.raceProjection?.isRaceShoe);
+  const f = rp.fuel, pc = rp.pacing;
+  const activeName = (tiers.find(([k]) => k === rp.activeTier) || [])[1];
+  el.innerHTML = `<div class="seg" role="group" aria-label="Goal">${tiers.map(([k, l]) => `<button type="button" data-tier="${k}" aria-pressed="${rp.tier === k}">${l}</button>`).join('')}</div>
+    <p class="small muted" style="margin:10px 0 14px;">Goal pace <b class="num" style="color:var(--ink)">${esc(pc.goalPaceLabel)}/km</b> &middot; halfway in ${esc(pc.halfwayLabel)} &middot; race-morning ${rp.tempC}&nbsp;°C${rp.heatPenaltyPct ? ` (+${rp.heatPenaltyPct}% heat adjustment)` : ''}${activeName ? ` &middot; you&rsquo;re training on ${esc(activeName.split(' ')[0])} paces` : ''}</p>
+    <details class="acc" open><summary>Pacing <span class="sub">start slower than it feels</span></summary><div class="body">
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Km</th><th>Pace</th><th>Clock at end</th></tr></thead><tbody>
+      ${pc.segments.map((sg) => `<tr><td>${sg.fromKm}–${sg.toKm}</td><td><b>${esc(sg.paceLabel)}</b></td><td>${esc(sg.elapsedAtEndLabel)}</td></tr><tr><td colspan="3" class="small muted" style="padding-top:0;">${esc(sg.cue)}</td></tr>`).join('')}
+      </tbody></table></div></div></details>
+    <details class="acc"><summary>Race fuel <span class="sub">${f.gelCount} gels</span></summary><div class="body">
+      <div class="stats s3" style="margin-bottom:12px;">
+        <div class="stat"><div class="l">Carbs</div><div class="v num" style="font-size:17px;">${f.carbsPerHour[0]}–${f.carbsPerHour[1]}<small>g/h</small></div></div>
+        <div class="stat"><div class="l">Fluid</div><div class="v num" style="font-size:17px;">${f.fluidMlPerHour[0]}–${f.fluidMlPerHour[1]}<small>ml/h</small></div></div>
+        <div class="stat"><div class="l">Sodium</div><div class="v num" style="font-size:17px;">${f.sodiumMgPerHour[0]}–${f.sodiumMgPerHour[1]}<small>mg/h</small></div></div>
+      </div>
+      <div class="rows">${f.gels.map((gl, i) => `<div class="row"><span class="chip num">Gel ${i + 1}</span><div class="grow">${fmtDur(gl.minute)} in</div><div class="r">~km ${gl.km}</div></div>`).join('')}</div>
+      <p class="small muted" style="margin:10px 0 0;">${esc(f.fluidNote)}</p>
+      <ul class="small" style="margin:8px 0 0;padding-left:18px;">${f.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+    </div></details>
+    <details class="acc"><summary>Race week eating <span class="sub">${rp.carbLoad.carbsG[0]}–${rp.carbLoad.carbsG[1]} g/day</span></summary><div class="body">
+      <p style="margin:0 0 8px;">${esc(rp.carbLoad.text)}</p><p style="margin:0;">${esc(rp.raceMorning.text)}</p>
+    </div></details>
+    <details class="acc"><summary>Race-day conditions</summary><div class="body">
+      <p class="small muted" style="margin:0 0 10px;">Change these to the forecast in race week &mdash; pacing and fluid update to match.</p>
+      <form id="heat-form" class="form-grid" style="align-items:end;">
+        <div><label class="f" for="race-temp">Temperature °C</label><input id="race-temp" type="number" step="0.5" value="${rp.tempC}"></div>
+        <div><label class="f" for="race-hum">Humidity %</label><input id="race-hum" type="number" step="1" value="${rp.humidityPct}"></div>
+        <button class="btn secondary" type="submit" style="grid-column:1/-1;">Update plan</button>
+      </form>
+      ${shoe ? `<div class="sep"></div><p style="margin:0;"><b>Race shoes:</b> ${esc(shoe.model || shoe.name)} &middot; ${fmtKm(shoe.totalKm)} km. ${esc(shoe.raceProjection.note || '')}</p>` : ''}
+    </div></details>`;
+  el.querySelectorAll('[data-tier]').forEach((b) => b.addEventListener('click', () => loadRacePlan(b.dataset.tier)));
+  $('heat-form').addEventListener('submit', (e) => { e.preventDefault(); loadRacePlan(rp.tier, $('race-temp').value, $('race-hum').value); });
+}
+
+async function loadRacePlan(tier, tempC, humidity) {
+  const q = new URLSearchParams();
+  if (tier) q.set('tier', tier);
+  if (tempC) q.set('tempC', tempC);
+  if (humidity) q.set('humidity', humidity);
+  const sweat = localStorage.getItem('sweatRate');
+  if (sweat) q.set('sweatRate', sweat);
+  try { S.racePlan = await getJSON('/api/race-plan?' + q.toString()); renderRace(); renderHistoryChart(); }
+  catch (e) { $('p-race').innerHTML = `<p class="err">Couldn't build the race plan: ${esc(e.message)}</p>`; }
+}
+
+function renderHistoryChart() {
+  const races = (S.history?.races || []).filter((r) => r.splits && r.splits.length > 10);
+  const el = $('p-history-chart');
+  if (!races.length) { el.innerHTML = '<p class="loading">No earlier race data.</p>'; return; }
+  const target = S.racePlan ? toSec(S.racePlan.pacing.goalPaceLabel) : null;
+  registerChart(el, () => drawRacePacing(el, races, target));
+  const cyc = S.history.cycleProfiles || [];
+  const fades = races.map((r) => `${r.date.slice(0, 4)}: faded ${Math.round(r.pacing?.fadeSecPerKm || 0)} s/km after halfway`).join(' · ');
+  $('p-cycles').innerHTML = `<p class="small muted" style="margin:0 0 10px;">${esc(fades)}</p>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Training block</th><th>Avg km/week</th><th>Longest run</th></tr></thead><tbody>
+    ${cyc.map((c) => `<tr><td>${esc(c.label)}</td><td>${fmtKm(c.avgKmPerWeek)}</td><td>${fmtKm(c.longestKm)} km</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function renderPlan() {
+  const wk = curWeek(), rowsBy = {};
+  S.progress.rows.forEach((r) => { (rowsBy[r.week] = rowsBy[r.week] || []).push(r); });
+  const word = { done: 'Done', partial: 'Partial', missed: 'Missed', today: 'Today', upcoming: '' };
+  const icon = { done: 'good', partial: 'warn', missed: 'crit', today: 'today', upcoming: 'ring' };
+  $('p-plan').innerHTML = Object.keys(rowsBy).map((w) => {
+    const rows = rowsBy[w], planned = rows.reduce((a, r) => a + r.plannedKm, 0);
+    return `<details class="acc"${w === wk ? ' open' : ''}><summary><span>${esc(w)} <span class="sub">&middot; ${esc(PHASE[w] || '')}</span></span><span class="sub num">${fmtKm(planned)} km</span></summary><div class="body"><div class="rows">
+      ${rows.map((r) => { const s = sessionFor(r.date) || {}; return `<div class="row"><span class="dot ${icon[r.status]}" title="${word[r.status]}"></span>
+        <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))} &middot; ${esc(s.paceHi)}–${esc(s.paceLo)}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
+        <div class="r">${r.actualKm != null ? `${fmtKm(r.actualKm)} km<br><span class="small muted">${esc(r.actualPaceLabel || '')}</span>` : `${fmtKm(r.plannedKm)} km`}</div></div>`; }).join('')}
+    </div></div></details>`;
+  }).join('');
+}
+
+async function loadProgress(force) {
+  const q = force ? '?refresh=1' : '';
+  const [analysis, heat, gear] = await Promise.all([
+    getJSON('/api/analysis' + q), getJSON('/api/heat-pace').catch(() => null), getJSON('/api/gear' + q).catch(() => null),
+  ]);
+  Object.assign(S, { analysis, heat, gear });
+  renderOutlook(); renderExecution(); renderAllFlags(); renderVolume(); renderPlan();
+  await loadRacePlan(raceTier);
+  getJSON('/api/history' + q).then((h) => { S.history = h; renderHistoryChart(); })
+    .catch((e) => { $('p-history-chart').innerHTML = `<p class="err">Couldn't load race history: ${esc(e.message)}</p>`; });
+}
+
+/* ---------- BODY ---------- */
+function renderSleep() {
+  const d = S.sleep, sm = d.summary || {}, last14 = (d.entries || []).slice(-14);
+  $('b-sleep-stats').innerHTML = `
+    <div class="stat"><div class="l">Last night</div><div class="v num">${sm.latestHours ?? '–'}<small>h</small></div><div class="s"><span class="dot ${sm.latestHours == null ? 'none' : sm.latestHours >= 7 ? 'good' : sm.latestHours >= 6 ? 'warn' : 'crit'}"></span> ${sm.latestHours == null ? '' : sm.latestHours >= 7 ? 'enough' : sm.latestHours >= 6 ? 'a bit short' : 'short'}</div></div>
+    <div class="stat"><div class="l">Average</div><div class="v num">${sm.avgHours ?? '–'}<small>h</small></div><div class="s">last ${sm.nightsLogged ?? 0} nights</div></div>
+    <div class="stat"><div class="l">Short nights</div><div class="v num">${sm.shortNights ?? '–'}</div><div class="s">under 6 h</div></div>
+    <div class="stat"><div class="l">Resting HR</div><div class="v num">${sm.avgRestingHr ?? '–'}<small>bpm</small></div><div class="s">average</div></div>`;
+  if (last14.length) registerChart($('b-sleep-chart'), () => drawSleep($('b-sleep-chart'), last14));
+  else $('b-sleep-chart').innerHTML = '<p class="loading">No sleep data.</p>';
+}
+
+function renderWeight() {
+  const d = S.weight, t = d.trend || {}, e = d.entries || [];
+  if (!e.length) { $('b-weight').innerHTML = '<p class="muted" style="margin:0;">No weigh-ins yet. Log one below &mdash; fueling targets scale to it.</p>'; return; }
+  const first = e[0], change = Math.round((t.latestKg - first.weightKg) * 10) / 10;
+  $('b-weight').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div class="stat"><div class="l">Latest &middot; ${esc(fmtShort(t.latestDate))}</div><div class="v num">${fmtKm(t.latestKg)}<small>kg</small></div>
+      <div class="s">${t.perWeekKg != null ? `${t.perWeekKg > 0 ? '+' : ''}${t.perWeekKg} kg/week trend` : `${change > 0 ? '+' : ''}${change} kg since ${esc(fmtShort(first.date))} &middot; a trend needs a week of weigh-ins`}</div></div>
+    ${sparkline(e.map((x) => x.weightKg))}</div>`;
+}
+
+function renderEating() {
+  const f = S.fuelToday;
+  if (!f) { $('b-eat').innerHTML = ''; return; }
+  $('b-eat-lede').textContent = `Daily targets scaled to ${fmtKm(f.weightKg)} kg. Protein stays at ${f.proteinG[0]}–${f.proteinG[1]} g every day.`;
+  $('b-eat').innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Day</th><th>Carbs</th><th>How it looks</th></tr></thead><tbody>
+    ${f.dayTypes.map((d) => `<tr${d.dayType === f.dayType ? ' style="font-weight:600"' : ''}><td style="white-space:nowrap;">${esc(d.label)}${d.dayType === f.dayType ? ' <span class="chip">Today</span>' : ''}</td><td class="num" style="white-space:nowrap;">${d.carbsG[0]}–${d.carbsG[1]} g</td><td style="font-weight:400;">${esc(d.plate)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="small muted" style="margin:10px 0 0;">Carbs: rice, sticky rice, noodles, bread, oats, bananas, potatoes. Protein: chicken, eggs, Greek yogurt, milk, tofu, paneer, lentils.</p>`;
+}
+
+function renderShoes() {
+  const shoes = (S.gear?.shoes || []).filter((s) => s.name !== 'Bare');
+  $('b-shoes').innerHTML = shoes.length ? `<div class="rows">${shoes.map((s) => {
+    const p = s.raceProjection || {}, cls = { sweet_spot: 'good', training_shoe_ok: 'good', still_breaking_in: 'warn', past_sweet_spot: 'warn', nearing_retirement: 'warn', over_retirement: 'crit' }[p.verdict] || 'none';
+    const word = { sweet_spot: 'Race-ready', training_shoe_ok: 'OK', still_breaking_in: 'Breaking in', past_sweet_spot: 'Past its best', nearing_retirement: 'Nearly worn out', over_retirement: 'Retire' }[p.verdict] || '';
+    return `<div class="row"><span class="dot ${cls}"></span><div class="grow"><div class="t">${esc(s.model || s.name)}${p.isRaceShoe ? ' <span class="chip">Race day</span>' : ''}</div><div class="d">${esc(p.note || '')}</div></div><div class="r">${fmtKm(s.totalKm)} km<br><span class="small muted">${esc(word)}</span></div></div>`;
+  }).join('')}</div>` : '<p class="loading">No shoes in Garmin Gear.</p>';
+}
+
+async function loadBody(force) {
+  const q = force ? '?refresh=1' : '';
+  const [sleep, weight, gear] = await Promise.all([
+    getJSON('/api/sleep' + q), getJSON('/api/weight' + q), S.gear ? Promise.resolve(S.gear) : getJSON('/api/gear' + q).catch(() => null),
+  ]);
+  Object.assign(S, { sleep, weight, gear });
+  renderSleep(); renderWeight(); renderEating(); renderShoes();
+}
+
+$('weight-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('weight-msg');
+  msg.className = 'small'; msg.textContent = 'Logging…';
+  try {
+    await postJSON('/api/weight', { weight: parseFloat($('weight-input').value), date: $('weight-date').value || null });
+    S.weight = await getJSON('/api/weight?refresh=1');
+    renderWeight(); msg.textContent = 'Logged to Garmin Connect.';
+  } catch (err) { msg.className = 'small err'; msg.textContent = `Couldn't log weight: ${err.message}`; }
 });
 
-async function enterApp(forceRefresh) {
-  $('login-view').style.display = 'none';
-  $('app-view').style.display = 'block';
-  const q = forceRefresh ? '?refresh=1' : '';
+$('sweat-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const out = $('sweat-result');
   try {
-    const [plan, progress, analysis] = await Promise.all([
-      getJSON('/api/plan'), getJSON('/api/progress' + q), getJSON('/api/analysis' + q),
-    ]);
-    window.__plan = plan;
-    window.__progress = progress;
-    window.__analysis = analysis;
-    renderTicker(progress);
-    renderTiles(progress);
-    renderPredictionPill(progress.prediction);
-    renderPredictionBody(progress.prediction);
-    renderPredictionRange(progress.prediction.range);
-    renderFadeForecast(progress.prediction.fadeForecast);
-    renderKpis(plan, progress, analysis);
-    renderDistanceHero(progress.rows);
-    renderThisWeek(progress);
-    renderWeeks(plan, progress);
-    renderVolumeChart(analysis.weekly);
-    renderPaceChart(analysis.paceHistory, analysis.prediction);
-    $('freshness-label').textContent = progress.cacheAgeSec != null
-      ? `data pulled ${Math.round(progress.cacheAgeSec)}s ago (cached ${progress.cacheTtlSec}s)`
-      : 'pulled just now';
+    const r = await postJSON('/api/sweat-rate', { preKg: parseFloat($('sweat-pre').value), postKg: parseFloat($('sweat-post').value), fluidMl: parseFloat($('sweat-fluid').value) || 0, durationMin: parseFloat($('sweat-min').value) });
+    if (r.sweatRateLPerHr > 0) localStorage.setItem('sweatRate', r.sweatRateLPerHr);
+    out.innerHTML = `<div class="sep"></div><div class="stats s3">
+      <div class="stat"><div class="l">Sweat rate</div><div class="v num">${r.sweatRateLPerHr}<small>L/h</small></div></div>
+      <div class="stat"><div class="l">Fluid lost</div><div class="v num">${r.sweatLossL}<small>L</small></div></div>
+      <div class="stat"><div class="l">Sodium lost</div><div class="v num">${r.sodiumLossMg}<small>mg</small></div><div class="s">estimate</div></div></div>
+      <p style="margin:12px 0 0;"><b style="text-transform:capitalize;">${esc(r.tier)} sweater.</b> ${esc(r.guidance)}</p>
+      <p class="small muted" style="margin:6px 0 0;">Saved on this device &mdash; the race plan&rsquo;s fluid numbers now use it.</p>`;
+    S.racePlan = null;
+  } catch (err) { out.innerHTML = `<p class="err" style="margin:12px 0 0;">${esc(err.message)}</p>`; }
+});
 
+$('signout-btn').addEventListener('click', async () => { await postJSON('/api/logout', {}); location.reload(); });
+
+/* ---------- tabs & boot ---------- */
+const loaded = {};
+const loaders = { today: loadToday, progress: loadProgress, body: loadBody };
+async function showTab(name, force = false) {
+  document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  document.querySelectorAll('section.view').forEach((s) => { s.hidden = s.id !== `view-${name}`; });
+  if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  charts.forEach((c) => c.el.offsetParent && c.draw());
+  if (!loaded[name] || force) {
+    loaded[name] = true;
     try {
-      const insightsResp = await getJSON('/api/insights' + q);
-      renderInsights(insightsResp.insights, insightsResp.cacheAgeSec);
-      renderInsightSpotlight(insightsResp.insights);
+      if (name !== 'today' && !S.progress) await loadToday(force);
+      await loaders[name](force);
     } catch (e) {
-      $('insights-feed').innerHTML = `<p style="font-size:13px;color:#fff;opacity:.85;">Couldn't load insights: ${e.message}</p>`;
+      loaded[name] = false;
+      if (e.message !== 'locked') $(`view-${name}`).insertAdjacentHTML('afterbegin', `<p class="err">Couldn't load from Garmin: ${esc(e.message)}</p>`);
     }
-
-    try {
-      const readiness = await getJSON('/api/readiness' + q);
-      renderReadiness(readiness);
-    } catch (e) {
-      $('readiness-section').innerHTML = '';
-    }
-
-    loadHeatPace();
-    loadGear(forceRefresh);
-    loadFitnessSnapshot(forceRefresh);
-
-    try {
-      const history = await getJSON('/api/history' + q);
-      renderHistorySection(history, analysis.weekly.map(w => ({ week: w.week, plannedKm: w.plannedKm })));
-      renderPatternSection(history);
-    } catch (e) {
-      $('reality-section').style.display = 'none';
-      $('pattern-section').style.display = 'none';
-    }
-  } catch (e) {
-    $('app-view').innerHTML = `<div class="card">Couldn't load data from Garmin Connect: ${e.message}</div>`;
   }
+}
+document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.addEventListener('click', () => { showTab(b.dataset.tab); window.scrollTo({ top: 0 }); }));
+
+$('refresh-btn').addEventListener('click', async () => {
+  const btn = $('refresh-btn'); btn.classList.add('spin'); btn.disabled = true;
+  const current = document.querySelector('nav.tabs [aria-selected=true]').dataset.tab;
+  Object.keys(loaded).forEach((k) => { loaded[k] = false; });
+  try { await showTab(current, true); } finally { btn.classList.remove('spin'); btn.disabled = false; }
+});
+
+/* ---------- Garmin connection ---------- */
+let pollTimer = null;
+function showConnect(state) {
+  $('app-view').hidden = true; $('connect-view').hidden = false;
+  const busy = state.status === 'logging_in', mfa = state.status === 'awaiting_mfa';
+  $('connect-busy').hidden = !busy;
+  $('mfa-form').hidden = !mfa;
+  if (mfa || busy) { $('login-form').hidden = true; $('owner-btn').hidden = true; }
+  const err = $('connect-error');
+  err.hidden = !state.error; err.textContent = state.error || '';
+}
+async function poll() {
+  const st = await getJSON('/api/session');
+  if (st.status === 'logged_in') { clearInterval(pollTimer); pollTimer = null; enterApp(st); return; }
+  if (st.status === 'error') { clearInterval(pollTimer); pollTimer = null; $('owner-btn').hidden = true; $('login-form').hidden = false; }
+  showConnect(st);
+}
+$('owner-btn').addEventListener('click', () => { $('owner-btn').hidden = true; $('login-form').hidden = false; $('email').focus(); });
+$('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('login-btn').disabled = true;
+  await postJSON('/api/login', { email: $('email').value, password: $('password').value });
+  if (!pollTimer) pollTimer = setInterval(poll, 1200);
+});
+$('mfa-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await postJSON('/api/mfa', { code: $('mfa').value });
+  if (!pollTimer) pollTimer = setInterval(poll, 1200);
+});
+
+function enterApp(state) {
+  $('connect-view').hidden = true; $('app-view').hidden = false;
+  $('lock-form').hidden = !state.gateEnabled;
+  $('weight-date').valueAsDate = new Date();
+  const start = ['today', 'progress', 'body'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'today';
+  showTab(start);
 }
 
 (async function init() {
-  const state = await getJSON('/api/session');
-  if (state.status === 'logged_in') {
-    enterApp();
-  } else {
-    showLogin(state);
+  try {
+    const st = await getJSON('/api/session');
+    if (st.status === 'logged_in') enterApp(st); else showConnect(st);
+  } catch (e) {
+    if (e.message !== 'locked') { showConnect({ status: 'error', error: e.message }); }
   }
 })();
 </script>
