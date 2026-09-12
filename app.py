@@ -16,9 +16,7 @@ README.md). Leave it unset for local use and nothing changes.
 import hmac
 import os
 import secrets
-import threading
 import time
-import urllib.request
 from datetime import date, datetime
 
 from flask import Flask, Response, jsonify, redirect, render_template, request
@@ -641,33 +639,6 @@ def api_history():
 
 
 session.try_cached_login()  # runs on import too, so gunicorn (which never hits __main__) still restores the session
-
-
-def _start_keep_awake(interval_sec: int = 10 * 60) -> None:
-    """Stops Render's free plan from putting the app to sleep.
-
-    Render sleeps a free service after 15 minutes with no inbound traffic, and
-    the next visitor gets its "waking up" page for up to a minute. A request to
-    our own public URL goes out through Render's proxy, so it counts as
-    traffic. RENDER_EXTERNAL_URL is set by Render itself; locally it's unset
-    and this does nothing.
-    """
-    base = os.environ.get("RENDER_EXTERNAL_URL")
-    if not base:
-        return
-
-    def ping_forever() -> None:
-        while True:
-            time.sleep(interval_sec)
-            try:
-                urllib.request.urlopen(f"{base}/healthz", timeout=30).read()
-            except Exception:
-                pass  # a missed ping is harmless; the next one is 10 minutes away
-
-    threading.Thread(target=ping_forever, name="keep-awake", daemon=True).start()
-
-
-_start_keep_awake()
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False)

@@ -192,12 +192,6 @@ a second copy (e.g. locally) from the *same* saved token — the two will
 invalidate each other. A separate owner sign-in on each machine gives each
 its own independent session.
 
-On Render's free plan the app pings its own `/healthz` every 10 minutes
-(using `RENDER_EXTERNAL_URL`, which Render sets), so it never goes to sleep
-and visitors never see Render's "waking up" page. Staying awake uses about
-744 of the 750 free instance hours a month, so keep this the only free
-service on the account.
-
 ## Assumptions to check
 
 - `plan_data.py` holds three pace tiers derived from real Garmin history on
