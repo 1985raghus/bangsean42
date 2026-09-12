@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b1020">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bangsaen">
 <title>Bangsaen Training</title>
@@ -12,28 +11,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
+  /* Dark only, by the owner's choice: the same look on every phone and laptop,
+     whatever the device's own light/dark setting is. */
   :root {
-    color-scheme: light;
-    --brand: #1652f0; --brand-deep: #0b35b8; --brand-text: #1652f0;
-    --page: #eef1f8; --surface: #ffffff; --surface-2: #f1f3f9;
-    --ink: #0c1222; --ink-2: #4a5169; --muted: #858ba0;
-    --hair: rgba(12, 18, 34, .08); --grid: #e6e8ef; --axis: #c5c9d6; --planned: #d3d7e3;
-    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
-    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b; --good-text: #006300;
-    --shadow: 0 1px 2px rgba(12, 18, 34, .05), 0 12px 32px -16px rgba(22, 82, 240, .28);
+    color-scheme: dark;
+    --brand: #1f5cff; --brand-deep: #0a2a8f; --brand-text: #8fb0ff;
+    --page: #0b1020; --surface: #151b2e; --surface-2: #1e2540;
+    --ink: #ffffff; --ink-2: #b9c0d6; --muted: #7f88a6;
+    --hair: rgba(255, 255, 255, .08); --grid: #242c47; --axis: #333c5c; --planned: #3b4466;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b; --good-text: #0ca30c;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 14px 34px -20px rgba(0, 0, 0, .7);
     --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --display: "Anton", Impact, "Arial Narrow", sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
-      --brand: #1f5cff; --brand-deep: #0a2a8f; --brand-text: #8fb0ff;
-      --page: #0b1020; --surface: #151b2e; --surface-2: #1e2540;
-      --ink: #ffffff; --ink-2: #b9c0d6; --muted: #7f88a6;
-      --hair: rgba(255, 255, 255, .08); --grid: #242c47; --axis: #333c5c; --planned: #3b4466;
-      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --good-text: #0ca30c;
-      --shadow: 0 0 0 1px rgba(255, 255, 255, .06);
-    }
   }
   [hidden] { display: none !important; }
   * { box-sizing: border-box; }
@@ -204,9 +194,77 @@
   .connect-page { min-height: 100vh; padding: calc(40px + env(safe-area-inset-top)) 16px 40px; background: radial-gradient(120% 160% at 100% 0%, #4a86ff 0%, var(--brand) 42%, var(--brand-deep) 100%); }
   .connect { max-width: 400px; margin: 0 auto; background: var(--surface); border-radius: 20px; padding: 26px 22px; box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .45); }
   .connect .stack { display: grid; gap: 12px; margin-top: 16px; }
+
+  /* plan week completion */
+  .wk-sum { flex: 1; min-width: 0; }
+  .wk-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .wk-meter { height: 6px; border-radius: 999px; background: var(--surface-2); margin: 8px 0 4px; overflow: hidden; }
+  .wk-meter > i { display: block; height: 100%; border-radius: 999px; }
+
+  /* gear */
+  .shoe-track { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); margin: 20px 0 8px; }
+  .shoe-track > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--brand), #4a86ff); }
+  .shoe-track .mk { position: absolute; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: var(--ink-2); border-radius: 2px; }
+  .shoe-track .proj { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 2px var(--brand-text); }
+  label.kit { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 11px 0; border-bottom: 1px solid var(--hair); font-size: 14.5px; cursor: pointer; }
+  label.kit input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--brand); }
+  label.kit input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+  /* readiness severity tints the whole panel, not just the dot */
+  .ready.warn { background: rgba(250, 178, 25, .20); box-shadow: inset 0 0 0 1px rgba(250, 178, 25, .45); }
+  .ready.crit { background: rgba(208, 59, 59, .30); box-shadow: inset 0 0 0 1px rgba(255, 107, 107, .55); }
+  .synced { font-size: 12px; color: rgba(255, 255, 255, .72); margin-top: 8px; }
+  .stat .v .pending { font-family: var(--font); font-size: 15px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+
+  /* progress: jump chips */
+  .jump { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: -12px -16px 16px; padding: 10px 16px; background: color-mix(in srgb, var(--page) 86%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .jump::-webkit-scrollbar { display: none; }
+  .jump button { flex: none; min-height: 40px; padding: 8px 14px; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 700; cursor: pointer; }
+  .view .block { scroll-margin-top: 66px; }
+
+  /* toast */
+  .toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 40; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; padding: 10px 18px; border-radius: 999px; background: #fff; color: #0b1020; font-size: 14px; font-weight: 700; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .6); transition: opacity .2s, transform .2s; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (min-width: 900px) { .toast { bottom: 28px; } }
+
+  /* boot screen: a runner crosses the course as the real data arrives */
+  .boot { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: radial-gradient(90% 60% at 100% 0%, #3b72ff 0%, var(--brand) 30%, var(--brand-deep) 60%, var(--page) 100%); transition: opacity .4s; }
+  .boot.done { opacity: 0; pointer-events: none; }
+  .boot-inner { width: 100%; max-width: 360px; color: #fff; }
+  .boot-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(255, 255, 255, .8); }
+  .boot-title { font-family: var(--display); font-size: 52px; line-height: 1; text-transform: uppercase; margin: 6px 0 40px; }
+  .course { position: relative; padding-top: 44px; }
+  .course-line { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+  .course-line > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #8fb0ff, #fff); transition: width .5s ease; }
+  .runner { position: absolute; top: 0; left: 0; width: 40px; height: 40px; margin-left: -20px; transition: left .5s ease; }
+  .runner svg { width: 40px; height: 40px; fill: #fff; transform-origin: 50% 100%; animation: stride .38s ease-in-out infinite alternate; }
+  @keyframes stride { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-6px) rotate(3deg); } }
+  .speed { position: absolute; right: 36px; top: 12px; display: grid; gap: 4px; }
+  .speed i { display: block; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, .75); animation: whoosh .6s linear infinite; }
+  .speed i:nth-child(1) { width: 14px; } .speed i:nth-child(2) { width: 22px; animation-delay: .2s; } .speed i:nth-child(3) { width: 10px; animation-delay: .4s; }
+  @keyframes whoosh { from { opacity: 0; transform: translateX(8px); } 50% { opacity: 1; } to { opacity: 0; transform: translateX(-12px); } }
+  .course-marks { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .75); font-variant-numeric: tabular-nums; }
+  .boot-msg { margin-top: 28px; min-height: 24px; font-size: 15px; font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) { .runner svg, .speed i { animation: none; } .runner, .course-line > i { transition: none; } }
 </style>
 </head>
 <body>
+
+<div id="boot" class="boot" role="status" aria-label="Loading your training data">
+  <div class="boot-inner">
+    <div class="boot-eyebrow">Bangsaen Marathon &middot; Nov 15</div>
+    <div class="boot-title">Training HQ</div>
+    <div class="course">
+      <div class="course-line"><i id="boot-fill"></i></div>
+      <div class="runner" id="boot-runner">
+        <span class="speed" aria-hidden="true"><i></i><i></i><i></i></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>
+      </div>
+      <div class="course-marks"><span>Start</span><span id="boot-km">0.0 km</span><span>42.2 km</span></div>
+    </div>
+    <div class="boot-msg" id="boot-msg">Lacing up&hellip;</div>
+  </div>
+</div>
 
 <main id="connect-view" class="connect-page" hidden>
   <div class="connect">
@@ -242,6 +300,7 @@
         </button>
       </div>
       <div id="t-ready" class="band-loading">Checking readiness&hellip;</div>
+      <div id="synced" class="synced"></div>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-tab="today" aria-selected="true">
@@ -255,6 +314,10 @@
     <button role="tab" data-tab="body" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 5.6a5.4 5.4 0 0 0-7.7 0L12 6.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 22l8.8-8.7a5.4 5.4 0 0 0 0-7.7z"/></svg>
       Body
+    </button>
+    <button role="tab" data-tab="gear" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 17v-4.5l4-1 3-3.5h3.5l2.5 4 5 1.3a2.5 2.5 0 0 1 2 2.4V17z"/><path d="M2 17v2h20v-2"/><path d="M10.5 11.5l1.5-1M12.5 13l1.5-1"/></svg>
+      Gear
     </button>
   </nav>
     </div>
@@ -272,37 +335,40 @@
 
   <!-- PROGRESS: am I on track for race day -->
   <section class="view" id="view-progress" role="tabpanel" hidden>
+    <nav class="jump" aria-label="Jump to a section">
+      <button data-to="p-outlook">Outlook</button><button data-to="sec-paces">Paces</button><button data-to="p-flags-wrap">Flags</button><button data-to="sec-load">Load</button><button data-to="sec-race">Race plan</button><button data-to="sec-lessons">Lessons</button><button data-to="sec-plan">Plan</button>
+    </nav>
     <div class="block" id="p-outlook"><div class="loading">Loading&hellip;</div></div>
-    <div class="block">
+    <div class="block" id="sec-paces">
       <h2>Are you running the right paces?</h2>
       <p class="lede">Each run plotted by how far it strayed from its own target zone. Above the line means harder than planned &mdash; the habit behind both earlier races.</p>
       <div class="stats" id="p-exec-stats" style="margin-bottom:16px;"></div>
       <div class="card"><div id="p-pace-chart"></div></div>
     </div>
     <div class="block" id="p-flags-wrap"><h2>All coach flags</h2><div id="p-flags"></div></div>
-    <div class="block">
+    <div class="block" id="sec-load">
       <h2>Is the load building safely?</h2>
       <p class="lede">Planned versus completed distance each week.</p>
       <div class="stats s3" id="p-vol-stats" style="margin-bottom:16px;"></div>
       <div class="card"><div id="p-vol-chart"></div></div>
     </div>
-    <div class="block">
+    <div class="block" id="sec-race">
       <h2>Race plan</h2>
       <p class="lede">Pacing, fueling and race-week eating for the goal you pick.</p>
       <div id="p-race"><div class="loading">Loading&hellip;</div></div>
     </div>
-    <div class="block">
+    <div class="block" id="sec-lessons">
       <h2>Lessons from 2024 and 2025</h2>
       <p class="lede">Both earlier races started too fast and faded. This is the shape to avoid.</p>
       <div class="card"><div id="p-history-chart"><div class="loading">Loading&hellip;</div></div></div>
       <div id="p-cycles" style="margin-top:12px;"></div>
     </div>
-    <div class="block">
+    <div class="block" id="sec-plan">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
         <h2>Full plan</h2>
         <a class="link" href="/api/export/progress.csv">Export CSV</a>
       </div>
-      <p class="lede">All 11 weeks. The current week is open.</p>
+      <p class="lede" id="p-plan-lede">All 11 weeks. The current week is open.</p>
       <div id="p-plan"></div>
     </div>
   </section>
@@ -348,10 +414,6 @@
       </form>
     </div>
     <div class="block">
-      <h2>Shoes</h2>
-      <div id="b-shoes"><div class="loading">Loading&hellip;</div></div>
-    </div>
-    <div class="block">
       <h2>Settings</h2>
       <div class="btn-row" style="margin-top:10px;">
         <button class="btn secondary" id="signout-btn">Sign out of Garmin</button>
@@ -359,8 +421,29 @@
       </div>
     </div>
   </section>
+
+  <!-- GEAR: race shoes, training shoes, race-day kit -->
+  <section class="view" id="view-gear" role="tabpanel" hidden>
+    <div class="block">
+      <h2>Race shoes</h2>
+      <p class="lede">Broken in by race day, but nowhere near worn out.</p>
+      <div id="g-race"><div class="loading">Loading&hellip;</div></div>
+    </div>
+    <div class="block">
+      <h2>Training shoes</h2>
+      <p class="lede">Distance comes from Garmin Connect&rsquo;s Gear. A pair that feels flat is done whatever the number says &mdash; retire it in Garmin Connect (Gear &rarr; Retire) and it drops off here.</p>
+      <div id="g-train"></div>
+    </div>
+    <div class="block">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;"><h2>Race-day kit</h2><button class="link" id="kit-reset">Clear</button></div>
+      <p class="lede">Tick things off as you pack. Saved on this device.</p>
+      <div id="g-kit" class="card"></div>
+    </div>
+  </section>
   </div>
 </div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -429,6 +512,38 @@ function devChip(dev) {
     : `<span class="chip"><span class="dot none"></span>${s} s/km slow</span>`;
 }
 
+/* ---------- boot screen: the runner advances one step per real data request, not on a timer ---------- */
+const BOOT_LINES = ['Lacing up…', 'Syncing with Garmin…', 'Reading last night’s sleep…', 'Checking your resting heart rate…', 'Plotting today’s pace…', 'Mixing the gels…', 'Walking to the start line…'];
+const boot = { done: 0, total: 8, on: true };
+boot.timer = setInterval(() => { const m = $('boot-msg'); if (m) m.textContent = BOOT_LINES[(BOOT_LINES.indexOf(m.textContent) + 1) % BOOT_LINES.length]; }, 1400);
+function bootStep() {
+  if (!boot.on) return;
+  boot.done = Math.min(boot.total, boot.done + 1);
+  const pct = (100 * boot.done) / boot.total;
+  $('boot-fill').style.width = `${pct}%`;
+  $('boot-runner').style.left = `${pct}%`;
+  $('boot-km').textContent = `${((42.195 * boot.done) / boot.total).toFixed(1)} km`;
+}
+const bootTrack = (p) => p.then((v) => { bootStep(); return v; }, (e) => { bootStep(); throw e; });
+function bootEnd() {
+  if (!boot.on) return;
+  boot.on = false; clearInterval(boot.timer);
+  const el = $('boot'); el.classList.add('done'); setTimeout(() => el.remove(), 450);
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t.hideTimer); t.hideTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function renderSynced() {
+  if (!S.syncedAt) return;
+  const min = Math.round((Date.now() - S.syncedAt) / 60000);
+  $('synced').textContent = `Garmin data from ${min < 1 ? 'just now' : min === 1 ? '1 min ago' : `${min} min ago`}`;
+}
+setInterval(renderSynced, 60000);
+
 /* ---------- chart kit (SVG drawn at the container's real width, so text stays legible on phones) ---------- */
 const charts = []; // {el, draw}
 function registerChart(el, draw) {
@@ -489,7 +604,7 @@ function tableView(headers, rows) {
 
 // Weekly volume: planned (neutral) vs completed (blue), grouped per week.
 function drawVolume(el, weeks, current) {
-  const W = el.clientWidth || 340, H = 210, m = { t: 12, r: 6, b: 26, l: 34 };
+  const W = el.clientWidth || 340, H = 216, m = { t: 20, r: 6, b: 26, l: 34 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const top = Math.max(...weeks.map((w) => Math.max(w.plannedKm, w.actualKm || 0)), 10);
   const step = niceStep(top, 3), maxV = Math.ceil(top / step) * step;
@@ -504,6 +619,10 @@ function drawVolume(el, weeks, current) {
     const cx = m.l + band * i + band / 2, base = y(0);
     g += `<path d="${barPath(cx - bw - 1, y(w.plannedKm), bw, base)}" style="fill:var(--planned)"/>`;
     if (w.actualKm != null) g += `<path d="${barPath(cx + 1, y(w.actualKm), bw, base)}" style="fill:var(--s1)"/>`;
+    // Phones have no hover, so the number rides the bar: completed km (bold) where there is one, else the plan.
+    g += w.actualKm != null
+      ? `<text class="ax-b" x="${cx + 1 + bw / 2}" y="${y(w.actualKm) - 5}" text-anchor="middle">${Math.round(w.actualKm)}</text>`
+      : `<text class="ax" x="${cx}" y="${y(w.plannedKm) - 5}" text-anchor="middle">${Math.round(w.plannedKm)}</text>`;
     const lbl = band >= 30 ? w.week : w.week.replace('W', '');
     g += `<text class="${w.week === current ? 'ax-b' : 'ax'}" x="${cx}" y="${H - 8}" text-anchor="middle">${lbl}</text>`;
     const tip = `<b>${esc(w.week)}</b> &middot; ${esc(PHASE[w.week] || '')}<br>Planned ${fmtKm(w.plannedKm)} km<br>${w.actualKm != null ? `Completed ${fmtKm(w.actualKm)} km` : 'Not started'}`;
@@ -538,6 +657,10 @@ function drawPaceDots(el, pts) {
   pts.forEach((p) => {
     const meta = GROUP_META[p.group], cx = x(p.date), cy = y(Math.max(-lim, Math.min(lim, p.dev)));
     g += shape(meta.shape, cx, cy, meta.color);
+    if (p.dev !== 0) {
+      const right = cx < W - m.r - 44;
+      g += `<text class="ax-b" x="${cx + (right ? 11 : -11)}" y="${cy + 4}" text-anchor="${right ? 'start' : 'end'}">${p.dev > 0 ? '+' : '−'}${Math.round(Math.abs(p.dev))}s</text>`;
+    }
     const verdict = p.dev === 0 ? 'In its zone' : p.dev > 0 ? `${Math.round(p.dev)} s/km faster than planned` : `${Math.round(-p.dev)} s/km slower than planned`;
     const tip = `<b>${esc(p.pace)}/km</b> &middot; ${esc(verdict)}<br>${esc(p.label)}<br>${esc(fmtDate(p.date))} &middot; target ${esc(p.zone)}`;
     g += `<circle class="hit" cx="${cx}" cy="${cy}" r="14" data-tip="${esc(tip)}" data-x="${cx}" data-y="${cy}" tabindex="0"/>`;
@@ -575,6 +698,9 @@ function drawRacePacing(el, races, targetSec) {
     const last = r.splits[r.splits.length - 1];
     g += `<circle cx="${x(last.km)}" cy="${y(last.paceSecPerKm)}" r="4" style="fill:${colors[i]};stroke:var(--surface);stroke-width:2"/>`;
     g += `<text class="ax-b" x="${x(last.km) + 8}" y="${y(last.paceSecPerKm) + 4}">${esc(r.date.slice(0, 4))}</text>`;
+    const worst = r.splits.reduce((a, s) => (s.paceSecPerKm > a.paceSecPerKm ? s : a));
+    g += `<circle cx="${x(worst.km)}" cy="${y(worst.paceSecPerKm)}" r="4" style="fill:${colors[i]};stroke:var(--surface);stroke-width:2"/>`;
+    g += `<text class="ax-b" x="${x(worst.km) - 8}" y="${y(worst.paceSecPerKm) + 4}" text-anchor="end">${fmtPace(worst.paceSecPerKm)} at km ${worst.km}</text>`;
   });
   const colW = pw / (nKm - 1);
   for (let k = 1; k <= nKm; k++) {
@@ -590,7 +716,7 @@ function drawRacePacing(el, races, targetSec) {
 
 // Sleep: hours per night, 7 h guide, short nights called out.
 function drawSleep(el, entries) {
-  const W = el.clientWidth || 340, H = 190, m = { t: 12, r: 6, b: 26, l: 28 };
+  const W = el.clientWidth || 340, H = 198, m = { t: 20, r: 6, b: 26, l: 28 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const maxV = Math.max(9, Math.ceil(Math.max(...entries.map((e) => e.hours))));
   const y = (v) => m.t + ph - (v / maxV) * ph;
@@ -600,11 +726,14 @@ function drawSleep(el, entries) {
   entries.forEach((e, i) => {
     const cx = m.l + band * i + band / 2, short = e.hours < 6;
     g += `<path d="${barPath(cx - bw / 2, y(e.hours), bw, y(0))}" style="fill:${short ? 'var(--warn)' : 'var(--s1)'}"/>`;
+    const last = i === entries.length - 1;
+    if (band >= 18 || last) g += `<text class="${last ? 'ax-b' : 'ax'}" x="${cx}" y="${y(e.hours) - 5}" text-anchor="middle" style="font-size:10px">${e.hours}</text>`;
     if (i === 0 || i === entries.length - 1 || i === Math.floor(entries.length / 2)) g += `<text class="ax" x="${cx}" y="${H - 8}" text-anchor="middle">${fmtShort(e.date)}</text>`;
     const tip = `<b>${e.hours} h</b> &middot; ${esc(fmtDate(e.date))}<br>Light ${e.lightMin} &middot; REM ${e.remMin} &middot; Deep ${e.deepMin} min<br>Resting HR ${e.restingHr ?? '–'}`;
     g += `<rect class="hit" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ph}" data-tip="${esc(tip)}" data-x="${cx}" data-y="${y(e.hours)}" tabindex="0"/>`;
   });
-  g += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(7)}" y2="${y(7)}"/><text class="ax-b" x="${W - m.r}" y="${y(7) - 6}" text-anchor="end">7 h</text>`;
+  // The 7 h guide is labelled in the axis gutter so it can't collide with the per-bar value labels.
+  g += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(7)}" y2="${y(7)}"/><text class="ax-b" x="${m.l - 6}" y="${y(7) + 4}" text-anchor="end">7h</text>`;
   el.innerHTML = `<div class="legend"><span><i class="key-rect" style="background:var(--s1)"></i>Hours slept</span><span><i class="key-rect" style="background:var(--warn)"></i>Under 6 h</span></div>
     <div class="chart-wrap"><svg class="chart" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Hours of sleep per night">${g}</svg></div>
     ${tableView(['Night', 'Hours', 'Resting HR'], entries.map((e) => [fmtShort(e.date), String(e.hours), String(e.restingHr ?? '–')]))}`;
@@ -624,6 +753,8 @@ function renderHeader() {
   const today = S.progress.today, wk = curWeek();
   const days = dayDiff(today, RACE_DATE);
   $('hdr-eyebrow').textContent = `Week ${wk.replace('W', '')} of 11 · ${PHASE[wk] || ''}`;
+  S.syncedAt = Date.now() - (S.progress.cacheAgeSec || 0) * 1000;
+  renderSynced();
   $('hdr-title').textContent = days > 0 ? `${days} days to Bangsaen` : days === 0 ? 'Race day' : 'Bangsaen Marathon';
 }
 
@@ -633,7 +764,7 @@ function renderReady(r) {
   if (!r || !r.available) { el.innerHTML = `<div class="ready"><span class="dot none"></span><div><div class="head">Readiness unavailable</div><div class="why">${esc(r?.message || 'Not enough sleep or heart-rate data yet.')}</div></div></div>`; return; }
   const cls = r.verdict === 'green' ? 'good' : r.verdict === 'amber' ? 'warn' : 'crit';
   const [first, ...rest] = r.reasons || [];
-  el.innerHTML = `<div class="ready"><span class="dot ${cls}"></span><div>
+  el.innerHTML = `<div class="ready ${cls}"><span class="dot ${cls}"></span><div>
       <div class="head">${esc(r.headline)} <span class="chip num">Readiness ${r.score}</span></div>
       ${first ? `<div class="why">${esc(first)}</div>` : ''}
       ${rest.map((t) => `<div class="why small">${esc(t)}</div>`).join('')}
@@ -731,7 +862,7 @@ function renderFuel() {
   </div>`;
   el.querySelectorAll('[data-add-ml]').forEach((b) => b.addEventListener('click', async () => {
     const msg = $('water-msg'); b.disabled = true; msg.textContent = 'Logging…';
-    try { await postJSON('/api/hydration', { ml: Number(b.dataset.addMl) }); S.hydration = await getJSON('/api/hydration?refresh=1'); renderFuel(); }
+    try { await postJSON('/api/hydration', { ml: Number(b.dataset.addMl) }); S.hydration = await getJSON('/api/hydration?refresh=1'); renderFuel(); toast(`+${b.dataset.addMl} ml logged`); }
     catch (e) { msg.textContent = `Couldn't log water: ${e.message}`; msg.className = 'small err'; b.disabled = false; }
   }));
 }
@@ -768,6 +899,8 @@ function renderWeek() {
   const wk = curWeek(), rows = (S.progress.rows || []).filter((r) => r.week === wk);
   $('t-week-title').textContent = `This week · ${wk} · ${PHASE[wk] || ''}`;
   const planned = rows.reduce((a, r) => a + r.plannedKm, 0), actual = rows.reduce((a, r) => a + (r.actualKm || 0), 0);
+  const pctW = planned ? Math.min(100, Math.round((100 * actual) / planned)) : 0;
+  const doneW = rows.filter((r) => r.status === 'done' || r.status === 'partial').length;
   const icon = { done: 'good', partial: 'warn', missed: 'crit', today: 'today', upcoming: 'ring' };
   const word = { done: 'Done', partial: 'Partial', missed: 'Missed', today: 'Today', upcoming: '' };
   $('t-week').innerHTML = `<div class="rows">${rows.map((r) => {
@@ -777,7 +910,8 @@ function renderWeek() {
       <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
       <div class="r">${right}</div></div>`;
   }).join('')}</div>
-  <p class="small muted" style="margin:8px 0 0;">${fmtKm(actual)} of ${fmtKm(planned)} km done</p>`;
+  <div class="wk-meter" style="margin-top:12px;"><i style="width:${pctW}%;background:var(--brand)"></i></div>
+  <p class="small muted" style="margin:4px 0 0;">${fmtKm(actual)} of ${fmtKm(planned)} km &middot; ${pctW}% &middot; ${doneW} of ${rows.length} runs done</p>`;
 }
 
 function renderTodayFlags() {
@@ -794,14 +928,15 @@ function renderTodayFlags() {
 async function loadToday(force) {
   const q = force ? '?refresh=1' : '';
   const [plan, progress, readiness, insights, hydration, fuelToday] = await Promise.all([
-    getJSON('/api/plan'), getJSON('/api/progress' + q), getJSON('/api/readiness' + q).catch(() => null),
-    getJSON('/api/insights' + q).catch(() => ({ insights: [] })), getJSON('/api/hydration' + q).catch(() => null),
-    getJSON('/api/fuel').catch(() => null),
+    bootTrack(getJSON('/api/plan')), bootTrack(getJSON('/api/progress' + q)), bootTrack(getJSON('/api/readiness' + q)).catch(() => null),
+    bootTrack(getJSON('/api/insights' + q)).catch(() => ({ insights: [] })), bootTrack(getJSON('/api/hydration' + q)).catch(() => null),
+    bootTrack(getJSON('/api/fuel')).catch(() => null),
   ]);
   Object.assign(S, { plan, progress, readiness, insights: insights.insights, hydration, fuelToday });
   renderHeader(); renderReady(readiness); renderSession();
-  S.fuelNext = S.focus && S.focus.date !== progress.today ? await getJSON(`/api/fuel?date=${S.focus.date}`).catch(() => null) : null;
+  S.fuelNext = S.focus && S.focus.date !== progress.today ? await bootTrack(getJSON(`/api/fuel?date=${S.focus.date}`)).catch(() => null) : null;
   renderFuel(); renderLast(); renderWeek(); renderTodayFlags();
+  bootEnd();
 }
 
 /* ---------- PROGRESS ---------- */
@@ -831,8 +966,8 @@ function renderOutlook() {
     <p class="lede" style="margin:0 0 4px;">Predicted finish if race-day pace matches your recent marathon-pace work. ${conf}</p>
     <div class="card" style="margin-top:12px;padding:8px 14px 10px;">${tierMeter(p.avgPredictedSec)}</div>
     <div class="stats" style="margin-top:14px;">
-      <div class="stat"><div class="l">Likely range</div><div class="v num" style="font-size:17px;">${p.range?.available ? `${esc(p.range.lowLabel)}–${esc(p.range.highLabel)}` : '–'}</div><div class="s">${p.range?.available ? 'from session-to-session spread' : 'needs 2+ sessions'}</div></div>
-      <div class="stat"><div class="l">With your long-run fade</div><div class="v num" style="font-size:17px;">${ff?.available ? esc(ff.forecastFinishLabel) : '–'}</div><div class="s">${ff?.available ? (ff.appliedFadePenaltySecPerKm > 0 ? `${ff.avgFadeSecPerKm} s/km second-half fade` : 'no fade so far') : 'needs a long run'}</div></div>
+      <div class="stat"><div class="l">Likely range</div><div class="v num" style="font-size:17px;">${p.range?.available ? `${esc(p.range.lowLabel)}–${esc(p.range.highLabel)}` : '<span class="pending">Not yet</span>'}</div><div class="s">${p.range?.available ? 'from session-to-session spread' : 'needs 2+ sessions'}</div></div>
+      <div class="stat"><div class="l">With your long-run fade</div><div class="v num" style="font-size:17px;">${ff?.available ? esc(ff.forecastFinishLabel) : '<span class="pending">Not yet</span>'}</div><div class="s">${ff?.available ? (ff.appliedFadePenaltySecPerKm > 0 ? `${ff.avgFadeSecPerKm} s/km second-half fade` : 'no fade so far') : 'needs a long run'}</div></div>
     </div>
     ${heat ? `<p class="small muted" style="margin:12px 0 0;">Heat: at ${heat.tempC}&nbsp;°C your goal times need ${heat.penaltyPct > 0 ? `+${heat.penaltyPct}%` : 'no adjustment'} &mdash; your two finishes at ${heat.personalHistory.map((h) => `${h.avgTempC}°C`).join(' and ')} already set that baseline.</p>` : ''}`;
 }
@@ -939,9 +1074,23 @@ function renderPlan() {
   S.progress.rows.forEach((r) => { (rowsBy[r.week] = rowsBy[r.week] || []).push(r); });
   const word = { done: 'Done', partial: 'Partial', missed: 'Missed', today: 'Today', upcoming: '' };
   const icon = { done: 'good', partial: 'warn', missed: 'crit', today: 'today', upcoming: 'ring' };
+  const done = (r) => r.status === 'done' || r.status === 'partial';
+  const due = S.progress.rows.filter((r) => r.status !== 'upcoming' && r.status !== 'today');
+  const kmDone = S.progress.rows.reduce((a, r) => a + (r.actualKm || 0), 0), kmDue = due.reduce((a, r) => a + r.plannedKm, 0);
+  $('p-plan-lede').textContent = `So far: ${due.filter(done).length} of ${due.length} runs done (${due.length ? Math.round((100 * due.filter(done).length) / due.length) : 0}%) · ${fmtKm(kmDone)} of ${fmtKm(kmDue)} km due. The current week is open.`;
   $('p-plan').innerHTML = Object.keys(rowsBy).map((w) => {
     const rows = rowsBy[w], planned = rows.reduce((a, r) => a + r.plannedKm, 0);
-    return `<details class="acc"${w === wk ? ' open' : ''}><summary><span>${esc(w)} <span class="sub">&middot; ${esc(PHASE[w] || '')}</span></span><span class="sub num">${fmtKm(planned)} km</span></summary><div class="body"><div class="rows">
+    const actual = rows.reduce((a, r) => a + (r.actualKm || 0), 0), runs = rows.filter(done).length;
+    const future = rows.every((r) => r.status === 'upcoming'), current = w === wk;
+    const pct = planned ? Math.min(100, Math.round((100 * actual) / planned)) : 0;
+    const color = current ? 'var(--brand)' : pct >= 90 ? 'var(--good)' : pct >= 70 ? 'var(--warn)' : 'var(--crit)';
+    const right = future ? `${fmtKm(planned)} km planned` : `${fmtKm(actual)} / ${fmtKm(planned)} km &middot; <b style="color:var(--ink)">${pct}%</b>`;
+    const sub = future ? `${rows.length} runs` : `${runs} of ${rows.length} runs done${current ? ' &middot; in progress' : ''}`;
+    return `<details class="acc"${current ? ' open' : ''}><summary><div class="wk-sum">
+        <div class="wk-top"><span>${esc(w)} <span class="sub">&middot; ${esc(PHASE[w] || '')}</span></span><span class="sub num">${right}</span></div>
+        ${future ? '' : `<div class="wk-meter"><i style="width:${pct}%;background:${color}"></i></div>`}
+        <div class="sub small">${sub}</div>
+      </div></summary><div class="body"><div class="rows">
       ${rows.map((r) => { const s = sessionFor(r.date) || {}; return `<div class="row"><span class="dot ${icon[r.status]}" title="${word[r.status]}"></span>
         <div class="grow"><div class="t">${esc(r.label)}</div><div class="d">${esc(s.day || '')} ${esc(fmtShort(r.date))} &middot; ${esc(s.paceHi)}–${esc(s.paceLo)}${word[r.status] ? ` &middot; ${word[r.status]}` : ''}</div></div>
         <div class="r">${r.actualKm != null ? `${fmtKm(r.actualKm)} km<br><span class="small muted">${esc(r.actualPaceLabel || '')}</span>` : `${fmtKm(r.plannedKm)} km`}</div></div>`; }).join('')}
@@ -993,22 +1142,87 @@ function renderEating() {
     <p class="small muted" style="margin:10px 0 0;">Carbs: rice, sticky rice, noodles, bread, oats, bananas, potatoes. Protein: chicken, eggs, Greek yogurt, milk, tofu, paneer, lentils.</p>`;
 }
 
-function renderShoes() {
-  const shoes = (S.gear?.shoes || []).filter((s) => s.name !== 'Bare');
-  $('b-shoes').innerHTML = shoes.length ? `<div class="rows">${shoes.map((s) => {
-    const p = s.raceProjection || {}, cls = { sweet_spot: 'good', training_shoe_ok: 'good', still_breaking_in: 'warn', past_sweet_spot: 'warn', nearing_retirement: 'warn', over_retirement: 'crit' }[p.verdict] || 'none';
-    const word = { sweet_spot: 'Race-ready', training_shoe_ok: 'OK', still_breaking_in: 'Breaking in', past_sweet_spot: 'Past its best', nearing_retirement: 'Nearly worn out', over_retirement: 'Retire' }[p.verdict] || '';
-    return `<div class="row"><span class="dot ${cls}"></span><div class="grow"><div class="t">${esc(s.model || s.name)}${p.isRaceShoe ? ' <span class="chip">Race day</span>' : ''}</div><div class="d">${esc(p.note || '')}</div></div><div class="r">${fmtKm(s.totalKm)} km<br><span class="small muted">${esc(word)}</span></div></div>`;
-  }).join('')}</div>` : '<p class="loading">No shoes in Garmin Gear.</p>';
-}
-
 async function loadBody(force) {
   const q = force ? '?refresh=1' : '';
-  const [sleep, weight, gear] = await Promise.all([
-    getJSON('/api/sleep' + q), getJSON('/api/weight' + q), S.gear ? Promise.resolve(S.gear) : getJSON('/api/gear' + q).catch(() => null),
+  const [sleep, weight] = await Promise.all([getJSON('/api/sleep' + q), getJSON('/api/weight' + q)]);
+  Object.assign(S, { sleep, weight });
+  renderSleep(); renderWeight(); renderEating();
+}
+
+/* ---------- GEAR ---------- */
+const SHOE_WORD = { sweet_spot: 'Race-ready', training_shoe_ok: 'OK', still_breaking_in: 'Breaking in', past_sweet_spot: 'Past its best', nearing_retirement: 'Nearly worn out', over_retirement: 'Retire' };
+const SHOE_CLS = { sweet_spot: 'good', training_shoe_ok: 'good', still_breaking_in: 'warn', past_sweet_spot: 'warn', nearing_retirement: 'warn', over_retirement: 'crit' };
+const RACE_SHOE_MIN_KM = 40, RACE_SHOE_MAX_KM = 250; // mirrors gear.py
+const monthYear = (iso) => d8(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+function renderGearTab() {
+  const shoes = (S.gear?.shoes || []).filter((s) => s.name !== 'Bare');
+  const race = shoes.find((s) => s.raceProjection?.isRaceShoe);
+  const training = shoes.filter((s) => s !== race);
+  if (race) {
+    const p = race.raceProjection || {}, pos = (km) => Math.max(0, Math.min(100, (km / 300) * 100));
+    $('g-race').innerHTML = `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div><div class="when">${esc(race.name)}</div><h3 style="font-size:20px;font-weight:800;margin:2px 0 0;">${esc(race.model || race.name)}</h3></div>
+        <span class="chip"><span class="dot ${SHOE_CLS[p.verdict] || 'none'}"></span>${esc(SHOE_WORD[p.verdict] || '')}</span>
+      </div>
+      <div class="stats" style="margin-top:14px;">
+        <div class="stat"><div class="l">Logged</div><div class="v num">${fmtKm(race.totalKm)}<small>km</small></div><div class="s">${race.totalActivities} runs</div></div>
+        <div class="stat"><div class="l">By race day</div><div class="v num">${p.projectedKmAtRace != null ? fmtKm(p.projectedKmAtRace) : '–'}<small>km</small></div><div class="s">at your current rate</div></div>
+      </div>
+      <div class="shoe-track" role="img" aria-label="${fmtKm(race.totalKm)} km logged; limit for racing ${RACE_SHOE_MAX_KM} km">
+        <i style="width:${pos(race.totalKm)}%"></i>
+        <span class="mk" style="left:${pos(RACE_SHOE_MIN_KM)}%"></span><span class="mk" style="left:${pos(RACE_SHOE_MAX_KM)}%"></span>
+        ${p.projectedKmAtRace != null ? `<span class="proj" style="left:${pos(p.projectedKmAtRace)}%"></span>` : ''}
+      </div>
+      <p class="small muted" style="margin:0;">Marks at ${RACE_SHOE_MIN_KM} km (broken in) and ${RACE_SHOE_MAX_KM} km (past its best for racing); the ring is where you&rsquo;ll be on race day.</p>
+      <p style="margin:12px 0 0;font-size:14px;">${esc(p.note || '')}</p>
+    </div>`;
+  } else {
+    $('g-race').innerHTML = '<p class="muted">No race shoe found in Garmin Gear.</p>';
+  }
+  $('g-train').innerHTML = training.length ? `<div class="rows">${training.map((s) => {
+    const p = s.raceProjection || {};
+    return `<div class="row"><span class="dot ${SHOE_CLS[p.verdict] || 'none'}"></span><div class="grow"><div class="t">${esc(s.model || s.name)}</div><div class="d">${s.totalActivities} runs logged since ${esc(s.beginDate ? monthYear(s.beginDate) : '–')}</div></div><div class="r">${fmtKm(s.totalKm)} km<br><span class="small muted">${esc(SHOE_WORD[p.verdict] || '')}</span></div></div>`;
+  }).join('')}</div>` : '<p class="muted">No training shoes in Garmin Gear.</p>';
+}
+
+function kitItems() {
+  const gels = S.racePlan?.fuel?.gelCount;
+  return [
+    'Race shoes and socks you have already done a long run in',
+    'Watch charged, race-day pace alerts set',
+    `${gels != null ? gels + 1 : 8} gels: one 10-15 min before the start, then one every 30 min`,
+    'Electrolyte tabs or salt caps for the heat',
+    'Bib, safety pins or race belt, timing chip',
+    'Anti-chafe balm and plasters',
+    'Cap or visor and sunglasses: the sun is up well before you finish',
+    'Race-morning breakfast: jok, or white toast with honey and a banana',
+    'Dry clothes and a recovery drink for the finish',
+  ];
+}
+function renderKit() {
+  let packed = {};
+  try { packed = JSON.parse(localStorage.getItem('kit') || '{}'); } catch { packed = {}; }
+  const items = kitItems(), n = items.filter((t) => packed[t]).length;
+  $('g-kit').innerHTML = items.map((t, i) => `<label class="kit"><input type="checkbox" id="kit-${i}" data-item="${esc(t)}"${packed[t] ? ' checked' : ''}><span>${esc(t)}</span></label>`).join('')
+    + `<p class="small muted" style="margin:12px 0 0;">${n} of ${items.length} packed</p>`;
+  $('g-kit').querySelectorAll('input').forEach((cb) => cb.addEventListener('change', () => {
+    packed[cb.dataset.item] = cb.checked;
+    try { localStorage.setItem('kit', JSON.stringify(packed)); } catch { /* private mode: just don't persist */ }
+    renderKit();
+  }));
+}
+$('kit-reset').addEventListener('click', () => { try { localStorage.removeItem('kit'); } catch { /* ignore */ } renderKit(); });
+
+async function loadGearTab(force) {
+  const q = force ? '?refresh=1' : '';
+  const [gear, racePlan] = await Promise.all([
+    S.gear && !force ? Promise.resolve(S.gear) : getJSON('/api/gear' + q),
+    S.racePlan ? Promise.resolve(S.racePlan) : getJSON('/api/race-plan').catch(() => null),
   ]);
-  Object.assign(S, { sleep, weight, gear });
-  renderSleep(); renderWeight(); renderEating(); renderShoes();
+  Object.assign(S, { gear, racePlan });
+  renderGearTab(); renderKit();
 }
 
 $('weight-form').addEventListener('submit', async (e) => {
@@ -1018,7 +1232,7 @@ $('weight-form').addEventListener('submit', async (e) => {
   try {
     await postJSON('/api/weight', { weight: parseFloat($('weight-input').value), date: $('weight-date').value || null });
     S.weight = await getJSON('/api/weight?refresh=1');
-    renderWeight(); msg.textContent = 'Logged to Garmin Connect.';
+    renderWeight(); msg.textContent = ''; toast('Weight logged to Garmin');
   } catch (err) { msg.className = 'small err'; msg.textContent = `Couldn't log weight: ${err.message}`; }
 });
 
@@ -1027,7 +1241,7 @@ $('sweat-form').addEventListener('submit', async (e) => {
   const out = $('sweat-result');
   try {
     const r = await postJSON('/api/sweat-rate', { preKg: parseFloat($('sweat-pre').value), postKg: parseFloat($('sweat-post').value), fluidMl: parseFloat($('sweat-fluid').value) || 0, durationMin: parseFloat($('sweat-min').value) });
-    if (r.sweatRateLPerHr > 0) localStorage.setItem('sweatRate', r.sweatRateLPerHr);
+    if (r.sweatRateLPerHr > 0) { localStorage.setItem('sweatRate', r.sweatRateLPerHr); toast('Sweat rate saved for race day'); }
     out.innerHTML = `<div class="sep"></div><div class="stats s3">
       <div class="stat"><div class="l">Sweat rate</div><div class="v num">${r.sweatRateLPerHr}<small>L/h</small></div></div>
       <div class="stat"><div class="l">Fluid lost</div><div class="v num">${r.sweatLossL}<small>L</small></div></div>
@@ -1042,7 +1256,7 @@ $('signout-btn').addEventListener('click', async () => { await postJSON('/api/lo
 
 /* ---------- tabs & boot ---------- */
 const loaded = {};
-const loaders = { today: loadToday, progress: loadProgress, body: loadBody };
+const loaders = { today: loadToday, progress: loadProgress, body: loadBody, gear: loadGearTab };
 async function showTab(name, force = false) {
   document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
   document.querySelectorAll('section.view').forEach((s) => { s.hidden = s.id !== `view-${name}`; });
@@ -1057,9 +1271,13 @@ async function showTab(name, force = false) {
       loaded[name] = false;
       if (e.message !== 'locked') $(`view-${name}`).insertAdjacentHTML('afterbegin', `<p class="err">Couldn't load from Garmin: ${esc(e.message)}</p>`);
     }
+    bootEnd();
   }
 }
 document.querySelectorAll('nav.tabs [role=tab]').forEach((b) => b.addEventListener('click', () => { showTab(b.dataset.tab); window.scrollTo({ top: 0 }); }));
+document.querySelectorAll('.jump [data-to]').forEach((b) => b.addEventListener('click', () => {
+  $(b.dataset.to).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+}));
 
 $('refresh-btn').addEventListener('click', async () => {
   const btn = $('refresh-btn'); btn.classList.add('spin'); btn.disabled = true;
@@ -1101,15 +1319,16 @@ function enterApp(state) {
   $('connect-view').hidden = true; $('app-view').hidden = false;
   $('lock-form').hidden = !state.gateEnabled;
   $('weight-date').valueAsDate = new Date();
-  const start = ['today', 'progress', 'body'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'today';
+  const start = ['today', 'progress', 'body', 'gear'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'today';
   showTab(start);
 }
 
 (async function init() {
   try {
-    const st = await getJSON('/api/session');
-    if (st.status === 'logged_in') enterApp(st); else showConnect(st);
+    const st = await bootTrack(getJSON('/api/session'));
+    if (st.status === 'logged_in') enterApp(st); else { bootEnd(); showConnect(st); }
   } catch (e) {
+    bootEnd();
     if (e.message !== 'locked') { showConnect({ status: 'error', error: e.message }); }
   }
 })();

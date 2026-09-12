@@ -73,7 +73,7 @@ _APP_PASSWORD = os.environ.get("APP_PASSWORD")  # unset = local trusted-machine 
 def _require_app_password():
     if not _APP_PASSWORD:
         return None  # gate disabled - unchanged local behavior
-    if request.endpoint in ("login_gate", "login_gate_post", "static"):
+    if request.endpoint in ("login_gate", "login_gate_post", "static", "healthz"):
         return None
     if flask_session.get("authed"):
         return None
@@ -92,6 +92,13 @@ def _sync_garmin_token():
 def gate_logout():
     flask_session.clear()
     return redirect("/gate")
+
+
+@app.get("/healthz")
+def healthz():
+    # For an uptime pinger: keeps a free-tier host from sleeping (and showing its
+    # own wake-up page). No password, no Garmin call, nothing private in the reply.
+    return jsonify({"ok": True})
 
 
 @app.get("/gate")
