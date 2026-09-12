@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bangsaen">
 <title>Bangsaen Training</title>
+<link rel="icon" href="/static/logo-small.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/static/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
@@ -270,12 +273,18 @@
   .feel button span { font-size: 11px; font-weight: 700; }
   .feel button[aria-pressed="true"] { background: var(--brand); color: #fff; }
   .feel button[aria-pressed="true"] b { color: #fff; }
+
+  /* logo: Sampige Sunrise */
+  .brand-row { display: flex; align-items: center; gap: 9px; }
+  .brand-logo { flex: none; width: 26px; height: 26px; border-radius: 6px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .28), 0 4px 10px -4px rgba(0, 0, 0, .5); }
+  .page-logo { display: block; width: 60px; height: 60px; margin-bottom: 16px; filter: drop-shadow(0 12px 22px rgba(4, 12, 48, .55)); }
 </style>
 </head>
 <body>
 
 <div id="boot" class="boot" role="status" aria-label="Loading your training data">
   <div class="boot-inner">
+    <img class="page-logo" src="/static/logo.svg" alt="" width="60" height="60">
     <div class="boot-eyebrow">Bangsaen Marathon &middot; Nov 15</div>
     <div class="boot-title">Training HQ</div>
     <div class="course">
@@ -292,6 +301,7 @@
 
 <main id="connect-view" class="connect-page" hidden>
   <div class="connect">
+    <img class="page-logo" src="/static/logo.svg" alt="" width="60" height="60">
     <div class="eyebrow">Bangsaen Marathon training</div>
     <h1>Not connected to Garmin</h1>
     <p class="lede" style="margin-top:8px;">This app reads its training data from its owner's Garmin account.</p>
@@ -316,7 +326,7 @@
     <div class="band-inner">
       <div class="top">
         <div>
-          <div class="eyebrow" id="hdr-eyebrow">&nbsp;</div>
+          <div class="brand-row"><img class="brand-logo" src="/static/logo-small.svg" alt="" width="26" height="26"><div class="eyebrow" id="hdr-eyebrow">&nbsp;</div></div>
           <h1 id="hdr-title">Bangsaen Marathon</h1>
         </div>
         <div class="top-actions">
