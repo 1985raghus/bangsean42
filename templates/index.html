@@ -327,6 +327,21 @@
   .rec-card .eyebrow { color: var(--accent); }
 
   #hidden { display: none; }
+
+  /* mobile: collapse every multi-column layout to one column, keep tap targets usable */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px 50px; }
+    header { padding: 16px 0 14px; }
+    .tiles, .heat-tiles, .fitness-tiles, .sweat-tiles, .gear-tiles, .kpi-story-strip { grid-template-columns: 1fr; }
+    .cycle-grid, .race-grid, .grid-2 { grid-template-columns: 1fr; }
+    .readiness-top { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .weight-form, .heat-form { flex-direction: column; align-items: stretch; }
+    .weight-form input, .heat-form input, .weight-form .btn, .weight-form .btn-ghost, .heat-form .btn, .heat-form .btn-ghost { width: 100%; }
+    table.sessions-table td { padding: 8px 10px; font-size: 12px; }
+    .tab-btn { padding: 8px 14px; font-size: 12.5px; }
+    h1 { font-size: 26px; }
+    .topbar-actions { width: 100%; justify-content: space-between; }
+  }
 </style>
 </head>
 <body>
@@ -368,7 +383,7 @@
     <div class="ticker"><div class="ticker-track" id="ticker-track"></div></div>
 
     <nav class="tab-nav" id="tab-nav">
-      <button class="tab-btn active" data-tab="today">Today</button>
+      <button class="tab-btn active" data-tab="today">Control Tower</button>
       <button class="tab-btn" data-tab="training">Training</button>
       <button class="tab-btn" data-tab="weekly">Weekly Review</button>
       <button class="tab-btn" data-tab="health">Health</button>
@@ -380,6 +395,12 @@
 
       <div class="tiles" id="tiles"></div>
       <div class="tiles" id="kpi-story-strip"></div>
+
+      <div class="card">
+        <h2>This Week</h2>
+        <p class="muted" style="font-size:13px;margin-top:-4px;">Pulled in from the schedule so it isn't a separate stop.</p>
+        <div class="tiles" id="this-week-strip" style="margin-bottom:0;"></div>
+      </div>
 
       <div class="card">
         <h2>Distance covered</h2>
@@ -424,8 +445,8 @@
       </div>
 
       <div class="card">
-        <h2>Coach KPIs</h2>
-        <p class="muted" style="font-size:13px;margin-top:-4px;">The metrics a coach actually watches for injury risk and execution, not just distance.</p>
+        <h2>Session Mix &amp; Effort</h2>
+        <p class="muted" style="font-size:13px;margin-top:-4px;">Ramp rate and pace compliance are on the Control Tower tab &mdash; this is what's specific to how volume and effort break down.</p>
         <div class="tiles" id="kpi-tiles" style="margin-bottom:0;"></div>
         <div id="hr-breakdown" style="margin-top:14px;"></div>
       </div>
@@ -1250,6 +1271,24 @@ function renderTodayKpiStrip(plan, progress, analysis, gear) {
   `;
 }
 
+function renderThisWeek(progress) {
+  const el = $('this-week-strip');
+  if (!el) return;
+  const curWeek = currentWeekFromRows(progress.rows);
+  const weekRows = progress.rows.filter(r => r.week === curWeek);
+  const due = weekRows.filter(r => r.status !== 'upcoming');
+  const completed = due.filter(r => r.status === 'done' || r.status === 'partial');
+  const plannedKm = weekRows.reduce((s, r) => s + r.plannedKm, 0);
+  const actualKm = weekRows.reduce((s, r) => s + (r.actualKm || 0), 0);
+  const next = weekRows.find(r => r.status === 'upcoming' || r.status === 'today');
+
+  el.innerHTML = `
+    <div class="tile"><div class="eyebrow">${curWeek || '—'} sessions</div><div class="value mono">${completed.length}/${due.length}</div><div class="sub">done of due so far</div></div>
+    <div class="tile"><div class="eyebrow">${curWeek || '—'} distance</div><div class="value mono">${actualKm.toFixed(1)}/${plannedKm.toFixed(1)}km</div><div class="sub">actual / planned</div></div>
+    <div class="tile"><div class="eyebrow">Next up</div><div class="value" style="font-size:16px;">${next ? next.label : 'Week complete'}</div><div class="sub">${next ? fmtDate(next.date) : ''}</div></div>
+  `;
+}
+
 function renderPredictionPill(prediction) {
   const pill = $('prediction-pill');
   if (!prediction.available) {
@@ -1376,7 +1415,7 @@ function renderWeeks(plan, progress) {
         </div>
         <div class="week-vol">Planned <b>${plannedTotal.toFixed(1)}</b>km${actualRows.length ? ` &middot; Actual <b class="actual">${actualTotal.toFixed(1)}</b>km` : ''}</div>
       </div>
-      <table class="sessions-table"><tbody>${rowsHtml}</tbody></table>
+      <div class="table-scroll"><table class="sessions-table"><tbody>${rowsHtml}</tbody></table></div>
     </div>`;
   });
   $('weeks-container').innerHTML = html;
@@ -1642,15 +1681,11 @@ function currentWeekFromRows(rows) {
 function renderKpis(plan, progress, analysis) {
   const curWeek = currentWeekFromRows(progress.rows);
   const wk = (plan.plannedKpis || []).find(w => w.week === curWeek);
-  const rampPct = wk && wk.rampPct != null ? wk.rampPct : null;
-  const rampCls = rampPct == null ? '' : rampPct > 20 ? 'style="color:var(--bad)"' : rampPct > 15 ? 'style="color:var(--warn)"' : 'style="color:var(--good)"';
-  const compliance = analysis.paceCompliancePct;
-  const complianceCls = compliance == null ? '' : compliance >= 70 ? 'style="color:var(--good)"' : compliance >= 50 ? 'style="color:var(--warn)"' : 'style="color:var(--bad)"';
 
+  // Ramp rate and pace-zone compliance now live on the Control Tower tab's KPI strip -
+  // no need to repeat the exact same numbers here too.
   $('kpi-tiles').innerHTML = `
-    <div class="tile"><div class="eyebrow">${curWeek || '—'} ramp rate</div><div class="value mono" ${rampCls}>${rampPct != null ? (rampPct>0?'+':'')+rampPct+'%' : '—'}</div><div class="sub">vs. previous week's planned volume &middot; flag above +20%</div></div>
     <div class="tile"><div class="eyebrow">${curWeek || '—'} long-run share</div><div class="value mono">${wk ? wk.longRunPct + '%' : '—'}</div><div class="sub">of that week's total volume</div></div>
-    <div class="tile"><div class="eyebrow">Pace-zone compliance</div><div class="value mono" ${complianceCls}>${compliance != null ? compliance + '%' : '—'}</div><div class="sub">completed sessions landing in target zone</div></div>
     <div class="tile"><div class="eyebrow">Sessions w/ HR data</div><div class="value mono">${Object.values(analysis.avgHrByKind || {}).length ? progress.rows.filter(r=>r.actualHr).length : 0}</div><div class="sub">feeds the easy-vs-hard check below</div></div>
   `;
 
@@ -1777,6 +1812,7 @@ async function enterApp(forceRefresh) {
     renderFadeForecast(progress.prediction.fadeForecast);
     renderKpis(plan, progress, analysis);
     renderDistanceHero(progress.rows);
+    renderThisWeek(progress);
     renderWeeks(plan, progress);
     renderVolumeChart(analysis.weekly);
     renderPaceChart(analysis.paceHistory, analysis.prediction);
