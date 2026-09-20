@@ -68,6 +68,30 @@ STRETCH_TIME_SEC = _time_to_sec("4:00:00")
 
 STRIDES_NOTE = "Finish with 4-6 x 20s relaxed strides, full recovery between."
 
+# Execution notes added after the W1-W3 review (2026-09-20). Every quality
+# session so far came in faster than its target band (MP reps 5:13-5:35 vs
+# 5:46-5:36; tempo reps 5:09/4:52/4:51 vs 5:21-5:11; the 20K's MP finish at
+# 5:31 and HR 181), while easy runs averaged HR 168 - only ~12 beats under
+# tempo. The distances were fine; the efforts were not, so the fix is written
+# into the workout descriptions the watch actually shows.
+EASY_NOTE = (
+    "Conversational only. Your easy runs have averaged HR 168, just ~12 beats under tempo - "
+    "aim high-150s to 160 and let the pace be whatever that gives."
+)
+LONG_NOTE = "Steady and easy throughout. If the last 3km drop off by more than 15s/km, you started too fast."
+TEMPO_NOTE = (
+    "Start rep 1 at the SLOW end of the tempo band and stay there. 18 Sep ran 5:09 / 4:52 / 4:51 "
+    "with HR climbing to 185 - even reps beat fast ones."
+)
+MP_NOTE = (
+    "Marathon effort, not tempo: hold the slow end of the MP band, HR in the low 170s. "
+    "11 Sep's reps ran 5:13-5:35 at HR 180+, which is threshold work in disguise."
+)
+MP_FINISH_NOTE = (
+    "The finish is marathon effort, not a time trial. 20 Sep's 5K finish ran 5:31/km at HR 181 - "
+    "hold the MP band and keep HR under ~178. The point is race pace when tired, not racing it."
+)
+
 
 def _session(date, name, blocks, note=None):
     return {"date": date, "name": name, "blocks": blocks, "note": note}
@@ -138,40 +162,43 @@ SESSIONS = [
     _reps("2026-09-18", "W3 Fri - Tempo Intervals (3x2K @ Tempo)", "tempo", 3, 2.0),
     _long_with_finish("2026-09-20", "W3 Sun - Long Run w/ MP Finish (20K)", 15, 5),
     # Week 4 - cutback
-    _simple("2026-09-22", "W4 Tue - Easy (7K)", "easy", 7),
-    _simple("2026-09-24", "W4 Thu - Easy (8K)", "easy", 8),
-    _reps("2026-09-25", "W4 Fri - Tempo Intervals (2x1.5K @ Tempo)", "tempo", 2, 1.5, recovery_km=0.3),
-    _simple("2026-09-27", "W4 Sun - Long Run, easy (15K)", "long", 15),
-    # Week 5
-    _simple("2026-09-29", "W5 Tue - Easy + Strides (9K)", "easy", 9, STRIDES_NOTE),
-    _simple("2026-10-01", "W5 Thu - Easy (10K)", "easy", 10),
-    _reps("2026-10-02", "W5 Fri - Marathon Pace Intervals (4x2K @ MP)", "mp", 4, 2.0),
-    _simple("2026-10-04", "W5 Sun - Long Run (22K)", "long", 22),
+    _simple("2026-09-22", "W4 Tue - Easy (7K)", "easy", 7, EASY_NOTE),
+    _simple("2026-09-24", "W4 Thu - Easy (8K)", "easy", 8, EASY_NOTE),
+    _reps("2026-09-25", "W4 Fri - Tempo Intervals (2x1.5K @ Tempo)", "tempo", 2, 1.5, recovery_km=0.3, note=TEMPO_NOTE),
+    _simple("2026-09-27", "W4 Sun - Long Run, easy (15K)", "long", 15, LONG_NOTE),
+    # Week 5 - volume smoothed from 54.6km after the W1-W3 review: the missed
+    # W3 Tuesday left 46.2km (W2) as the biggest week actually run, so full
+    # volume returns at ~+12% on that instead of +19%. The MP session keeps
+    # its full 8km of work - intensity discipline is the goal, not less work.
+    _simple("2026-09-29", "W5 Tue - Easy + Strides (8K)", "easy", 8, EASY_NOTE + " " + STRIDES_NOTE),
+    _simple("2026-10-01", "W5 Thu - Easy (9K)", "easy", 9, EASY_NOTE),
+    _reps("2026-10-02", "W5 Fri - Marathon Pace Intervals (4x2K @ MP)", "mp", 4, 2.0, note=MP_NOTE),
+    _simple("2026-10-04", "W5 Sun - Long Run (21K)", "long", 21, LONG_NOTE),
     # Week 6
-    _simple("2026-10-06", "W6 Tue - Easy + Strides (9K)", "easy", 9, STRIDES_NOTE),
-    _simple("2026-10-08", "W6 Thu - Easy (10K)", "easy", 10),
-    _reps("2026-10-09", "W6 Fri - Tempo Intervals (3x2K @ Tempo)", "tempo", 3, 2.0),
-    _long_with_finish("2026-10-11", "W6 Sun - Long Run w/ MP Finish (24K)", 16, 8),
+    _simple("2026-10-06", "W6 Tue - Easy + Strides (9K)", "easy", 9, EASY_NOTE + " " + STRIDES_NOTE),
+    _simple("2026-10-08", "W6 Thu - Easy (10K)", "easy", 10, EASY_NOTE),
+    _reps("2026-10-09", "W6 Fri - Tempo Intervals (3x2K @ Tempo)", "tempo", 3, 2.0, note=TEMPO_NOTE),
+    _long_with_finish("2026-10-11", "W6 Sun - Long Run w/ MP Finish (24K)", 16, 8, MP_FINISH_NOTE),
     # Week 7
-    _simple("2026-10-13", "W7 Tue - Easy + Strides (9K)", "easy", 9, STRIDES_NOTE),
-    _simple("2026-10-15", "W7 Thu - Easy (10K)", "easy", 10),
-    _reps("2026-10-16", "W7 Fri - Marathon Pace Intervals (3x3K @ MP)", "mp", 3, 3.0, recovery_km=0.5),
-    _simple("2026-10-18", "W7 Sun - Long Run, peak distance (26K)", "long", 26),
+    _simple("2026-10-13", "W7 Tue - Easy + Strides (9K)", "easy", 9, EASY_NOTE + " " + STRIDES_NOTE),
+    _simple("2026-10-15", "W7 Thu - Easy (10K)", "easy", 10, EASY_NOTE),
+    _reps("2026-10-16", "W7 Fri - Marathon Pace Intervals (3x3K @ MP)", "mp", 3, 3.0, recovery_km=0.5, note=MP_NOTE),
+    _simple("2026-10-18", "W7 Sun - Long Run, peak distance (26K)", "long", 26, LONG_NOTE),
     # Week 8 - peak
-    _simple("2026-10-20", "W8 Tue - Easy + Strides (8K)", "easy", 8, STRIDES_NOTE),
-    _simple("2026-10-22", "W8 Thu - Easy (10K)", "easy", 10),
-    _reps("2026-10-23", "W8 Fri - Tempo Intervals (3x2K @ Tempo)", "tempo", 3, 2.0),
-    _long_with_finish("2026-10-25", "W8 Sun - Peak Long Run w/ MP Finish (30K)", 20, 10),
+    _simple("2026-10-20", "W8 Tue - Easy + Strides (8K)", "easy", 8, EASY_NOTE + " " + STRIDES_NOTE),
+    _simple("2026-10-22", "W8 Thu - Easy (10K)", "easy", 10, EASY_NOTE),
+    _reps("2026-10-23", "W8 Fri - Tempo Intervals (3x2K @ Tempo)", "tempo", 3, 2.0, note=TEMPO_NOTE),
+    _long_with_finish("2026-10-25", "W8 Sun - Peak Long Run w/ MP Finish (30K)", 20, 10, MP_FINISH_NOTE),
     # Week 9 - taper begins
-    _simple("2026-10-27", "W9 Tue - Easy (7K)", "easy", 7),
-    _simple("2026-10-29", "W9 Thu - Easy (8K)", "easy", 8),
-    _reps("2026-10-30", "W9 Fri - Marathon Pace Intervals (3x2K @ MP)", "mp", 3, 2.0),
-    _simple("2026-11-01", "W9 Sun - Long Run, easy (18K)", "long", 18),
+    _simple("2026-10-27", "W9 Tue - Easy (7K)", "easy", 7, EASY_NOTE),
+    _simple("2026-10-29", "W9 Thu - Easy (8K)", "easy", 8, EASY_NOTE),
+    _reps("2026-10-30", "W9 Fri - Marathon Pace Intervals (3x2K @ MP)", "mp", 3, 2.0, note=MP_NOTE),
+    _simple("2026-11-01", "W9 Sun - Long Run, easy (18K)", "long", 18, LONG_NOTE),
     # Week 10 - taper
-    _simple("2026-11-03", "W10 Tue - Easy + Strides (6K)", "easy", 6, STRIDES_NOTE),
-    _simple("2026-11-05", "W10 Thu - Easy (6K)", "easy", 6),
-    _reps("2026-11-06", "W10 Fri - Marathon Pace Sharpener (3x1K @ MP)", "mp", 3, 1.0, recovery_km=0.2),
-    _long_with_finish("2026-11-08", "W10 Sun - Easy w/ MP pickups (12K)", 8, 4),
+    _simple("2026-11-03", "W10 Tue - Easy + Strides (6K)", "easy", 6, EASY_NOTE + " " + STRIDES_NOTE),
+    _simple("2026-11-05", "W10 Thu - Easy (6K)", "easy", 6, EASY_NOTE),
+    _reps("2026-11-06", "W10 Fri - Marathon Pace Sharpener (3x1K @ MP)", "mp", 3, 1.0, recovery_km=0.2, note=MP_NOTE),
+    _long_with_finish("2026-11-08", "W10 Sun - Easy w/ MP pickups (12K)", 8, 4, MP_FINISH_NOTE),
     # Week 11 - race week (Sun is race day, not a training run). Fri's
     # "easy + strides" (moved from the old Tue slot) doubles as a classic
     # pre-race opener, 2 days out.
