@@ -6,7 +6,6 @@ drift - rows are plain dicts here so they serialize straight to JSON.
 
 import csv
 import io
-import statistics
 from datetime import date, datetime, timedelta
 
 from garminconnect import Garmin
@@ -17,6 +16,7 @@ from plan_data import ACTIVE_PACE_SET, FLOOR_TIME_SEC, MARATHON_KM, PACES, PRIMA
 
 _FADE_FORECAST_MIN_KM = 10  # only long runs long enough for pacing strategy to matter
 _QUALITY_KINDS = ("tempo", "mp")
+_RANGE_MIN_SESSIONS = 5  # below this, a "range" is just two points disagreeing - don't dress it up as statistics
 
 _CSV_COLUMNS = [
     "week", "date", "actualDate", "label", "kind", "status",
@@ -158,7 +158,7 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
     return rows
 
 
-def refine_quality_pace(client: Garmin, rows: list[dict]) -> None:
+def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict[str, dict] | None = None) -> None:
     """Replaces the whole-activity average pace/HR on tempo/MP rows with the pace/HR of just
     the work-interval laps, mutating rows in place.
 
@@ -178,9 +178,18 @@ def refine_quality_pace(client: Garmin, rows: list[dict]) -> None:
     """
     easy_slow_bound, easy_fast_bound = PACES["easy"]
     non_work_floor_sec = pace_to_sec(easy_fast_bound)  # anything faster than easy's fast edge is work effort
+    sessions_by_date = sessions_by_date or {}
 
     for row in rows:
-        if row["kind"] not in _QUALITY_KINDS or row["status"] not in ("done", "partial") or not row.get("activityId"):
+        if row["status"] not in ("done", "partial") or not row.get("activityId"):
+            continue
+        session = sessions_by_date.get(row["date"])
+        is_quality = row["kind"] in _QUALITY_KINDS
+        # A long run with an MP finish carries real marathon-pace evidence too, but its row
+        # kind is "long", so the old kind-only gate skipped it - and compute_prediction then
+        # read its whole-run average (easy km included) as if it were MP pace.
+        is_mp_finish = not is_quality and session is not None and has_mp_effort(session)
+        if not (is_quality or is_mp_finish):
             continue
         try:
             laps = fetch_activity_laps(client, row["activityId"])
@@ -196,7 +205,21 @@ def refine_quality_pace(client: Garmin, rows: list[dict]) -> None:
         total_distance = sum(lap["distanceM"] for lap in work_laps)
         total_duration = sum(lap["durationSec"] for lap in work_laps)
         work_pace = total_duration / (total_distance / 1000)
+        work_km = total_distance / 1000
         hrs = [lap["avgHr"] for lap in work_laps if lap.get("avgHr")]
+
+        if is_mp_finish:
+            # Only the finish is MP effort; the run's own pace still describes the whole run,
+            # so leave it alone and expose the finish separately for compute_prediction.
+            planned_mp_km = sum(b.get("km", 0) for b in session["blocks"] if b.get("kind") == "mp")
+            if planned_mp_km and not (0.5 * planned_mp_km <= work_km <= 1.75 * planned_mp_km):
+                continue  # couldn't isolate the finish (e.g. one un-lapped run) - better no datapoint than a wrong one
+            row["mpEffortPace"] = work_pace
+            row["mpEffortPaceLabel"] = fmt_pace(work_pace)
+            row["mpEffortKm"] = round(work_km, 2)
+            if hrs:
+                row["mpEffortHr"] = round(sum(hrs) / len(hrs), 1)
+            continue
 
         slow_bound, fast_bound = PACES[row["kind"]]
         slow_sec, fast_sec = pace_to_sec(slow_bound), pace_to_sec(fast_bound)
@@ -208,7 +231,11 @@ def refine_quality_pace(client: Garmin, rows: list[dict]) -> None:
             row["actualHr"] = round(sum(hrs) / len(hrs), 1)
         row["inZone"] = fast_sec <= work_pace <= slow_sec
         row["workLapCount"] = len(work_laps)
-        row["workDistanceKm"] = round(total_distance / 1000, 2)
+        row["workDistanceKm"] = round(work_km, 2)
+        if row["kind"] == "mp":
+            row["mpEffortPace"] = work_pace
+            row["mpEffortPaceLabel"] = row["actualPaceLabel"]
+            row["mpEffortKm"] = round(work_km, 2)
 
 
 def planned_weekly_kpis(sessions: list[dict]) -> list[dict]:
@@ -288,14 +315,24 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
     weaker signal of current fitness than one from yesterday, so it should
     move the estimate less.
     """
-    qualifying = sorted(
-        (
-            (row["date"], row["actualPace"])
-            for row in rows
-            if row["actualPace"] is not None and has_mp_effort(sessions_by_date[row["date"]])
-        ),
-        key=lambda item: item[0],
-    )
+    # Only MP-effort pace counts, and it has to be measured the same way every time: the MP
+    # reps of an interval session, or the MP finish of a long run - never a whole-run average
+    # that mixes 15km of easy running into the number. refine_quality_pace() sets mpEffortPace
+    # wherever it could isolate that; a session where it couldn't is left out rather than
+    # averaged in diluted, which is what made this estimate meaningless before.
+    mp_rows = [row for row in rows if has_mp_effort(sessions_by_date[row["date"]])]
+    refined = [(row["date"], row["mpEffortPace"]) for row in mp_rows if row.get("mpEffortPace") is not None]
+    diluted = False
+    if refined:
+        qualifying = sorted(refined, key=lambda item: item[0])
+    else:
+        # No lap data available (e.g. the CLI, which doesn't fetch laps): fall back to whole-run
+        # averages. Consistently diluted is still comparable; mixing the two was the bug.
+        qualifying = sorted(
+            ((row["date"], row["actualPace"]) for row in mp_rows if row["actualPace"] is not None),
+            key=lambda item: item[0],
+        )
+        diluted = bool(qualifying)
 
     if not qualifying:
         return {
@@ -304,6 +341,12 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
             "marathon-pace session or MP-finish long run.",
         }
 
+    # An estimate built from reps run harder than MP quietly assumes a pace only ever held for
+    # 5-6km can be held for 42. Count those so the verdict can say so out loud instead of
+    # rewarding the exact habit (going out too fast) that this runner is trying to break.
+    mp_fast_sec = pace_to_sec(PACES["mp"][1])
+    over_mp = [d for d, pace in qualifying if pace < mp_fast_sec]
+
     recent = qualifying[-3:]
     latest_date, latest_pace = qualifying[-1]
     weights = list(range(1, len(recent) + 1))  # oldest->newest, e.g. [1,2,3]: most recent counts 3x an average
@@ -311,23 +354,26 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
     latest_predicted = latest_pace * MARATHON_KM
     avg_predicted = weighted_recent_pace * MARATHON_KM
 
-    recent_predicted_times = [pace * MARATHON_KM for _, pace in recent]
-    if len(recent_predicted_times) >= 2:
-        spread = statistics.pstdev(recent_predicted_times)
-        range_low, range_high = avg_predicted - spread, avg_predicted + spread
+    # A "range" needs enough sessions to mean anything. A standard deviation of 2-3 points is
+    # just the gap between them wearing a statistics costume, so below _RANGE_MIN_SESSIONS
+    # this stays hidden and the point estimate carries its own plain-language caveat.
+    all_predicted_times = [pace * MARATHON_KM for _, pace in qualifying]
+    if len(all_predicted_times) >= _RANGE_MIN_SESSIONS:
+        range_low, range_high = min(all_predicted_times), max(all_predicted_times)
         predicted_range = {
             "available": True,
             "lowSec": round(range_low),
             "highSec": round(range_high),
             "lowLabel": fmt_hms(range_low),
             "highLabel": fmt_hms(range_high),
-            "note": f"~68% band (1 std dev) from the last {len(recent_predicted_times)} MP-effort sessions' own variability - "
-            "not a Monte Carlo model, just how consistent your recent pacing actually is.",
+            "note": f"Fastest and slowest of your {len(all_predicted_times)} marathon-pace sessions, "
+            "extended to race distance - the real spread, not a model.",
         }
     else:
         predicted_range = {
             "available": False,
-            "message": "Needs at least 2 MP-effort sessions to show a range instead of a single point estimate.",
+            "message": f"Needs {_RANGE_MIN_SESSIONS} marathon-pace sessions before a range says anything; "
+            f"you have {len(all_predicted_times)}.",
         }
 
     if avg_predicted <= STRETCH_TIME_SEC * 1.01:
@@ -346,9 +392,18 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
             'to "floor" in plan_data.py to cut injury risk instead of pushing harder.'
         )
 
+    if over_mp:
+        message += (
+            f" Read it with care: {len(over_mp)} of your {len(qualifying)} marathon-pace sessions ran faster "
+            "than the MP band, so this assumes you can hold for 42km a pace you've so far held for a few km."
+        )
+
     return {
         "available": True,
         "sampleSize": len(recent),
+        "qualifyingCount": len(qualifying),
+        "fasterThanMpCount": len(over_mp),
+        "diluted": diluted,  # True only when no lap data was available and whole-run averages were used
         "latestDate": latest_date,
         "latestPredictedSec": latest_predicted,
         "latestPredictedLabel": fmt_hms(latest_predicted),
@@ -368,7 +423,9 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
     }
 
 
-def compute_fade_forecast(client: Garmin, rows: list[dict], prediction: dict) -> dict:
+def compute_fade_forecast(
+    client: Garmin, rows: list[dict], prediction: dict, sessions_by_date: dict[str, dict] | None = None
+) -> dict:
     """Projects this cycle's observed long-run fade pattern onto the marathon prediction.
 
     compute_prediction() assumes a flat, even pace across the full distance. This applies
@@ -379,11 +436,18 @@ def compute_fade_forecast(client: Garmin, rows: list[dict], prediction: dict) ->
     if not prediction.get("available"):
         return {"available": False, "message": "Needs a race-time prediction first."}
 
+    sessions_by_date = sessions_by_date or {}
     fades = []
     for r in rows:
         if r["kind"] != "long" or r["status"] not in ("done", "partial"):
             continue
         if not r.get("activityId") or (r["actualKm"] or 0) < _FADE_FORECAST_MIN_KM:
+            continue
+        session = sessions_by_date.get(r["date"])
+        if session is not None and has_mp_effort(session):
+            # A long run with an MP finish is *built* to negative-split. Counting it as
+            # evidence of "no fade" guaranteed a reassuring answer no matter what happened -
+            # only steady long runs can say anything about fading.
             continue
         try:
             splits = fetch_race_splits(client, r["activityId"])
@@ -394,7 +458,11 @@ def compute_fade_forecast(client: Garmin, rows: list[dict], prediction: dict) ->
             fades.append(pacing["fadeSecPerKm"])
 
     if not fades:
-        return {"available": False, "message": "No completed long runs with splits yet to project a fade pattern from."}
+        return {
+            "available": False,
+            "message": "No steady long runs with splits yet to read a fade pattern from "
+            "(long runs with an MP finish don't count - they're built to speed up).",
+        }
 
     avg_fade = sum(fades) / len(fades)
     fade_penalty = max(0.0, avg_fade)  # negative splits don't get rewarded with a faster prediction

@@ -153,10 +153,10 @@ def _fetch_progress() -> dict:
         activity_by_date = fetch_activities_by_date(session.client, plan_start, fetch_end.isoformat())
 
     rows = build_rows(SESSIONS, activity_by_date, today)
-    refine_quality_pace(session.client, rows)
     sessions_by_date = {s["date"]: s for s in SESSIONS}
+    refine_quality_pace(session.client, rows, sessions_by_date)
     prediction = compute_prediction(rows, sessions_by_date)
-    prediction["fadeForecast"] = compute_fade_forecast(session.client, rows, prediction)
+    prediction["fadeForecast"] = compute_fade_forecast(session.client, rows, prediction, sessions_by_date)
 
     due = [r for r in rows if r["status"] != "upcoming"]
     completed = sum(1 for r in due if r["status"] in ("done", "partial"))
