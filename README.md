@@ -36,7 +36,9 @@ pace-zone data on the steps isn't visible everywhere the workout shows up.
 - `heat.py` — heat-adjusted goal times, anchored to the temperatures of your own two prior Bangsaen finishes.
 - `health.py` — weight, sleep, hydration and sweat rate, backed by Garmin Connect's own records.
 - `history.py` — prior races (km-by-km splits), training-block comparisons, VO2max history.
-- `gear.py` / `fitness_snapshot.py` — shoe mileage from Garmin Gear; Garmin's own VO2max and training-load range.
+- `gear.py` / `fitness_snapshot.py` — shoe mileage from Garmin Gear (only the two tracked pairs, `TRACKED_SHOES`); Garmin's own VO2max and training-load range.
+- `mind.py` / `checkin_store.py` — all-day stress against your own baseline, and the daily mood/motivation check-in.
+- `feel_store.py` / `db.py` — post-run 1-10 ratings, and the shared Supabase client.
 - `garmin_session.py` + `token_store.py` — the web app's Garmin login (background-thread MFA) and token persistence (local file, or Supabase when deployed).
 - `track_progress.py` — CLI: pulls your actual runs back from Garmin Connect and compares them against the plan.
 - `app.py` + `templates/index.html` — the web app (Flask API + a single-page, mobile-first frontend).
@@ -138,18 +140,24 @@ Garmin returns.
 
 Three tabs, mobile-first, each answering one question:
 
-- **Today** — *Am I ready, and what do I run?* Readiness with its reason,
-  the next session with its target pace band and steps, a coaching cue from
-  your last run of the same type, today's fueling (carbs, protein,
-  before/during/after, water), your last run against its target, this week,
-  and any coach flags from the past 7 days.
-- **Progress** — *Am I on track for race day?* Predicted finish against the
-  floor/primary/stretch tiers, a pace-vs-target chart for every run,
-  easy-vs-hard heart-rate gap, all coach flags, weekly volume, the race plan
-  (pacing, fuel timeline, race-week eating, race-day conditions), the
-  2024/2025 pacing lessons, and the full 11-week plan with CSV export.
-- **Body** — sleep, weight (logs to Garmin Connect), carb targets by day
-  type, a sweat test that feeds the race-day fluid plan, and shoe mileage.
+- **Control Centre** — *What now?* Readiness with its reason, the next
+  session with its target band and steps, a coaching cue from your last run
+  of the same type, that run with its marathon-pace portion called out and a
+  1-10 "how did it feel" tap, this week's runs and completion, the predicted
+  finish with the evidence it was built from, and the single most urgent
+  coach flag.
+- **Plan & Fuel** — *What's coming, and what do I eat?* Today's fuel
+  (carbs, protein, before/during/after, water logging), all 11 weeks with
+  the current one open — every session's target band, steps and its own
+  fuelling — the race-day pacing/gel/fluid plan, race-morning and carb-load
+  guidance, and the two shoes (Smoke for the race, Aqua for training)
+  projected to race day.
+- **Body & Mind** — *How am I?* A daily mood/motivation check-in, all-day
+  stress against your own baseline (run days marked, since the run itself
+  raises it), sleep, weight (logs to Garmin Connect) and a sweat test that
+  feeds the race-day fluid plan.
+
+The 935 records stress but not Body Battery, so nothing here reads it.
 
 Data is pulled on demand (page load, tab switch, or the refresh button) and
 cached for 5 minutes (history for an hour) — no background polling. The app
@@ -182,9 +190,20 @@ create table run_feel (
   updated_at timestamptz default now()
 );
 alter table run_feel enable row level security;
+
+-- daily mood/motivation check-in (Body & Mind)
+create table daily_checkin (
+  checkin_date date primary key,
+  mood smallint not null check (mood between 1 and 5),
+  motivation smallint not null check (motivation between 1 and 5),
+  note text,
+  updated_at timestamptz default now()
+);
+alter table daily_checkin enable row level security;
 ```
 
-Without Supabase (a local run), ratings are kept in `~/.bangsaen/run_feel.json`.
+Without Supabase (a local run), ratings and check-ins are kept in
+`~/.bangsaen/run_feel.json` and `~/.bangsaen/daily_checkin.json`.
 
 Garmin rotates the refresh token every time the session refreshes, so the
 server re-saves the token to Supabase whenever the file changes. Don't run

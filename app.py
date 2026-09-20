@@ -17,13 +17,17 @@ import hmac
 import os
 import secrets
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Flask, Response, jsonify, redirect, render_template, request
 from flask import session as flask_session
 
 from build_workouts import session_distance_km, session_duration_min, session_steps
+from checkin_store import SCALE_MAX, SCALE_MIN, all_checkins, save_checkin
+from checkin_store import friendly_error as checkin_error
+from checkin_store import summarize as summarize_checkins
 from feel_store import all_feels, friendly_error, save_feel
+from mind import fetch_stress_days, stress_summary
 from fuel import DEFAULT_WEIGHT_KG, all_day_types, day_guidance
 from garmin_session import session
 from race_plan import carb_load, fuel_plan, pacing_plan, race_morning
@@ -117,6 +121,7 @@ def login_gate_post():
     return render_template("gate.html", error="Wrong password")
 
 
+_MIND_STRESS_DAYS = 10  # one Garmin call per day, so keep the window short enough to stay quick
 _CACHE_TTL_SECONDS = 300
 _HISTORY_CACHE_TTL_SECONDS = 3600  # history barely changes minute to minute
 _cache: dict[str, tuple[float, dict]] = {}
@@ -499,6 +504,62 @@ def api_feel_post():
         save_feel(activity_id, run_date, rpe)
     except Exception as exc:
         return jsonify({"error": friendly_error(exc)}), 503
+    return jsonify({"ok": True})
+
+
+@app.get("/api/mind")
+def api_mind():
+    """Everything the Body & Mind tab needs about the mind half: stress from the
+    watch, sleep, and the runner's own daily check-in."""
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    force = request.args.get("refresh") == "1"
+    days = _MIND_STRESS_DAYS
+    try:
+        stress_days = _cached("stress", lambda: fetch_stress_days(session.client, days=days), force=force)
+        sleep_entries = _cached("sleep", lambda: fetch_sleep_entries(session.client), force=force)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+    window = [(date.today() - timedelta(days=offset)).isoformat() for offset in range(days - 1, -1, -1)]
+    payload = {
+        "today": date.today().isoformat(),
+        "stress": stress_summary(stress_days),
+        "stressDays": stress_days,
+        "sleep": {"entries": sleep_entries, "summary": compute_sleep_summary(sleep_entries)},
+        "scale": {"min": SCALE_MIN, "max": SCALE_MAX},
+    }
+    try:
+        checkins = all_checkins()
+        payload["checkins"] = checkins
+        payload["checkinSummary"] = summarize_checkins(checkins, window)
+    except Exception as exc:
+        # The watch data is still worth showing if the check-in table isn't set up.
+        payload["checkins"] = {}
+        payload["checkinSummary"] = summarize_checkins({}, window)
+        payload["checkinError"] = checkin_error(exc)
+    return jsonify(payload)
+
+
+@app.post("/api/checkin")
+def api_checkin_post():
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        checkin_date = str(data["date"])
+        datetime.strptime(checkin_date, "%Y-%m-%d")
+        mood = int(data["mood"])
+        motivation = int(data["motivation"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "date (YYYY-MM-DD), mood and motivation are required"}), 400
+    if not (SCALE_MIN <= mood <= SCALE_MAX and SCALE_MIN <= motivation <= SCALE_MAX):
+        return jsonify({"error": f"mood and motivation must be between {SCALE_MIN} and {SCALE_MAX}"}), 400
+    note = str(data.get("note") or "")[:280]
+    try:
+        save_checkin(checkin_date, mood, motivation, note)
+    except Exception as exc:
+        return jsonify({"error": checkin_error(exc)}), 503
     return jsonify({"ok": True})
 
 

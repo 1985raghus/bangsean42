@@ -21,12 +21,15 @@ show up here at all. When the runner's own read on a shoe disagrees with
 the logged km, trust the runner.
 """
 
-import re
 from datetime import date, datetime
 
 from garminconnect import Garmin
 
-_RACE_SHOE_PATTERN = re.compile(r"novablast", re.IGNORECASE)
+# Only two pairs are in this build, by the runner's own choice: Smoke (ASICS
+# Superblast 3, bought 2026-09-20) is kept for Bangsaen; Aqua (ASICS Novablast 6)
+# takes every training km. Garmin holds older pairs too - they're ignored here so
+# the screen says one thing: which shoe today, and will the race pair be ready.
+TRACKED_SHOES = {"smoke": "race", "aqua": "training"}
 
 # Typical daily-trainer midsole lifespan before cushioning/energy-return
 # degrades meaningfully. Widely-cited range is ~500-800km depending on
@@ -48,8 +51,12 @@ def _parse_date(value: str | None) -> date | None:
     return datetime.fromisoformat(value.split("T")[0]).date()
 
 
+def shoe_role(shoe: dict) -> str | None:
+    return TRACKED_SHOES.get((shoe.get("name") or "").strip().lower())
+
+
 def is_race_shoe(shoe: dict) -> bool:
-    return bool(_RACE_SHOE_PATTERN.search(shoe.get("model") or "") or _RACE_SHOE_PATTERN.search(shoe.get("name") or ""))
+    return shoe_role(shoe) == "race"
 
 
 def fetch_shoes(client: Garmin, include_retired: bool = False) -> list[dict]:
@@ -63,18 +70,22 @@ def fetch_shoes(client: Garmin, include_retired: bool = False) -> list[dict]:
             continue
         if not include_retired and g.get("gearStatusName") != "active":
             continue
+        name = (g.get("displayName") or g.get("customMakeModel") or "Unnamed shoe").strip()
+        if name.lower() not in TRACKED_SHOES:
+            continue
         stats = client.get_gear_stats(g["uuid"])
         begin = _parse_date(g.get("dateBegin"))
         out.append({
             "uuid": g["uuid"],
-            "name": g.get("displayName") or g.get("customMakeModel") or "Unnamed shoe",
-            "model": g.get("customMakeModel"),
+            "name": name,
+            "model": (g.get("customMakeModel") or "").strip(),
+            "role": TRACKED_SHOES[name.lower()],
             "status": g.get("gearStatusName"),
             "beginDate": begin.isoformat() if begin else None,
             "totalKm": round((stats.get("totalDistance") or 0) / 1000, 1),
             "totalActivities": stats.get("totalActivities", 0),
         })
-    out.sort(key=lambda s: s["totalKm"], reverse=True)
+    out.sort(key=lambda s: s["role"] != "race")  # race pair first
     return out
 
 
@@ -122,12 +133,24 @@ def project_to_race_day(shoe: dict, race_date: date, as_of: date | None = None) 
     begin = datetime.fromisoformat(shoe["beginDate"]).date() if shoe.get("beginDate") else None
     days_to_race = (race_date - as_of).days
 
-    if not begin or begin >= as_of or days_to_race < 0:
+    if not begin or days_to_race < 0:
         return {"available": False}
 
     days_used = (as_of - begin).days
     if days_used <= 0:
-        return {"available": False}
+        # Bought today: no usage history to extrapolate, but "0km so far" is itself
+        # the answer for a race pair, so say that rather than showing nothing.
+        verdict, note = _race_shoe_verdict(shoe, shoe["totalKm"]) if is_race_shoe(shoe) else _training_shoe_verdict(shoe, shoe["totalKm"])
+        return {
+            "available": True,
+            "isRaceShoe": is_race_shoe(shoe),
+            "dailyRateKm": 0.0,
+            "daysUsed": 0,
+            "daysToRace": days_to_race,
+            "projectedKmAtRace": shoe["totalKm"],
+            "verdict": verdict,
+            "note": note,
+        }
 
     daily_rate_km = shoe["totalKm"] / days_used
     projected_km = round(shoe["totalKm"] + daily_rate_km * days_to_race, 1)
