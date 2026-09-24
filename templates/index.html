@@ -379,6 +379,12 @@ const curWeek = () => { const due = (S.progress?.rows || []).filter((r) => r.sta
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2400); }
 
+// One section failing should cost that section, not the whole screen.
+async function safeRender(label, el, fn) {
+  try { await fn(); }
+  catch (e) { console.error(label, e); el.innerHTML = `<p class="err">Couldn't show ${esc(label)}: ${esc(e.message)}</p>`; }
+}
+
 /* ---------- boot ---------- */
 const boot = { done: 0, total: 7, on: true };
 const BOOT_LINES = ['Lacing up…', 'Pulling your runs from Garmin…', 'Checking readiness…', 'Doing the fuel maths…'];
@@ -617,21 +623,29 @@ async function loadControl(force) {
 /* ---------- PLAN & FUEL ---------- */
 const dayTypeLabel = (f) => (f.dayTypes || []).find((d) => d.dayType === f.dayType)?.label || f.dayType || 'Today';
 const fuelLine = (label, text) => (text ? `<dt>${label}</dt><dd>${esc(text)}</dd>` : '');
+const range = (pair, unit) => (Array.isArray(pair) ? `${pair[0]}–${pair[1]} ${unit}` : null);
+// On short easy days Garmin-side fuelling has no carb or sodium numbers at all
+// (nothing to take), so every part here is optional.
+function duringText(f) {
+  const d = f?.during;
+  if (!d) return '';
+  const fluid = range(d.fluidMlPerHour, 'ml/h'), sodium = range(d.sodiumMgPerHour, 'mg/h');
+  const extras = [fluid && `Fluid ${fluid}`, sodium && `sodium ${sodium}`].filter(Boolean).join(', ');
+  return [d.text, extras && `${extras}.`].filter(Boolean).join(' ');
+}
 
 function fuelCard(f) {
   if (!f) return '<div class="card"><p class="muted" style="margin:0;">Fuel data unavailable.</p></div>';
-  const d = f.during;
-  const duringText = d ? `${d.text} Fluid ${d.fluidMlPerHour[0]}–${d.fluidMlPerHour[1]} ml/h, sodium ${d.sodiumMgPerHour[0]}–${d.sodiumMgPerHour[1]} mg/h.` : '';
   return `<div class="card">
     <div class="row-between"><span class="small muted">${esc(fmtShort(f.date))} · ${esc(dayTypeLabel(f))}</span>
       <span class="small muted">scaled to ${fmtKm(f.weightKg)} kg${f.weightAssumed ? ' (assumed)' : ''}</span></div>
     <div class="stats" style="margin-top:10px;">
-      <div class="stat"><div class="l">Carbohydrate</div><div class="v num">${f.carbsG[0]}–${f.carbsG[1]}<small>g</small></div><div class="s">across the day</div></div>
-      <div class="stat"><div class="l">Protein</div><div class="v num">${f.proteinG[0]}–${f.proteinG[1]}<small>g</small></div><div class="s">across the day</div></div>
+      <div class="stat"><div class="l">Carbohydrate</div><div class="v num">${range(f.carbsG, '') || '–'}<small>g</small></div><div class="s">across the day</div></div>
+      <div class="stat"><div class="l">Protein</div><div class="v num">${range(f.proteinG, '') || '–'}<small>g</small></div><div class="s">across the day</div></div>
     </div>
     ${f.plate ? `<p class="small muted" style="margin:10px 0 0;">${esc(f.plate)}</p>` : ''}
     <dl class="fuel" style="margin:12px 0 0;">
-      ${fuelLine('Before', f.before)}${fuelLine('During', duringText)}${fuelLine('After', f.after)}
+      ${fuelLine('Before', f.before)}${fuelLine('During', duringText(f))}${fuelLine('After', f.after)}
     </dl>
   </div>`;
 }
@@ -689,10 +703,8 @@ async function renderPlanList() {
       const f = S.fuelByDate?.[date] || await getJSON(`/api/fuel?date=${date}`);
       S.fuelByDate = { ...(S.fuelByDate || {}), [date]: f };
       slot.innerHTML = `<dl class="fuel" style="margin-top:10px;">
-        <dt>All day</dt><dd>${f.carbsG[0]}–${f.carbsG[1]} g carbs · ${f.proteinG[0]}–${f.proteinG[1]} g protein</dd>
-        ${fuelLine('Before', f.before)}
-        ${fuelLine('During', f.during ? `${f.during.text} Fluid ${f.during.fluidMlPerHour[0]}–${f.during.fluidMlPerHour[1]} ml/h.` : '')}
-        ${fuelLine('After', f.after)}</dl>`;
+        <dt>All day</dt><dd>${range(f.carbsG, 'g carbs') || '–'} · ${range(f.proteinG, 'g protein') || '–'}</dd>
+        ${fuelLine('Before', f.before)}${fuelLine('During', duringText(f))}${fuelLine('After', f.after)}</dl>`;
       slot.dataset.loaded = '1'; b.textContent = 'Hide fuel';
     } catch (e) { slot.innerHTML = `<p class="err small" style="margin:8px 0 0;">${esc(e.message)}</p>`; }
   }));
@@ -712,9 +724,9 @@ function renderRaceDay() {
   <div class="card">
     <b>Fuel on the road</b>
     <div class="stats" style="margin-top:10px;">
-      <div class="stat"><div class="l">Gels</div><div class="v num">${f.gelCount}</div><div class="s">${f.gelCarbsPerHour} g carbs/h from gels</div></div>
-      <div class="stat"><div class="l">Fluid</div><div class="v num">${f.fluidMlPerHour[0]}–${f.fluidMlPerHour[1]}<small>ml/h</small></div>${f.sodiumMgPerHour ? `<div class="s">${f.sodiumMgPerHour[0]}–${f.sodiumMgPerHour[1]} mg sodium/h</div>` : ''}</div>
-      <div class="stat"><div class="l">Carbs</div><div class="v num">${f.carbsPerHour[0]}–${f.carbsPerHour[1]}<small>g/h</small></div><div class="s">practise it in long runs</div></div>
+      <div class="stat"><div class="l">Gels</div><div class="v num">${f.gelCount ?? '–'}</div><div class="s">${f.gelCarbsPerHour ?? '–'} g carbs/h from gels</div></div>
+      <div class="stat"><div class="l">Fluid</div><div class="v num">${range(f.fluidMlPerHour, '') || '–'}<small>ml/h</small></div>${range(f.sodiumMgPerHour, 'mg sodium/h') ? `<div class="s">${range(f.sodiumMgPerHour, 'mg sodium/h')}</div>` : ''}</div>
+      <div class="stat"><div class="l">Carbs</div><div class="v num">${range(f.carbsPerHour, '') || '–'}<small>g/h</small></div><div class="s">practise it in long runs</div></div>
     </div>
     <div class="rows" style="margin-top:10px;">${(f.gels || []).map((g, i) => `<div class="row"><div class="grow"><div class="t">Gel ${i + 1}</div></div><div class="r">${g.minute} min · km ${fmtKm(g.km)}</div></div>`).join('')}</div>
     ${f.fluidNote ? `<p class="small muted" style="margin:10px 0 0;">${esc(f.fluidNote)}</p>` : ''}
@@ -759,9 +771,9 @@ async function loadPlanTab(force) {
   loadPlanTab.rebind = () => $('p-fuel').querySelectorAll('[data-ml]').forEach((b) => b.addEventListener('click', async () => {
     try { S.hydration = await postJSON('/api/hydration', { ml: Number(b.dataset.ml) }); $('p-fuel').innerHTML = fuelCard(S.fuelToday) + renderHydration(); loadPlanTab.rebind(); toast('Water logged'); } catch (e) { toast(e.message); }
   }));
-  await renderPlanList();
-  renderRaceDay();
-  renderShoes();
+  await safeRender('the plan', $('p-plan'), renderPlanList);
+  safeRender('race day', $('p-race'), renderRaceDay);
+  safeRender('the shoes', $('p-shoes'), renderShoes);
   renderSession(); // shoe name now known
 }
 
@@ -890,7 +902,10 @@ async function loadMindTab(force) {
     getJSON('/api/weight' + q).catch(() => null),
   ]);
   Object.assign(S, { mind, weight });
-  renderCheckin(); renderStress(); renderSleep(); renderWeight();
+  safeRender('the check-in', $('m-checkin'), renderCheckin);
+  safeRender('stress', $('m-stress'), renderStress);
+  safeRender('sleep', $('m-sleep'), renderSleep);
+  safeRender('weight', $('m-weight'), renderWeight);
 }
 
 $('weight-form').addEventListener('submit', async (e) => {
