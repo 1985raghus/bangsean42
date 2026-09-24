@@ -122,19 +122,24 @@
   @keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   .drawn .gy { animation: growY var(--d-slow) var(--ease-out) both; transform-origin: bottom; }
 
-  /* week strip */
-  .strip { display: flex; align-items: flex-end; gap: 6px; height: 76px; }
-  .strip .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .strip .stack { position: relative; width: 12px; border-radius: var(--r-1); background: var(--ground-3); }
-  .strip .stack i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: var(--r-1); background: var(--gold); transform: scaleY(0); transform-origin: bottom; transition: transform var(--d-slow) var(--ease-out); }
-  .strip .col.today .stack { box-shadow: inset 0 0 0 1.5px var(--ink); }
-  .strip .col.missed .stack::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--crit); border-radius: 2px; }
+  /* week strip: seven days, planned as the track, run as the gold fill */
+  .strip { display: flex; align-items: flex-end; gap: 5px; }
+  .strip .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .strip .stack { position: relative; width: 100%; max-width: 26px; border-radius: 7px; background: var(--ground-3); }
+  .strip .stack i { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; border-radius: 7px;
+    background: linear-gradient(180deg, #ffd071, var(--gold)); transform: scaleY(0); transform-origin: bottom; transition: transform var(--d-slow) var(--ease-out); }
+  .strip .col.today .stack { box-shadow: 0 0 0 1.5px var(--ink), 0 0 18px -4px rgba(245,184,61,.5); }
+  .strip .col.missed .stack { background: rgba(255,107,87,.22); }
+  .strip .rest { height: 4px; width: 14px; border-radius: 2px; background: var(--ink-4); }
+  .strip .km { font: 500 11px/1 var(--f-mono); color: var(--ink-2); }
+  .strip .dow { font: 500 11px/1 var(--f-mono); color: var(--ink-3); text-transform: uppercase; }
 
-  /* 11-week block bar */
-  .weeks { display: flex; gap: 6px; }
-  .weeks i { flex: 1; height: 8px; border-radius: 4px; background: var(--ground-3); }
-  .weeks i.done { background: var(--gold); }
-  .weeks i.now { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  /* the 11 weeks: each segment fills with the km actually banked that week */
+  .weeks { display: flex; gap: 5px; }
+  .weeks .wkseg { position: relative; flex: 1; height: 12px; border-radius: 6px; background: var(--ground-3); overflow: hidden; }
+  .weeks .wkseg i { position: absolute; inset: 0; width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--gold), #ffd071); transform: scaleX(0); transform-origin: left; transition: transform var(--d-slow) var(--ease-out); }
+  .weeks .wkseg.now { box-shadow: 0 0 0 1.5px var(--ink); }
+  .weeks .wkseg.race { background: transparent; box-shadow: none; display: grid; place-items: center; }
 
   /* contributors */
   .contrib { padding: 12px 0; border-top: 1px solid var(--line); }
@@ -305,6 +310,8 @@ const fmtHMS = (s) => `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 
 const km1 = (k) => (k == null ? '–' : (Math.round(k * 10) / 10).toString());
 const mins = (m) => (m >= 60 ? `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}` : `${Math.round(m)} min`);
 const d8 = (d) => new Date(`${d}T00:00:00`);
+/* Local YYYY-MM-DD. toISOString() would shift a Bangkok date back a day. */
+const isoLocal = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 const dayDiff = (a, b) => Math.round((d8(b) - d8(a)) / 86400000);
 const short = (d) => d8(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const longDate = (d) => d8(d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -534,14 +541,18 @@ function renderWeek() {
   const monday = (() => { const d = d8(S.progress.today); const off = (d.getDay() + 6) % 7; d.setDate(d.getDate() - off); return d; })();
   const cols = DAYS.map((dd, i) => {
     const date = new Date(monday); date.setDate(date.getDate() + i);
-    const iso = date.toISOString().slice(0, 10), r = rows.find((x) => x.date === iso);
-    const h = r ? Math.max(8, (Math.max(r.plannedKm, r.actualKm || 0) / maxKm) * 64) : 3;
-    const fill = r && r.actualKm ? Math.min(1, r.actualKm / Math.max(r.plannedKm, r.actualKm)) : 0;
-    const cls = [iso === S.progress.today ? 'today' : '', r && r.status === 'missed' ? 'missed' : ''].join(' ');
-    return `<div class="col ${cls}"><div class="stack" style="height:${h}px"><i data-fill="${fill}"></i></div><span class="mono">${dd}</span></div>`;
+    const iso = isoLocal(date), r = rows.find((x) => x.date === iso);
+    const isToday = iso === S.progress.today;
+    if (!r) return `<div class="col ${isToday ? 'today' : ''}"><div class="rest" title="rest"></div><span class="km">&nbsp;</span><span class="dow">${dd}</span></div>`;
+    const h = Math.max(22, (Math.max(r.plannedKm, r.actualKm || 0) / maxKm) * 78);
+    const fill = r.actualKm ? Math.min(1, r.actualKm / Math.max(r.plannedKm, r.actualKm)) : 0;
+    const cls = [isToday ? 'today' : '', r.status === 'missed' ? 'missed' : ''].join(' ');
+    return `<div class="col ${cls}"><div class="stack" style="height:${h}px"><i data-fill="${fill}"></i></div>
+      <span class="km">${r.actualKm ? km1(r.actualKm) : km1(r.plannedKm)}</span><span class="dow">${dd}</span></div>`;
   }).join('');
-  $('s-week').innerHTML = `<div class="strip">${cols}</div>
-    <p class="mono" style="margin-top:12px;">${km1(actual)} / ${km1(planned)} km &middot; ${rows.filter(done).length} of ${rows.length} runs</p>`;
+  $('s-week').innerHTML = `<div class="mono">This week &middot; ${rows.filter(done).length} of ${rows.length} runs</div>
+    <div class="strip" style="margin-top:14px;">${cols}</div>
+    <p class="sub" style="margin-top:12px;"><b style="color:var(--ink)">${km1(actual)} km</b> of ${km1(planned)} planned${rows.some((r) => r.status === 'missed') ? ' · one missed' : ''}</p>`;
   requestAnimationFrame(() => $('s-week').querySelectorAll('.stack i').forEach((i) => { i.style.transform = `scaleY(${i.dataset.fill})`; }));
 }
 
@@ -552,11 +563,12 @@ function renderBlock() {
   const weeks = Object.keys(byWeek);
   const kmDone = rows.reduce((a, r) => a + (r.actualKm || 0), 0), kmAll = rows.reduce((a, r) => a + r.plannedKm, 0);
   const due = rows.filter((r) => r.status !== 'upcoming' && r.status !== 'today');
+  // Each segment is one week, filled by the share of its kilometres actually banked.
   const bars = weeks.map((w) => {
     const ws = byWeek[w], p = ws.reduce((a, r) => a + r.plannedKm, 0), a = ws.reduce((x, r) => x + (r.actualKm || 0), 0);
-    const cls = a >= p * .9 ? 'done' : '';
-    return `<i class="${cls} ${w === wk ? 'now' : ''}"></i>`;
-  }).join('');
+    const fill = p > 0 ? Math.min(1, a / p) : 0;
+    return `<div class="wkseg ${w === wk ? 'now' : ''}" title="${w}: ${km1(a)} of ${km1(p)} km"><i data-fill="${fill}"></i></div>`;
+  }).join('') + `<div class="wkseg race" title="Race day"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="var(--gold)"/></svg></div>`;
 
   const longs = rows.filter((r) => r.kind === 'long');
   const longestDone = Math.max(0, ...longs.filter((r) => r.actualKm).map((r) => r.actualKm));
@@ -569,15 +581,18 @@ function renderBlock() {
     ['Long run', longestDone, longestDue, 'km'],
     ['Marathon pace', Math.round(mpDone), Math.round(mpDue), 'km'],
   ];
-  $('s-block').innerHTML = `<div class="weeks">${bars}</div>
-    <p class="mono" style="margin-top:12px;">Week ${weekNo} of 11 &middot; ${dayDiff(S.progress.today, S.plan.race.date)} days &middot; ${km1(kmDone)} / ${km1(kmAll)} km</p>
-    <div style="margin-top:18px;">${items.map(([label, got, need, unit]) => {
+  $('s-block').innerHTML = `<div class="mono">The 11 weeks &middot; gold is km banked</div>
+    <div class="weeks" style="margin-top:14px;">${bars}</div>
+    <p class="sub" style="margin-top:12px;"><b style="color:var(--ink)">Week ${weekNo}</b> &middot; ${dayDiff(S.progress.today, S.plan.race.date)} days to go &middot; ${km1(kmDone)} of ${km1(kmAll)} km run</p>
+    <div style="margin-top:22px;">${items.map(([label, got, need, unit]) => {
       const pct = need > 0 ? Math.min(100, (100 * got) / need) : 0;
-      const v = pct >= 90 ? ['On track', ''] : pct >= 75 ? ['Close', 'dim'] : ['Behind', 'crit'];
-      return `<div class="contrib"><div class="top"><span class="sub">${esc(label)}</span><span class="verdict ${v[1]}">${v[0]}</span></div>
-        <div class="track"><span class="tick" style="left:95%"></span><span class="mk" style="left:${pct}%"></span></div>
-        <p class="mono" style="margin-top:7px;">${got} of ${need} ${unit}</p></div>`;
+      const ok = pct >= 90;
+      const v = ok ? ['On track', 'good'] : pct >= 75 ? ['Close', 'dim'] : ['Behind', 'crit'];
+      return `<div class="contrib"><div class="top"><span class="sub" style="color:var(--ink)">${esc(label)}</span><span class="verdict ${v[1]}">${v[0]}</span></div>
+        <div class="track"><span class="tick" style="left:90%"></span><span class="mk" style="left:${pct}%;background:${ok ? 'var(--gold)' : 'var(--ink-2)'}"></span></div>
+        <p class="sub" style="margin-top:7px;">${got} <span class="dim">of ${need} ${unit}</span></p></div>`;
     }).join('')}</div>`;
+  requestAnimationFrame(() => $('s-block').querySelectorAll('.wkseg i').forEach((i) => { i.style.transform = `scaleX(${i.dataset.fill})`; }));
 }
 
 /* Effort discipline: heart rate on every easy and long run, against the ceiling each
