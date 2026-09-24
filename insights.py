@@ -25,6 +25,7 @@ _SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2, "good": 3}
 _EFFORT_WINDOW = 6  # how many recent completed sessions count toward the "same effort every day" check
 _TIGHT_PACE_STDEV_MIN = 0.35  # min/km - below this, sessions aren't being differentiated
 _LONG_RUN_FADE_THRESHOLD_SEC = 20  # sec/km slower in 2nd half before flagging a fade
+_EASY_PACE_TOLERANCE_SEC = 10  # a few seconds over the easy band is noise, not the pattern worth flagging
 _LONG_RUN_MIN_KM = 10  # only check splits on runs long enough for pacing strategy to matter
 _DECOUPLING_THRESHOLD_PCT = 5.0  # standard Pa:HR decoupling threshold for "insufficient aerobic durability"
 
@@ -40,7 +41,7 @@ def _rule_easy_too_hard(rows: list[dict]) -> list[dict]:
             continue
         _, fast_bound = PACES[r["kind"]]
         fast_sec = pace_to_sec(fast_bound)
-        if r["actualPace"] < fast_sec:
+        if r["actualPace"] < fast_sec - _EASY_PACE_TOLERANCE_SEC:
             over_by = fast_sec - r["actualPace"]
             out.append({
                 "id": f"easy-hard-{r['date']}",

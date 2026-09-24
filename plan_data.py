@@ -29,25 +29,32 @@ FLOOR_TIME_SEC / STRETCH_TIME_SEC below regardless of which tier is active.
 
 MARATHON_KM = 42.195
 
+# Aerobic bands widened 2026-09-24. The old easy/long zones were derived straight
+# from goal pace and were far too fast to run aerobically in 28-30C: easy runs came
+# in at 6:31/km with HR 162-170, only ~12 beats under tempo. Slowing to 7:10-7:30
+# dropped HR to 151-153 - the same system that builds base. These bands are now set
+# off marathon pace by effort, not arithmetic: easy MP+60..110s, long MP+65..100s,
+# recovery MP+115..160s. Long sits alongside easy, not faster: the quality in a long
+# run belongs in its MP finish, not in its steady kilometres.
 PACE_SETS = {
-    "primary": {  # 4:35:00 marathon (6:31/km) - active
-        "recovery": ("8:41", "8:11"),
-        "easy": ("7:41", "7:16"),
-        "long": ("7:36", "7:06"),
+    "primary": {  # 4:35:00 marathon (6:31/km)
+        "recovery": ("9:10", "8:25"),
+        "easy": ("8:20", "7:30"),
+        "long": ("8:10", "7:35"),
         "mp": ("6:36", "6:26"),
         "tempo": ("6:11", "6:01"),
     },
     "floor": {  # 4:45:00 marathon (6:45/km) - safety net, ~matches recent history
-        "recovery": ("8:55", "8:25"),
-        "easy": ("7:55", "7:30"),
-        "long": ("7:50", "7:20"),
+        "recovery": ("9:25", "8:40"),
+        "easy": ("8:35", "7:45"),
+        "long": ("8:25", "7:50"),
         "mp": ("6:50", "6:40"),
         "tempo": ("6:25", "6:15"),
     },
-    "stretch": {  # sub-4:00 marathon (5:41/km) - tracked only, not trained at
-        "recovery": ("7:51", "7:21"),
-        "easy": ("6:51", "6:26"),
-        "long": ("6:46", "6:16"),
+    "stretch": {  # sub-4:00 marathon (5:41/km) - active
+        "recovery": ("8:20", "7:35"),
+        "easy": ("7:30", "6:40"),
+        "long": ("7:20", "6:45"),
         "mp": ("5:46", "5:36"),
         "tempo": ("5:21", "5:11"),
     },
