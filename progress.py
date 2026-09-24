@@ -401,20 +401,22 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
             f"you have {len(all_predicted_times)}.",
         }
 
+    # 4:00 is the goal, not a stretch. 4:35 and 4:45 are fallbacks the plan keeps in
+    # reserve - the language here says so, because the runner reads these sentences.
     if avg_predicted <= STRETCH_TIME_SEC * 1.01:
-        verdict = "ahead_of_stretch"
-        message = "Comfortably inside sub-4:00 territory. That's real evidence for tightening toward the stretch goal - worth a conversation, not an automatic switch."
+        verdict = "on_goal"
+        message = "On the 4:00 goal. Hold the marathon-pace sessions exactly where they are - that is what protects it."
     elif avg_predicted <= PRIMARY_TIME_SEC * 1.01:
-        verdict = "on_track_primary"
-        message = "On track for the 4:35:00 primary goal. Keep training at the primary paces."
+        verdict = "behind_goal"
+        message = "Behind the 4:00 goal, inside 4:35. 4:35 is the fallback, not the plan - the next marathon-pace blocks decide which one you get."
     elif avg_predicted <= FLOOR_TIME_SEC:
-        verdict = "between_primary_and_floor"
-        message = "Between primary and the 4:45:00 floor. Still on for a PB - watch the next 2-3 MP sessions before deciding which way to lean."
+        verdict = "near_floor"
+        message = "Trending toward 4:45 - still a PB, but 4:00 needs the coming marathon-pace blocks to land at goal pace."
     else:
         verdict = "behind_floor"
         message = (
-            'Trending slower than the 4:45:00 floor. Recommend switching ACTIVE_PACE_SET '
-            'to "floor" in plan_data.py to cut injury risk instead of pushing harder.'
+            "Trending slower than 4:45. Easing the paces beats pushing harder here; "
+            'switching ACTIVE_PACE_SET to "floor" in plan_data.py keeps the training honest.'
         )
 
     if over_mp:

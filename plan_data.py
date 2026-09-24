@@ -37,21 +37,21 @@ MARATHON_KM = 42.195
 # recovery MP+115..160s. Long sits alongside easy, not faster: the quality in a long
 # run belongs in its MP finish, not in its steady kilometres.
 PACE_SETS = {
-    "primary": {  # 4:35:00 marathon (6:31/km)
+    "primary": {  # 4:35:00 (6:31/km) - fallback if the MP blocks say 4:00 is not there
         "recovery": ("9:10", "8:25"),
         "easy": ("8:20", "7:30"),
         "long": ("8:10", "7:35"),
         "mp": ("6:36", "6:26"),
         "tempo": ("6:11", "6:01"),
     },
-    "floor": {  # 4:45:00 marathon (6:45/km) - safety net, ~matches recent history
+    "floor": {  # 4:45:00 (6:45/km) - last resort, ~matches the 2024/2025 finishes
         "recovery": ("9:25", "8:40"),
         "easy": ("8:35", "7:45"),
         "long": ("8:25", "7:50"),
         "mp": ("6:50", "6:40"),
         "tempo": ("6:25", "6:15"),
     },
-    "stretch": {  # sub-4:00 marathon (5:41/km) - active
+    "stretch": {  # THE GOAL: sub-4:00 (5:41/km) - active. The key name is historical.
         "recovery": ("8:20", "7:35"),
         "easy": ("7:30", "6:40"),
         "long": ("7:20", "6:45"),
