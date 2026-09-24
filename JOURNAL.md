@@ -51,4 +51,10 @@ So far: **13 runs**, **142.5 km**, predicted finish **3:50:45**
   <sub>slept 6.6 h · stress 30</sub>
 - **2026-09-24 · Easy (8K)** — 8.0 km · 7:30/km · HR 153 · felt 4/10
   > Today's run felt very good - had goose bumps, felt like I am getting back in my prime.
+  > This week I realised I was running hard, so I had to let go of my pace - unlearn what
+  > I had learnt so far and start fresh by running slow. It does hurt my ego a bit when
+  > slower people run past me easily. But running slow has helped me correct my running
+  > form too, and it feels more calm. At the end I felt like I still had so much fuel in
+  > the tank and I could just go zoom. I controlled my emotion, and that brought me the
+  > goose bumps. I feel like I am getting back to my prime age!
   <sub>slept 7.3 h · stress 35 · mood Good, motivation Keen</sub>
