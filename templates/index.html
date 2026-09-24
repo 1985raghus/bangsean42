@@ -333,6 +333,7 @@
 <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
   <div class="sheet-head"><h2 id="settings-title" style="font-family:var(--display);font-weight:400;font-size:24px;text-transform:uppercase;">Settings</h2><button class="close" id="settings-close" aria-label="Close settings">&times;</button></div>
   <p class="small muted" id="settings-synced" style="margin:4px 0 0;"></p>
+  <p class="small muted" style="margin:2px 0 0;">Version <span class="num">{{ build }}</span></p>
   <div class="stack">
     <form method="post" action="/gate/logout" id="lock-form" hidden><button class="btn secondary" type="submit" style="width:100%;">Lock app</button></form>
     <button class="btn secondary" id="signout-btn">Sign out of Garmin</button>

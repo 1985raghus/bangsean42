@@ -19,7 +19,7 @@ import secrets
 import time
 from datetime import date, datetime, timedelta
 
-from flask import Flask, Response, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, make_response, redirect, render_template, request
 from flask import session as flask_session
 
 from build_workouts import session_distance_km, session_duration_min, session_steps
@@ -72,6 +72,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
 
 _APP_PASSWORD = os.environ.get("APP_PASSWORD")  # unset = local trusted-machine mode, gate disabled
+_BUILD = (os.environ.get("RENDER_GIT_COMMIT") or "local")[:7]
 
 
 @app.before_request
@@ -103,7 +104,9 @@ def gate_logout():
 def healthz():
     # For an uptime pinger: keeps a free-tier host from sleeping (and showing its
     # own wake-up page). No password, no Garmin call, nothing private in the reply.
-    return jsonify({"ok": True})
+    # `build` is the deployed commit (Render sets RENDER_GIT_COMMIT), so "is the
+    # new version actually live?" can be answered without signing in.
+    return jsonify({"ok": True, "build": _BUILD})
 
 
 @app.get("/gate")
@@ -214,7 +217,11 @@ def _fetch_history_summary() -> dict:
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    # The page is one file that changes with every deploy, so never let a browser
+    # (or a phone home-screen shortcut) keep serving yesterday's copy.
+    resp = make_response(render_template("index.html", build=_BUILD))
+    resp.headers["Cache-Control"] = "no-store, max-age=0"
+    return resp
 
 
 @app.get("/api/session")
