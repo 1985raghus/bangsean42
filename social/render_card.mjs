@@ -1,13 +1,16 @@
-// Renders social/week-card.html to a 1080x1350 PNG ready for Instagram.
-//   node social/render_card.mjs [out.png]
-// Needs Chrome installed; no npm packages.
+// Renders social/week-card.html to a 2160x2700 PNG (1080x1350 at 2x) for Instagram.
+//   node social/render_card.mjs [out.png] [photo.jpg]
+// The photo path is relative to social/ (e.g. ../images/Image1.jpg); omit it for
+// the type-only card. Needs Chrome installed; no npm packages.
 import { spawn } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const W = 1080, H = 1350;
 const out = process.argv[2] || 'social/week-card.png';
-const page = pathToFileURL(new URL('week-card.html', import.meta.url).pathname.replace(/^\//, '')).href;
+const photo = process.argv[3];
+const base = pathToFileURL(new URL('week-card.html', import.meta.url).pathname.replace(/^\//, '')).href;
+const page = photo ? `${base}?photo=${encodeURIComponent(photo)}` : base;
 const CH = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const port = 9600 + Math.floor(Math.random() * 300);
 const prof = `${process.env.TEMP || '/tmp'}/cdp-card-${port}`;
@@ -28,10 +31,18 @@ ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.
 const send = (method, params = {}) => new Promise((r) => { const id = ++seq; pending.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
 
 await send('Page.enable');
+await send('Runtime.enable');
+// deviceScaleFactor 2 already doubles the pixels; clip.scale must stay 1 or CDP
+// multiplies them and writes a 4320x5400 file that Instagram just recompresses.
 await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 2, mobile: false });
 await send('Page.navigate', { url: page });
-await sleep(2500); // let the web fonts land
-const shot = await send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: W, height: H, scale: 2 } });
+for (let i = 0; i < 40; i++) {
+  const r = await send('Runtime.evaluate', { expression: 'document.fonts.ready.then(() => document.readyState)', awaitPromise: true, returnByValue: true });
+  if (r.result?.result?.value === 'complete') break;
+  await sleep(250);
+}
+await sleep(400); // let the graded photo paint
+const shot = await send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: W, height: H, scale: 1 } });
 writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
-console.log(`wrote ${out} at ${W * 2}x${H * 2}`);
+console.log(`wrote ${out} at ${W * 2}x${H * 2}${photo ? ` with photo ${photo}` : ' (type only)'}`);
 ws.close(); chrome.kill(); process.exit(0);

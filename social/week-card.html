@@ -5,113 +5,115 @@
 <title>Road to Bangsaen - weekly card</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@500;600;700;800&display=swap">
 <style>
-  /* Instagram portrait, 1080x1350. Render with:
-     node social/render_card.mjs  (or any headless screenshot at 1080x1350) */
+  /* 1080x1350 Instagram portrait. ONE number, ONE sentence, one photo.
+     Every layer is absolutely positioned: next week's copy can never push the
+     footer off the canvas. Render:  node social/render_card.mjs out.png [photo]
+     Photo comes from ?photo=../images/Image1.jpg - without it the card is the
+     type-only variant, dimensionally identical.
+
+     Fixed across the series (never edit): canvas, 72px margins, logo at 72/60,
+     week tab, progress bar at y150, wave crests 798/822/844, hero number at
+     x72 with its baseline at y1044, quote baselines 1122/1171, footer 1290. */
   * { box-sizing: border-box; margin: 0; }
   :root {
-    --page: #0b1020; --brand: #1f5cff; --deep: #0a2a8f; --gold: #f5b83d;
-    --ink: #fff; --ink-2: #b9c0d6;
-    --display: Anton, Impact, sans-serif; --font: Figtree, system-ui, sans-serif;
+    --ground: #0b1020;      /* the only background type ever sits on */
+    --gold: #f5b83d;        /* exactly three uses: hero number, progress fill, wave 1 */
+    --deep: #0a2a8f;        /* photo grade + dawn glow only, never behind gold */
+    --wave: #7b98f2;
+    --display: Anton, Impact, sans-serif;
+    --font: Figtree, system-ui, sans-serif;
   }
-  body { width: 1080px; height: 1350px; overflow: hidden; background: var(--page); color: var(--ink); font-family: var(--font); }
-  .card { display: flex; flex-direction: column; width: 1080px; height: 1350px; padding: 76px 72px 60px;
-    background: radial-gradient(120% 70% at 100% 0%, #3b72ff 0%, var(--brand) 28%, var(--deep) 58%, var(--page) 100%); }
-  .top { display: flex; align-items: center; gap: 20px; }
-  .top img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 0 0 2px rgba(255,255,255,.3); }
-  .eyebrow { font-size: 22px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.88); }
-  .sub { font-size: 20px; font-weight: 600; color: rgba(255,255,255,.7); margin-top: 6px; letter-spacing: .04em; }
+  body { width: 1080px; height: 1350px; background: var(--ground); overflow: hidden; }
+  .card { position: relative; width: 1080px; height: 1350px; background: var(--ground); overflow: hidden; }
+  .layer { position: absolute; inset: 0; }
 
-  h1 { font-family: var(--display); font-weight: 400; font-size: 132px; line-height: .88; text-transform: uppercase; margin-top: 48px; letter-spacing: -.005em; }
-  h1 em { font-style: normal; color: var(--gold); }
+  /* photo, graded so eight amateur phone shots read as one series */
+  /* 46% lifts the whole face clear of the waterline at y=798 on a 9:16 phone selfie.
+     Shooting rule: keep your face between a third and two thirds up the frame. */
+  .photo { width: 100%; height: 100%; object-fit: cover; object-position: 50% 46%; filter: saturate(.92) contrast(1.06) brightness(.94); }
+  .grade { background: var(--deep); mix-blend-mode: color; opacity: .28; }
+  .scrim-top { background: linear-gradient(180deg, rgba(11,16,32,.90) 0, rgba(11,16,32,.48) 170px, rgba(11,16,32,0) 330px); }
+  .scrim-bottom { background: linear-gradient(0deg, #0b1020 0, rgba(11,16,32,.97) 300px, rgba(11,16,32,.80) 470px, rgba(11,16,32,.30) 620px, rgba(11,16,32,0) 760px); }
+  /* type-only variant: a dawn glow low down so gold never lands on blue */
+  .glow { background: radial-gradient(900px 520px at 540px 1400px, rgba(245,184,61,.10) 0%, rgba(19,64,201,.34) 34%, rgba(11,16,32,0) 74%); }
 
-  .quote { margin-top: 44px; padding-left: 26px; border-left: 6px solid var(--gold); }
-  .quote p { font-size: 35px; line-height: 1.34; font-weight: 500; }
+  /* header */
+  .logo { position: absolute; left: 72px; top: 60px; width: 56px; height: 56px; border-radius: 14px; }
+  .wordmark { position: absolute; left: 148px; top: 60px; }
+  .wordmark .l1 { font: 800 24px/1 var(--font); letter-spacing: .20em; text-transform: uppercase; color: #fff; }
+  .wordmark .l2 { font: 600 20px/1 var(--font); letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.62); margin-top: 10px; }
+  .weektab { position: absolute; right: 72px; top: 46px; font: 400 52px/1 var(--display); color: var(--gold); }
 
-  /* The proof, in one line: same easy runs, heart rate falling. Real values, W1 to W4. */
-  .chart { margin-top: auto; margin-bottom: 34px; }
-  .chart .cap { font-size: 19px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-bottom: 10px; }
-  .chart svg { display: block; width: 100%; height: auto; }
-  .chart .ln { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
-  .chart .lbl { font: 700 26px var(--font); fill: #fff; }
-  .chart .lbl.g { fill: var(--gold); }
+  /* progress bar: the series device - gold creeps left to right over 11 weeks */
+  .bars { position: absolute; left: 72px; top: 150px; width: 936px; height: 10px; display: flex; gap: 10px; }
+  .bars i { flex: 1; border-radius: 5px; background: rgba(255,255,255,.14); }
+  .bars i.on { background: var(--gold); }
 
-  .stats { display: flex; gap: 18px; }
-  .stat { flex: 1; background: rgba(255,255,255,.1); border-radius: 22px; padding: 24px 26px 26px; }
-  .stat .l { font-size: 17px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.66); }
-  .stat .v { font-family: var(--display); font-weight: 400; font-size: 66px; line-height: 1.02; margin-top: 8px; }
-  .stat .v small { font-family: var(--font); font-size: 22px; font-weight: 600; color: rgba(255,255,255,.72); }
-  .stat .d { font-size: 18px; color: rgba(255,255,255,.72); margin-top: 6px; }
-  .stat.gold .v { color: var(--gold); }
+  /* the waterline, lifted from the logo: where the picture ends and the number starts */
+  .waves { position: absolute; left: -20px; top: 780px; width: 1120px; height: 90px; }
 
-  .then { margin-top: 26px; display: flex; align-items: center; gap: 14px; font-size: 23px; color: rgba(255,255,255,.82); }
-  .then b { color: #fff; }
-  .then .arrow { color: var(--gold); font-weight: 800; }
+  /* the one thing this card is about */
+  /* kicker sits ABOVE the waterline; the hero number owns everything below it */
+  .kicker { position: absolute; left: 72px; top: 726px; font: 700 22px/1 var(--font); letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+  /* one baseline row: 264px numeral, then unit, then the outlined old value */
+  .hero { position: absolute; left: 72px; top: 844px; display: flex; align-items: baseline; gap: 22px; }
+  .hero .n { font: 400 264px/.78 var(--display); color: var(--gold); }
+  .hero .unit { font: 400 60px/1 var(--display); color: #fff; }
+  .hero .was { font: 400 60px/1 var(--display); color: transparent; -webkit-text-stroke: 3px rgba(255,255,255,.45); margin-left: 18px; }
 
-  .foot { margin-top: 30px; display: flex; justify-content: space-between; align-items: center;
-    font-size: 20px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+  .quote { position: absolute; left: 72px; top: 1082px; width: 860px; font: 500 40px/1.22 var(--font); color: #fff; }
+  .quote q { quotes: '\201C' '\201D'; }
+  .quote q::before, .quote q::after { color: rgba(255,255,255,.55); }
+  .cost { position: absolute; left: 72px; top: 1208px; font: 600 26px/1 var(--font); color: rgba(255,255,255,.66); }
+  .foot { position: absolute; left: 72px; right: 72px; top: 1274px; display: flex; justify-content: space-between;
+    font: 700 20px/1 var(--font); letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.5); }
 </style>
 </head>
 <body>
   <div class="card">
-    <div class="top">
-      <img src="../static/logo.svg" alt="">
-      <div>
-        <div class="eyebrow">Week 4 of 11 &middot; Road to Bangsaen</div>
-        <div class="sub">52 days to go &middot; goal sub-4:00</div>
-      </div>
+    <img class="layer photo" id="photo" alt="" hidden>
+    <div class="layer grade" id="grade" hidden></div>
+    <div class="layer glow" id="glow"></div>
+    <div class="layer scrim-top" id="scrimTop" hidden></div>
+    <div class="layer scrim-bottom" id="scrimBottom" hidden></div>
+
+    <img class="logo" src="../static/logo.svg" alt="">
+    <div class="wordmark">
+      <div class="l1">Road to Bangsaen</div>
+      <div class="l2">Bangsaen Marathon &middot; 15 Nov 2026</div>
+    </div>
+    <div class="weektab">W04</div>
+
+    <div class="bars">
+      <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
     </div>
 
-    <h1>I had to<br>unlearn<br><em>my pace</em></h1>
+    <svg class="waves" viewBox="0 0 1120 90" aria-hidden="true">
+      <path d="M0,18 q45,-14 90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0" fill="none" stroke="#f5b83d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M0,42 q45,-12 90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0" fill="none" stroke="#7b98f2" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>
+      <path d="M0,64 q45,-10 90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0 t90,0" fill="none" stroke="#7b98f2" stroke-opacity=".28" stroke-width="3" stroke-linecap="round"/>
+    </svg>
 
-    <div class="quote">
-      <p>&ldquo;It hurts my ego when slower runners pass me. But I finished calm, with fuel still in the tank &mdash; and goose bumps.&rdquo;</p>
-    </div>
+    <div class="kicker">Same easy run &middot; 3 weeks apart</div>
+    <div class="hero"><span class="n">153</span><span class="unit">bpm</span><span class="was">was 168</span></div>
 
-    <div class="chart">
-      <div class="cap">Average heart rate, easy runs &middot; W1 &rarr; W4</div>
-      <svg viewBox="0 0 936 232" role="img" aria-label="Average heart rate on easy runs falling from 176 to 153 across four weeks">
-        <path class="ln" d="M30,40 L176,73.6 L322,107.2 L468,118.4 L614,79.2 L760,180 L906,168.8"/>
-        <circle cx="30" cy="40" r="9" fill="#fff"/>
-        <circle cx="176" cy="73.6" r="9" fill="rgba(255,255,255,.75)"/>
-        <circle cx="322" cy="107.2" r="9" fill="rgba(255,255,255,.75)"/>
-        <circle cx="468" cy="118.4" r="9" fill="rgba(255,255,255,.75)"/>
-        <circle cx="614" cy="79.2" r="9" fill="rgba(255,255,255,.75)"/>
-        <circle cx="760" cy="180" r="11" fill="#f5b83d"/>
-        <circle cx="906" cy="168.8" r="11" fill="#f5b83d"/>
-        <text class="lbl" x="30" y="24" text-anchor="start">176</text>
-        <text class="lbl g" x="906" y="214" text-anchor="end">153</text>
-      </svg>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="l">Easy pace</div>
-        <div class="v">7:30<small>/km</small></div>
-        <div class="d">slower on purpose</div>
-      </div>
-      <div class="stat gold">
-        <div class="l">Heart rate</div>
-        <div class="v">153<small>bpm</small></div>
-        <div class="d">was 168 three weeks ago</div>
-      </div>
-      <div class="stat">
-        <div class="l">Banked</div>
-        <div class="v">142<small>km</small></div>
-        <div class="d">13 runs, 29% of plan</div>
-      </div>
-    </div>
-
-    <div class="then">
-      <span>Same easy run, three weeks apart:</span>
-      <b>6:31/km @ 168</b><span class="arrow">&rarr;</span><b>7:30/km @ 153</b>
-    </div>
-
-    <div class="foot">
-      <span>Bangsaen Marathon &middot; 15 Nov 2026</span>
-      <span>Attempt #3</span>
-    </div>
+    <div class="quote"><q>Slower runners passed me. I finished calm, with fuel in the tank.</q></div>
+    <div class="cost">7:30/km &mdash; 59 sec/km slower than three weeks ago.</div>
+    <div class="foot"><span>Week 4 of 11 &middot; 52 days to go</span><span>Sub-4:00 &middot; Attempt #3</span></div>
   </div>
+
+<script>
+  // ?photo=../images/Image1.jpg turns on the photo version; no photo keeps the
+  // dawn-glow type version at exactly the same dimensions.
+  const src = new URLSearchParams(location.search).get('photo');
+  if (src) {
+    for (const id of ['photo', 'grade', 'scrimTop', 'scrimBottom']) document.getElementById(id).hidden = false;
+    document.getElementById('glow').hidden = true;
+    document.getElementById('photo').src = src;
+  }
+</script>
 </body>
 </html>
