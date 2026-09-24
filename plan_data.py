@@ -82,10 +82,14 @@ STRIDES_NOTE = "Finish with 4-6 x 20s relaxed strides, full recovery between."
 # tempo. The distances were fine; the efforts were not, so the fix is written
 # into the workout descriptions the watch actually shows.
 EASY_NOTE = (
-    "Conversational only. Your easy runs have averaged HR 168, just ~12 beats under tempo - "
-    "aim high-150s to 160 and let the pace be whatever that gives."
+    "Effort, not pace: keep HR at or under ~155. In this heat that lands around 7:10-7:45/km, "
+    "and slower is fine - the pace is just what that effort gives on the day. Finish with "
+    "4-6 x 20s relaxed strides if the legs feel flat, to keep the turnover."
 )
-LONG_NOTE = "Steady and easy throughout. If the last 3km drop off by more than 15s/km, you started too fast."
+LONG_NOTE = (
+    "Steady and easy the whole way: HR 155-162, not the 167-168 these have been running. "
+    "If the last 3km drop off by more than 15s/km, you started too fast."
+)
 TEMPO_NOTE = (
     "Start rep 1 at the SLOW end of the tempo band and stay there. 18 Sep ran 5:09 / 4:52 / 4:51 "
     "with HR climbing to 185 - even reps beat fast ones."
