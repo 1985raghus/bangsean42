@@ -549,13 +549,17 @@ function stepLine(st) {
 }
 
 function focusSession() {
-  const today = S.progress.today;
-  const rows = S.progress.rows || [];
+  const today = S.progress.today, rows = S.progress.rows || [], race = S.plan.race.date;
+  // The plan's last session is two days before the race, so race day itself matches
+  // no row - without this the card read "No sessions left in the plan" on race morning.
+  if (today === race) return { when: 'race' };
+  if (today > race) return { when: 'after' };
   const todays = rows.find((r) => r.date === today);
   // Once today's run is in the bag, the useful thing on screen is the next one.
   if (todays && todays.status !== 'done' && todays.status !== 'partial') return { date: today, when: 'today' };
   const next = rows.find((r) => r.status === 'upcoming');
-  return next ? { date: next.date, when: 'next' } : (todays ? { date: today, when: 'today' } : null);
+  if (next) return { date: next.date, when: 'next' };
+  return { when: 'race' };  // plan finished, race still ahead: the race IS the next session
 }
 
 function coachCue() {
@@ -576,8 +580,8 @@ function coachCue() {
 function renderSession() {
   S.focus = focusSession();
   const el = $('c-session');
-  if (!S.focus) { el.innerHTML = '<div class="card"><p class="muted" style="margin:0;">No sessions left in the plan.</p></div>'; return; }
   const { date, when } = S.focus;
+  if (when === 'race' || when === 'after') { renderRaceDayCard(el, when); return; }
   const s = sessionFor(date), row = rowFor(date);
   const kind = s.kind || 'easy';
   const label = when === 'today' ? 'Today' : `${fmtShort(date)} · next up`;
@@ -590,6 +594,28 @@ function renderSession() {
     <ol class="steps">${s.steps.map(stepLine).join('')}</ol>
     ${clamped(s.note)}
     <div class="cue"><div class="l">Coach</div>${coachCue()}</div>
+  </div>`;
+}
+
+function renderRaceDayCard(el, when) {
+  const race = S.plan.race, days = dayDiff(S.progress.today, race.date);
+  const shoe = (S.shoes || []).find((s) => s.role === 'race');
+  const first5 = S.racePlan?.pacing?.segments?.[0];
+  if (when === 'after') {
+    el.innerHTML = `<div class="card">
+      <span class="chip" style="--k:var(--gold)">Bangsaen done</span>
+      <h3 style="font-size:19px;font-weight:700;margin:8px 0 2px;">${esc(race.name.replace(' - RACE DAY', ''))}</h3>
+      <p class="small muted" style="margin:0;">Whatever the clock said, three years of this is in the legs. Log how it felt while it is fresh.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card">
+    <div class="row-between"><span class="chip" style="--k:var(--gold)">Race day</span><span class="small muted">${days === 0 ? 'Today' : `${days} days`}</span></div>
+    <h3 style="font-size:19px;font-weight:700;margin:8px 0 2px;">Bangsaen Marathon &middot; 42.195 km</h3>
+    <div class="facts"><span>Goal <b>${esc(race.stretch_time)}</b></span><span><b>${esc(race.stretch_pace)}</b> average</span>${shoe ? `<span>👟 <b>${esc(shoe.name)}</b></span>` : ''}</div>
+    <div class="pace-hero"><div class="hero num">${esc(first5 ? first5.paceLabel : '5:50')}<small> /km</small></div>
+      <p class="small muted" style="margin:2px 0 0;">First 5 km only &mdash; deliberately slower than goal</p></div>
+    <div class="cue"><div class="l">The whole race</div>Hold this for 5 km while everyone passes you. That is the race. 2024 and 2025 were both lost in the first hour, not the last.</div>
   </div>`;
 }
 
