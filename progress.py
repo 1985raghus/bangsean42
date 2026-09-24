@@ -51,6 +51,24 @@ def pace_to_sec(pace: str) -> float:
     return int(minutes) * 60 + int(seconds)
 
 
+_AEROBIC_KINDS = ("easy", "long", "recovery")
+
+
+def _in_zone(kind: str, actual_pace: float | None, slow_bound: str, fast_bound: str) -> bool | None:
+    """Was this run at the right effort?
+
+    For quality work both edges matter: too slow misses the stimulus the session
+    exists for. For easy, long and recovery running only the fast edge does -
+    running slower than the band is how aerobic base is built, especially in
+    heat, and marking it "off band" would score the right behaviour as a miss.
+    """
+    if actual_pace is None:
+        return None
+    if kind in _AEROBIC_KINDS:
+        return actual_pace >= pace_to_sec(fast_bound)
+    return pace_to_sec(fast_bound) <= actual_pace <= pace_to_sec(slow_bound)
+
+
 def target_kind(session: dict) -> str:
     for block in session["blocks"]:
         if block["role"] in ("main", "repeat"):
@@ -142,7 +160,7 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
         actual_km = round(activity.get("distance", 0) / 1000.0, 1)
         actual_pace = pace_sec_per_km(activity.get("distance", 0), activity.get("duration", 0))
         lo, hi = PACES[kind]
-        in_zone = actual_pace is not None and pace_to_sec(hi) <= actual_pace <= pace_to_sec(lo)
+        in_zone = _in_zone(kind, actual_pace, lo, hi)
         status = "done" if planned_km == 0 or actual_km >= planned_km * COMPLETION_THRESHOLD else "partial"
         rows.append({
             **base,
