@@ -598,13 +598,30 @@ function shoeFor(kind) {
   return kind === 'mp' && race ? `${race.name} (rehearse race shoes)` : train ? `${train.name}` : '';
 }
 
-function feelPicker(row, runDate) {
-  const rpe = feelFor(row), [lo, hi] = PLANNED_RPE[row.kind] || [3, 5];
-  return `<div class="small muted" style="margin-top:14px;font-weight:600;">How did it feel?</div>
+function feelPicker(row) {
+  const saved = S.feels?.[String(row.activityId)] || {};
+  const rpe = saved.rpe, note = saved.note || '', [lo, hi] = PLANNED_RPE[row.kind] || [3, 5];
+  return `<div class="small muted" style="margin-top:14px;font-weight:600;">How hard was it?</div>
     <div class="scale" role="group" aria-label="How hard the run felt">${FEEL.map(([v, l]) => `<button type="button" data-rpe="${v}" aria-pressed="${rpe === v}"><b>${v}</b><span>${l}</span></button>`).join('')}</div>
     <p class="small muted" id="feel-note" style="margin:8px 0 0;">${rpe != null
       ? esc(rpe > hi + 1 ? `Harder than this run should feel (${lo}–${hi}). Watch for that repeating.` : rpe < lo - 1 ? `Easier than planned (${lo}–${hi}). Good sign.` : `Right where it should feel (${lo}–${hi}).`)
-      : `Meant to feel ${lo}–${hi} out of 10.`}</p>`;
+      : `Meant to feel ${lo}–${hi} out of 10.`}</p>
+    <label class="field"><span>In your own words (optional)</span>
+      <textarea id="feel-text" maxlength="500" placeholder="Felt very good — goosebumps, like I'm getting back to my prime.">${esc(note)}</textarea></label>
+    <div class="btn-row" style="margin-top:8px;"><button class="btn secondary" id="feel-save" type="button">${note ? 'Update note' : 'Save note'}</button></div>`;
+}
+
+async function submitFeel(row, runDate, rpe, note) {
+  try {
+    await postJSON('/api/feel', { activityId: row.activityId, date: runDate, rpe, note });
+    S.feels = { ...(S.feels || {}), [String(row.activityId)]: { rpe, date: runDate, note } };
+    renderLast(); renderSession(); renderWeek();
+    if (loaded.plan) renderPlanList();
+    toast(note ? 'Saved — rating and note' : `Saved: felt ${rpe}/10`);
+  } catch (e) {
+    const n = $('feel-note');
+    if (n) { n.className = 'small err'; n.textContent = `Couldn't save: ${e.message}`; }
+  }
 }
 
 function renderLast() {
@@ -620,16 +637,22 @@ function renderLast() {
     <div class="hero num" style="font-size:34px;">${esc(last.actualPaceLabel)}<small> /km</small></div>
     <p class="small muted" style="margin:4px 0 0;">${fmtKm(last.actualKm)} km · target ${esc(s?.paceHi)}–${esc(s?.paceLo)}${last.actualHr ? ` · avg HR ${Math.round(last.actualHr)}` : ''}</p>
     ${mp ? `<p class="small" style="margin:6px 0 0;color:var(--gold);font-weight:600;">Marathon-pace portion: ${esc(mp)}/km over ${fmtKm(last.mpEffortKm)} km${last.mpEffortHr ? ` at HR ${Math.round(last.mpEffortHr)}` : ''}</p>` : ''}
-    ${last.activityId ? feelPicker(last, runDate) : ''}
+    ${last.activityId ? feelPicker(last) : ''}
   </div>`;
-  el.querySelectorAll('[data-rpe]').forEach((b) => b.addEventListener('click', async () => {
-    const rpe = Number(b.dataset.rpe);
-    try {
-      await postJSON('/api/feel', { activityId: last.activityId, date: runDate, rpe });
-      S.feels = { ...(S.feels || {}), [String(last.activityId)]: { rpe, date: runDate } };
-      renderLast(); renderSession(); renderWeek(); toast(`Saved: felt ${rpe}/10`);
-    } catch (e) { const n = $('feel-note'); n.className = 'small err'; n.textContent = `Couldn't save: ${e.message}`; }
+  if (!last.activityId) return;
+  // Tapping a number saves straight away, keeping whatever is typed in the note box.
+  el.querySelectorAll('[data-rpe]').forEach((b) => b.addEventListener('click', () => {
+    submitFeel(last, runDate, Number(b.dataset.rpe), $('feel-text')?.value || '');
   }));
+  $('feel-save').addEventListener('click', () => {
+    const rpe = S.feels?.[String(last.activityId)]?.rpe;
+    if (!rpe) {
+      const n = $('feel-note');
+      n.className = 'small err'; n.textContent = 'Pick how hard it was first, then the note saves with it.';
+      return;
+    }
+    submitFeel(last, runDate, rpe, $('feel-text').value);
+  });
 }
 
 function renderWeek() {
@@ -897,11 +920,13 @@ async function renderPlanList() {
       <div class="body">${rows.map((r) => {
         const s = sessionFor(r.date) || {};
         const feel = feelFor(r);
+        const feelNote = S.feels?.[String(r.activityId)]?.note;
         return `<div class="sess" data-date="${r.date}">
           <div class="hd"><span class="dot ${STATUS_DOT[r.status]}"></span>
             <span class="nm">${esc(r.label)}</span><span class="small muted">${esc(fmtShort(r.date))}</span></div>
           <div class="tg">${fmtKm(r.plannedKm)} km · target ${esc(s.paceHi || '')}–${esc(s.paceLo || '')}/km${s.durationMin ? ` · ${esc(fmtDur(s.durationMin))}` : ''}
             ${r.actualKm != null ? ` · ran ${fmtKm(r.actualKm)} km at ${esc(r.actualPaceLabel)}` : ''}${feel != null ? ` · felt ${feel}/10` : ''}</div>
+          ${feelNote ? `<div class="tg" style="margin-top:5px;color:var(--brand-text);font-style:italic;">&ldquo;${esc(feelNote)}&rdquo;</div>` : ''}
           ${s.note ? `<div class="tg" style="color:var(--ink-3);margin-top:4px;">${esc(s.note)}</div>` : ''}
           <p style="margin:8px 0 0;"><button class="link" data-fuel="${r.date}">Fuel for this session</button></p>
           <div class="fuel-slot"></div>

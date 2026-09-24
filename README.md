@@ -187,8 +187,10 @@ create table run_feel (
   activity_id bigint primary key,
   run_date date not null,
   rpe smallint not null check (rpe between 1 and 10),
+  note text,
   updated_at timestamptz default now()
 );
+-- on an existing install that predates notes: alter table run_feel add column note text;
 alter table run_feel enable row level security;
 
 -- daily mood/motivation check-in (Body & Mind)

@@ -507,8 +507,9 @@ def api_feel_post():
         return jsonify({"error": "activityId, date (YYYY-MM-DD) and rpe are required"}), 400
     if activity_id <= 0 or not 1 <= rpe <= 10:
         return jsonify({"error": "rpe must be between 1 and 10"}), 400
+    note = str(data.get("note") or "")[:500]
     try:
-        save_feel(activity_id, run_date, rpe)
+        save_feel(activity_id, run_date, rpe, note)
     except Exception as exc:
         return jsonify({"error": friendly_error(exc)}), 503
     return jsonify({"ok": True})
