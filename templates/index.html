@@ -275,6 +275,7 @@
       <div class="block"><div id="c-session"><p class="loading">Loading today&hellip;</p></div></div>
       <div class="block" id="c-last-wrap" hidden><h2>Last run</h2><div id="c-last"></div></div>
       <div class="block"><h2>This week</h2><div id="c-week"><p class="loading">Loading&hellip;</p></div></div>
+      <div class="block"><h2>Overall progress</h2><div id="c-block"><p class="loading">Loading&hellip;</p></div></div>
       <div class="block"><h2>Race outlook</h2><div id="c-outlook"><p class="loading">Loading&hellip;</p></div></div>
       <div class="block" id="c-flag-wrap" hidden><h2>Watch this</h2><div id="c-flag"></div></div>
     </section>
@@ -566,6 +567,85 @@ function renderWeek() {
   </div>`;
 }
 
+/* How far through the block, and which building blocks of race readiness are on track.
+   Five separate, checkable things rather than one invented score - each says what it
+   measures, what it needs to be, and whether it's there. */
+function blockStats() {
+  const rows = S.progress.rows || [], sessions = S.plan.sessions || [];
+  const mpKmOf = (date) => (sessionFor(date)?.steps || []).reduce((a, st) => a + (st.kind === 'mp' ? (st.reps || 1) * st.km : 0), 0);
+  const due = rows.filter((r) => r.status !== 'upcoming' && r.status !== 'today');
+  const doneRuns = due.filter((r) => r.status === 'done' || r.status === 'partial');
+  const longs = rows.filter((r) => r.kind === 'long');
+  const easyJudged = rows.filter((r) => ['easy', 'recovery'].includes(r.kind) && r.inZone != null);
+  return {
+    kmDone: rows.reduce((a, r) => a + (r.actualKm || 0), 0),
+    kmPlanTotal: rows.reduce((a, r) => a + r.plannedKm, 0),
+    kmDue: due.reduce((a, r) => a + r.plannedKm, 0),
+    runsDone: doneRuns.length,
+    runsDue: due.length,
+    runsTotal: rows.length,
+    longestDone: Math.max(0, ...longs.filter((r) => r.actualKm).map((r) => r.actualKm)),
+    // Judged against the longest long run DUE so far, not the eventual peak - the long run
+    // is a progression, and being at 20km in week 4 is on schedule, not two thirds of a failure.
+    longestDue: Math.max(0, ...longs.filter((r) => r.status !== 'upcoming').map((r) => r.plannedKm)),
+    peakLong: Math.max(0, ...longs.map((r) => r.plannedKm)),
+    easyRecent: easyJudged.slice(-3),
+    mpDone: rows.reduce((a, r) => a + (r.mpEffortKm || 0), 0),
+    mpDue: due.reduce((a, r) => a + mpKmOf(r.date), 0),
+    mpTotal: sessions.reduce((a, s) => a + mpKmOf(s.date), 0),
+    easyOk: easyJudged.filter((r) => r.inZone).length,
+    easyJudged: easyJudged.length,
+  };
+}
+
+const pctOf = (a, b) => (b > 0 ? Math.min(100, Math.round((100 * a) / b)) : 0);
+
+function readyRow(label, pct, detail, state, note) {
+  const color = { good: 'var(--good)', warn: 'var(--warn)', crit: 'var(--crit)' }[state] || 'var(--ink-3)';
+  return `<div class="row"><div class="grow">
+      <div class="t"><span class="dot ${state}" style="margin-right:7px;"></span>${esc(label)}</div>
+      <div class="meter" style="margin:7px 0 4px;"><i style="width:${pct}%;background:${color}"></i></div>
+      <div class="d">${esc(detail)}${note ? ` · ${esc(note)}` : ''}</div>
+    </div></div>`;
+}
+
+function renderBlock() {
+  const b = blockStats(), wk = curWeek(), weekNo = Number(wk.replace('W', '')) || 1;
+  const days = dayDiff(S.progress.today, S.plan.race.date);
+  const donePct = pctOf(b.kmDone, b.kmPlanTotal);
+
+  const consistency = pctOf(b.runsDone, b.runsDue);
+  const volume = pctOf(b.kmDone, b.kmDue);
+  const longPct = pctOf(b.longestDone, b.longestDue);
+  const mpPct = pctOf(b.mpDone, b.mpDue);
+  const easyPct = b.easyJudged ? pctOf(b.easyOk, b.easyJudged) : 0;
+  const recentOk = b.easyRecent.filter((r) => r.inZone).length;
+  const easyNote = b.easyRecent.length
+    ? `last ${b.easyRecent.length}: ${recentOk} in band`
+    : 'needs 70%';
+
+  const parts = [
+    ['Sessions completed', consistency, `${b.runsDone} of ${b.runsDue} runs due so far`, consistency >= 90 ? 'good' : consistency >= 75 ? 'warn' : 'crit', 'needs 90%'],
+    ['Distance banked', volume, `${fmtKm(b.kmDone)} of ${fmtKm(b.kmDue)} km due`, volume >= 90 ? 'good' : volume >= 75 ? 'warn' : 'crit', 'needs 90%'],
+    ['Long run progression', longPct, `${fmtKm(b.longestDone)} km done, ${fmtKm(b.longestDue)} km due by now`, longPct >= 95 ? 'good' : longPct >= 80 ? 'warn' : 'crit', `peak is ${fmtKm(b.peakLong)} km`],
+    ['Marathon-pace work', mpPct, `${fmtKm(b.mpDone)} of ${fmtKm(b.mpDue)} km at MP effort so far`, mpPct >= 80 ? 'good' : mpPct >= 60 ? 'warn' : 'crit', `${fmtKm(b.mpTotal)} km across the plan`],
+    ['Easy days truly easy', easyPct, b.easyJudged ? `${b.easyOk} of ${b.easyJudged} easy runs inside the band` : 'no easy runs judged yet', easyPct >= 70 ? 'good' : easyPct >= 40 ? 'warn' : 'crit', easyNote],
+  ];
+  const onTrack = parts.filter((p) => p[3] === 'good').length;
+
+  $('c-block').innerHTML = `<div class="card">
+    <div class="row-between"><span class="small muted">Week ${weekNo} of 11 · ${PHASE[wk] || ''}</span><span class="small muted">${days} days to go</span></div>
+    <div class="hero num" style="margin-top:4px;">${donePct}%<small> of the plan run</small></div>
+    <div class="meter" style="margin-top:8px;"><i style="width:${donePct}%"></i></div>
+    <p class="small muted" style="margin:6px 0 0;">${fmtKm(b.kmDone)} of ${fmtKm(b.kmPlanTotal)} km · ${b.runsDone} of ${b.runsTotal} runs · ${11 - weekNo} weeks left</p>
+  </div>
+  <div class="card">
+    <div class="row-between"><b>Race readiness</b><span class="chip" style="--k:${onTrack >= 4 ? 'var(--good)' : onTrack >= 3 ? 'var(--warn)' : 'var(--crit)'}">${onTrack} of 5 on track</span></div>
+    <div class="rows" style="margin-top:6px;">${parts.map((p) => readyRow(...p)).join('')}</div>
+    <p class="small muted" style="margin:10px 0 0;">Each line is one thing that decides race day. The finish-time estimate below only reads the marathon-pace line.</p>
+  </div>`;
+}
+
 function tierMeter(pred, W) {
   const H = 74, m = 12, lo = 3.5 * 3600, hi = 5 * 3600;
   const x = (s) => m + ((Math.max(lo, Math.min(hi, s)) - lo) / (hi - lo)) * (W - 2 * m);
@@ -616,7 +696,13 @@ async function loadControl(force) {
     bootTrack(getJSON('/api/feel')).catch(() => ({ feels: {} })),
   ]);
   Object.assign(S, { plan, progress, readiness, insights: insights.insights, feels: feel.feels || {} });
-  renderHeader(); renderReady(readiness); renderSession(); renderLast(); renderWeek(); renderOutlook(); renderFlag();
+  renderHeader(); renderReady(readiness);
+  safeRender('today', $('c-session'), renderSession);
+  safeRender('your last run', $('c-last'), renderLast);
+  safeRender('this week', $('c-week'), renderWeek);
+  safeRender('overall progress', $('c-block'), renderBlock);
+  safeRender('the outlook', $('c-outlook'), renderOutlook);
+  safeRender('coach flags', $('c-flag'), renderFlag);
   bootEnd();
 }
 

@@ -194,8 +194,8 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
     This also feeds compute_prediction() a much more accurate quality-session pace than the
     diluted whole-activity average did before.
     """
-    easy_slow_bound, easy_fast_bound = PACES["easy"]
-    non_work_floor_sec = pace_to_sec(easy_fast_bound)  # anything faster than easy's fast edge is work effort
+    _, easy_fast_bound = PACES["easy"]
+    easy_fast_sec = pace_to_sec(easy_fast_bound)
     sessions_by_date = sessions_by_date or {}
 
     for row in rows:
@@ -216,7 +216,14 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
         if not laps:
             continue
 
-        work_laps = [lap for lap in laps if lap["paceSecPerKm"] < non_work_floor_sec]
+        # A work lap is one closer to this session's own target than to easy running:
+        # the cutoff sits midway between the target's slow edge and easy's fast edge.
+        # (Keying it to easy's fast edge alone broke when the easy band widened - a
+        # 6:36/km cool-down then counted as tempo work and dragged the session pace.)
+        target_kind_for_laps = "mp" if is_mp_finish else row["kind"]
+        target_slow_sec = pace_to_sec(PACES[target_kind_for_laps][0])
+        work_cutoff_sec = (target_slow_sec + easy_fast_sec) / 2
+        work_laps = [lap for lap in laps if lap["paceSecPerKm"] < work_cutoff_sec]
         if not work_laps:
             continue
 
