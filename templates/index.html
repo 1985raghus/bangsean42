@@ -310,6 +310,7 @@
       <div class="block" id="c-last-wrap" hidden><h2>Last run</h2><div id="c-last"></div></div>
       <div class="block"><h2>This week</h2><div id="c-week"><p class="loading">Loading&hellip;</p></div></div>
       <div class="block"><h2>Overall progress</h2><div id="c-block"><p class="loading">Loading&hellip;</p></div></div>
+      <div class="block"><h2>Road to sub-4</h2><div id="c-goal"><p class="loading">Loading&hellip;</p></div></div>
       <div class="block"><h2>Race outlook</h2><div id="c-outlook"><p class="loading">Loading&hellip;</p></div></div>
       <div class="block" id="c-flag-wrap" hidden><h2>Watch this</h2><div id="c-flag"></div></div>
     </section>
@@ -732,6 +733,38 @@ function renderBlock() {
   runFills($('c-block'));
 }
 
+/* Sub-4 is not decided by how hard the easy days are run. It is decided by the
+   marathon-pace sessions: can goal pace be held, for longer each time, without
+   the heart rate climbing into tempo. This lists exactly those sessions. */
+function renderGoal() {
+  const mpKmOf = (date) => (sessionFor(date)?.steps || []).reduce((a, st) => a + (st.kind === 'mp' ? (st.reps || 1) * st.km : 0), 0);
+  const band = S.plan.sessions.find((s) => s.steps.some((st) => st.kind === 'mp'))?.steps.find((st) => st.kind === 'mp');
+  const target = band ? `${band.paceFast}–${band.paceSlow}` : '5:36–5:46';
+  const checkpoints = (S.progress.rows || [])
+    .map((r) => ({ r, mpKm: mpKmOf(r.date) }))
+    .filter((x) => x.mpKm > 0)
+    .map(({ r, mpKm }) => {
+      const done = r.status === 'done' || r.status === 'partial';
+      const pace = r.mpEffortPaceLabel, hr = r.mpEffortHr;
+      const hot = hr && hr >= 178;
+      const state = !done ? 'ring' : !pace ? 'today' : hot ? 'warn' : 'good';
+      const result = done
+        ? (pace ? `ran ${pace}/km${hr ? ` at HR ${Math.round(hr)}` : ''}${hot ? ' — tempo effort, not MP' : ''}` : 'done')
+        : `${fmtKm(mpKm)} km at ${target}`;
+      return `<div class="row"><span class="dot ${state}"></span>
+        <div class="grow"><div class="t">${fmtKm(mpKm)} km at marathon pace</div>
+          <div class="d">${esc(fmtShort(r.date))} · ${esc(result)}</div></div></div>`;
+    });
+  const longestHeld = Math.max(0, ...(S.progress.rows || []).map((r) => r.mpEffortKm || 0));
+  const nextBig = (S.progress.rows || []).find((r) => r.status === 'upcoming' && mpKmOf(r.date) >= 8);
+  $('c-goal').innerHTML = `<div class="card">
+    <div class="row-between"><span class="chip" style="--k:var(--gold)">Goal · sub-4:00</span><span class="small muted">${esc(target)}/km for 42.2 km</span></div>
+    <p class="small muted" style="margin:10px 0 0;">Longest block held: <b style="color:var(--ink)">${fmtKm(longestHeld)} km</b>${nextBig ? ` · next test <b style="color:var(--ink)">${fmtKm(mpKmOf(nextBig.date))} km</b> on ${esc(fmtShort(nextBig.date))}` : ''}</p>
+    <div class="rows" style="margin-top:8px;">${checkpoints.join('')}</div>
+    ${clamped('Push on these, not on the easy days. The test is holding ' + target + '/km with heart rate in the low 170s - if it climbs past ~178 you are racing a training run, which is how 2024 and 2025 were lost.')}
+  </div>`;
+}
+
 function tierMeter(pred, W) {
   const H = 74, m = 12, lo = 3.5 * 3600, hi = 5 * 3600;
   const x = (s) => m + ((Math.max(lo, Math.min(hi, s)) - lo) / (hi - lo)) * (W - 2 * m);
@@ -788,6 +821,7 @@ async function loadControl(force) {
   safeRender('your last run', $('c-last'), renderLast);
   safeRender('this week', $('c-week'), renderWeek);
   safeRender('overall progress', $('c-block'), renderBlock);
+  safeRender('the sub-4 checkpoints', $('c-goal'), renderGoal);
   safeRender('the outlook', $('c-outlook'), renderOutlook);
   safeRender('coach flags', $('c-flag'), renderFlag);
   bootEnd();
