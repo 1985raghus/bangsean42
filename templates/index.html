@@ -580,33 +580,41 @@ function renderBlock() {
     }).join('')}</div>`;
 }
 
-/* pace vs target, normalised so the band is always the ribbon */
-function ribbonChart() {
-  const runs = S.progress.rows.filter((r) => done(r) && r.actualPace && sessionFor(r.date)).slice(-10);
+/* Effort discipline: heart rate on every easy and long run, against the ceiling each
+   one had. One dashed line, one colour rule, one plain sentence. Nothing to decode. */
+function effortChart() {
   const el = $('s-ribbon');
-  if (!runs.length) { el.innerHTML = '<p class="sub">No runs yet.</p>'; return; }
-  const W = 350, H = 120, mid = 58, half = 28;
-  const pts = runs.map((r, i) => {
-    const s = sessionFor(r.date), fast = toSec(s.paceHi), slow = toSec(s.paceLo);
-    const centre = (fast + slow) / 2, width = Math.max(4, (slow - fast) / 2);
-    const norm = Math.max(-4, Math.min(4, (r.actualPace - centre) / width));
-    const hr = r.mpEffortHr || r.actualHr;
-    return { x: 24 + (i * (W - 48)) / Math.max(1, runs.length - 1), y: mid + norm * (half / 1), r, hot: hr && hr > ceilingFor(r.kind), inZone: r.inZone };
-  });
-  const dots = pts.map((p) => {
-    const rad = p.r.kind === 'long' ? 6 : ['mp', 'tempo'].includes(p.r.kind) ? 7 : 4;
-    const fill = p.inZone ? 'var(--gold)' : 'none';
-    return `${p.hot ? `<circle cx="${p.x}" cy="${p.y}" r="${rad + 4}" fill="none" stroke="var(--crit)" stroke-width="1.5" opacity=".7"/>` : ''}
-      <circle cx="${p.x}" cy="${p.y}" r="${rad}" fill="${fill}" ${p.inZone ? '' : 'stroke="var(--crit)" stroke-width="1.5"'}/>`;
+  const runs = S.progress.rows.filter((r) => AEROBIC.includes(r.kind) && done(r) && r.actualHr).slice(-12);
+  if (runs.length < 2) { el.innerHTML = '<div class="mono">Easy-run heart rate</div><p class="sub" style="margin-top:8px;">Needs a couple more easy runs.</p>'; return; }
+  const W = 350, H = 128, top = 26, bottom = 96;
+  const hrs = runs.map((r) => r.actualHr);
+  const lo = Math.min(...hrs, 148) - 6, hi = Math.max(...hrs, 158) + 6;
+  const y = (v) => bottom - ((v - lo) / (hi - lo)) * (bottom - top);
+  const x = (i) => 16 + (i * (W - 46)) / Math.max(1, runs.length - 1);
+  const cap = CEILING.easy;
+  const under = runs.filter((r) => r.actualHr <= ceilingFor(r.kind)).length;
+  let streak = 0;
+  for (const r of [...runs].reverse()) { if (r.actualHr <= ceilingFor(r.kind)) streak++; else break; }
+  const line = runs.map((r, i) => `${i ? 'L' : 'M'}${x(i)},${y(r.actualHr)}`).join('');
+  const dots = runs.map((r, i) => {
+    const ok = r.actualHr <= ceilingFor(r.kind), last = i === runs.length - 1;
+    return `<circle cx="${x(i)}" cy="${y(r.actualHr)}" r="${last ? 6 : 4.5}" fill="${ok ? 'var(--gold)' : 'var(--crit)'}"
+      ${last ? 'stroke="var(--ground)" stroke-width="2"' : ''}/>`;
   }).join('');
-  const last = pts[pts.length - 1];
-  el.innerHTML = `<div class="mono">In the band &middot; last ${runs.length} runs</div>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Each run against its target band">
-      <rect class="ribbon" x="12" y="${mid - half / 2}" width="${W - 24}" height="${half}" rx="6"/>
-      <text class="ax" x="12" y="${mid - half / 2 - 8}">fast</text>
-      <text class="ax" x="12" y="${mid + half / 2 + 16}">slow</text>
+  const last = runs[runs.length - 1];
+  el.innerHTML = `<div class="mono">Easy-run heart rate &middot; last ${runs.length}</div>
+    <p class="sub" style="margin-top:8px;">${streak >= 2
+      ? `<span class="good">Last ${streak} runs under their ceiling.</span> Gold is under, red is over.`
+      : `${under} of ${runs.length} under their ceiling. Gold is under, red is over.`}</p>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" style="overflow:hidden;margin-top:6px;" role="img"
+      aria-label="Heart rate on the last ${runs.length} easy runs against the ${cap} ceiling">
+      <line class="ref" x1="16" x2="${W - 16}" y1="${y(cap)}" y2="${y(cap)}" stroke-dasharray="4 4"/>
+      <text class="ax" x="16" y="${y(cap) - 7}">ceiling ${cap}</text>
+      <path d="${line}" fill="none" stroke="var(--ink-4)" stroke-width="2" stroke-linejoin="round"/>
       ${dots}
-      <text class="now" x="${last.x}" y="${last.y - 14}" text-anchor="middle">${esc(last.r.actualPaceLabel)}</text>
+      <text class="now" x="${x(runs.length - 1)}" y="${y(last.actualHr) - 14}" text-anchor="end">${Math.round(last.actualHr)}</text>
+      <text class="ax" x="16" y="${H - 4}">${esc(d8(runs[0].actualDate || runs[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))}</text>
+      <text class="ax" x="${W - 16}" y="${H - 4}" text-anchor="end">latest</text>
     </svg>`;
 }
 
@@ -644,7 +652,7 @@ async function loadNow(force) {
   safe('today', $('s-hero'), renderHero);
   safe('this week', $('s-week'), renderWeek);
   safe('the block', $('s-block'), renderBlock);
-  safe('the band chart', $('s-ribbon'), ribbonChart);
+  safe('effort discipline', $('s-ribbon'), effortChart);
   safe('the outlook', $('s-outlook'), renderOutlook);
 }
 
