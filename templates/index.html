@@ -650,9 +650,20 @@ function fuelCard(f) {
   </div>`;
 }
 
-function renderFuelToday() { $('p-fuel').innerHTML = fuelCard(S.fuelToday); }
+function renderFuelSection() {
+  $('p-fuel').innerHTML = fuelCard(S.fuelToday) + hydrationCard();
+  $('p-fuel').querySelectorAll('[data-ml]').forEach((b) => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      await postJSON('/api/hydration', { ml: Number(b.dataset.ml) });
+      S.hydration = await getJSON('/api/hydration?refresh=1'); // the POST only confirms; re-read the day's total
+      renderFuelSection();
+      toast('Water logged');
+    } catch (e) { toast(e.message); b.disabled = false; }
+  }));
+}
 
-function renderHydration() {
+function hydrationCard() {
   const h = S.hydration;
   if (!h) return '';
   const pct = h.goalMl ? Math.min(100, Math.round((100 * h.valueMl) / h.goalMl)) : 0;
@@ -762,15 +773,7 @@ async function loadPlanTab(force) {
     getJSON('/api/gear' + q).catch(() => ({ shoes: [] })),
   ]);
   Object.assign(S, { fuelToday, hydration, racePlan, shoes: gear.shoes || [] });
-  $('p-fuel').innerHTML = fuelCard(fuelToday) + renderHydration();
-  $('p-fuel').querySelectorAll('[data-ml]').forEach((b) => b.addEventListener('click', async () => {
-    b.disabled = true;
-    try { S.hydration = await postJSON('/api/hydration', { ml: Number(b.dataset.ml) }); $('p-fuel').innerHTML = fuelCard(S.fuelToday) + renderHydration(); loadPlanTab.rebind(); toast('Water logged'); }
-    catch (e) { toast(e.message); b.disabled = false; }
-  }));
-  loadPlanTab.rebind = () => $('p-fuel').querySelectorAll('[data-ml]').forEach((b) => b.addEventListener('click', async () => {
-    try { S.hydration = await postJSON('/api/hydration', { ml: Number(b.dataset.ml) }); $('p-fuel').innerHTML = fuelCard(S.fuelToday) + renderHydration(); loadPlanTab.rebind(); toast('Water logged'); } catch (e) { toast(e.message); }
-  }));
+  safeRender('fuel', $('p-fuel'), renderFuelSection);
   await safeRender('the plan', $('p-plan'), renderPlanList);
   safeRender('race day', $('p-race'), renderRaceDay);
   safeRender('the shoes', $('p-shoes'), renderShoes);
@@ -912,7 +915,7 @@ $('weight-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = $('weight-msg');
   try {
-    await postJSON('/api/weight', { weightKg: Number($('weight-kg').value), date: $('weight-date').value });
+    await postJSON('/api/weight', { weight: Number($('weight-kg').value), date: $('weight-date').value });
     msg.className = 'small muted'; msg.textContent = 'Logged to Garmin.';
     S.weight = await getJSON('/api/weight?refresh=1'); renderWeight(); toast('Weight logged');
   } catch (err) { msg.className = 'small err'; msg.textContent = err.message; }
@@ -924,11 +927,11 @@ $('sweat-form').addEventListener('submit', async (e) => {
   out.innerHTML = '<p class="loading" style="margin:10px 0 0;">Working it out…</p>';
   try {
     const r = await postJSON('/api/sweat-rate', {
-      beforeKg: Number($('sw-before').value), afterKg: Number($('sw-after').value),
-      minutes: Number($('sw-min').value), drankMl: Number($('sw-ml').value || 0),
+      preKg: Number($('sw-before').value), postKg: Number($('sw-after').value),
+      durationMin: Number($('sw-min').value), fluidMl: Number($('sw-ml').value || 0),
     });
     out.innerHTML = `<div class="stats" style="margin-top:12px;">
-      <div class="stat"><div class="l">Sweat rate</div><div class="v num">${r.sweatRateMlPerHour}<small>ml/h</small></div></div>
+      <div class="stat"><div class="l">Sweat rate</div><div class="v num">${r.sweatRateLPerHr}<small>L/h</small></div><div class="s">${r.sweatLossL} L lost on the run</div></div>
       <div class="stat"><div class="l">Sodium lost</div><div class="v num">${r.sodiumLossMg}<small>mg</small></div><div class="s">estimate</div></div></div>
       <p class="small" style="margin:10px 0 0;"><b style="text-transform:capitalize;">${esc(r.tier)} sweater.</b> ${esc(r.guidance)}</p>`;
     S.racePlan = null;
