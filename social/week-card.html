@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Road to Bangsaen - weekly card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Instagram portrait, 1080x1350. Render with:
+     node social/render_card.mjs  (or any headless screenshot at 1080x1350) */
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --page: #0b1020; --brand: #1f5cff; --deep: #0a2a8f; --gold: #f5b83d;
+    --ink: #fff; --ink-2: #b9c0d6;
+    --display: Anton, Impact, sans-serif; --font: Figtree, system-ui, sans-serif;
+  }
+  body { width: 1080px; height: 1350px; overflow: hidden; background: var(--page); color: var(--ink); font-family: var(--font); }
+  .card { display: flex; flex-direction: column; width: 1080px; height: 1350px; padding: 76px 72px 60px;
+    background: radial-gradient(120% 70% at 100% 0%, #3b72ff 0%, var(--brand) 28%, var(--deep) 58%, var(--page) 100%); }
+  .top { display: flex; align-items: center; gap: 20px; }
+  .top img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 0 0 2px rgba(255,255,255,.3); }
+  .eyebrow { font-size: 22px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.88); }
+  .sub { font-size: 20px; font-weight: 600; color: rgba(255,255,255,.7); margin-top: 6px; letter-spacing: .04em; }
+
+  h1 { font-family: var(--display); font-weight: 400; font-size: 132px; line-height: .88; text-transform: uppercase; margin-top: 48px; letter-spacing: -.005em; }
+  h1 em { font-style: normal; color: var(--gold); }
+
+  .quote { margin-top: 44px; padding-left: 26px; border-left: 6px solid var(--gold); }
+  .quote p { font-size: 35px; line-height: 1.34; font-weight: 500; }
+
+  /* The proof, in one line: same easy runs, heart rate falling. Real values, W1 to W4. */
+  .chart { margin-top: auto; margin-bottom: 34px; }
+  .chart .cap { font-size: 19px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-bottom: 10px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart .ln { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .lbl { font: 700 26px var(--font); fill: #fff; }
+  .chart .lbl.g { fill: var(--gold); }
+
+  .stats { display: flex; gap: 18px; }
+  .stat { flex: 1; background: rgba(255,255,255,.1); border-radius: 22px; padding: 24px 26px 26px; }
+  .stat .l { font-size: 17px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.66); }
+  .stat .v { font-family: var(--display); font-weight: 400; font-size: 66px; line-height: 1.02; margin-top: 8px; }
+  .stat .v small { font-family: var(--font); font-size: 22px; font-weight: 600; color: rgba(255,255,255,.72); }
+  .stat .d { font-size: 18px; color: rgba(255,255,255,.72); margin-top: 6px; }
+  .stat.gold .v { color: var(--gold); }
+
+  .then { margin-top: 26px; display: flex; align-items: center; gap: 14px; font-size: 23px; color: rgba(255,255,255,.82); }
+  .then b { color: #fff; }
+  .then .arrow { color: var(--gold); font-weight: 800; }
+
+  .foot { margin-top: 30px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 20px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="top">
+      <img src="../static/logo.svg" alt="">
+      <div>
+        <div class="eyebrow">Week 4 of 11 &middot; Road to Bangsaen</div>
+        <div class="sub">52 days to go &middot; goal sub-4:00</div>
+      </div>
+    </div>
+
+    <h1>I had to<br>unlearn<br><em>my pace</em></h1>
+
+    <div class="quote">
+      <p>&ldquo;It hurts my ego when slower runners pass me. But I finished calm, with fuel still in the tank &mdash; and goose bumps.&rdquo;</p>
+    </div>
+
+    <div class="chart">
+      <div class="cap">Average heart rate, easy runs &middot; W1 &rarr; W4</div>
+      <svg viewBox="0 0 936 232" role="img" aria-label="Average heart rate on easy runs falling from 176 to 153 across four weeks">
+        <path class="ln" d="M30,40 L176,73.6 L322,107.2 L468,118.4 L614,79.2 L760,180 L906,168.8"/>
+        <circle cx="30" cy="40" r="9" fill="#fff"/>
+        <circle cx="176" cy="73.6" r="9" fill="rgba(255,255,255,.75)"/>
+        <circle cx="322" cy="107.2" r="9" fill="rgba(255,255,255,.75)"/>
+        <circle cx="468" cy="118.4" r="9" fill="rgba(255,255,255,.75)"/>
+        <circle cx="614" cy="79.2" r="9" fill="rgba(255,255,255,.75)"/>
+        <circle cx="760" cy="180" r="11" fill="#f5b83d"/>
+        <circle cx="906" cy="168.8" r="11" fill="#f5b83d"/>
+        <text class="lbl" x="30" y="24" text-anchor="start">176</text>
+        <text class="lbl g" x="906" y="214" text-anchor="end">153</text>
+      </svg>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="l">Easy pace</div>
+        <div class="v">7:30<small>/km</small></div>
+        <div class="d">slower on purpose</div>
+      </div>
+      <div class="stat gold">
+        <div class="l">Heart rate</div>
+        <div class="v">153<small>bpm</small></div>
+        <div class="d">was 168 three weeks ago</div>
+      </div>
+      <div class="stat">
+        <div class="l">Banked</div>
+        <div class="v">142<small>km</small></div>
+        <div class="d">13 runs, 29% of plan</div>
+      </div>
+    </div>
+
+    <div class="then">
+      <span>Same easy run, three weeks apart:</span>
+      <b>6:31/km @ 168</b><span class="arrow">&rarr;</span><b>7:30/km @ 153</b>
+    </div>
+
+    <div class="foot">
+      <span>Bangsaen Marathon &middot; 15 Nov 2026</span>
+      <span>Attempt #3</span>
+    </div>
+  </div>
+</body>
+</html>
