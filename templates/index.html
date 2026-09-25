@@ -252,6 +252,7 @@
       <div id="now-body" hidden>
         <section id="s-status" style="--i:0"></section>
         <section id="s-hero" style="--i:1"></section>
+        <section id="s-route" style="--i:2" hidden></section>
         <section id="s-week" style="--i:2"></section>
         <section id="s-block" style="--i:3"></section>
         <section id="s-ribbon" style="--i:4"></section>
@@ -364,8 +365,10 @@ function bandSvg(opts) {
   let g = `<line class="track" x1="${x0}" x2="${x1}" y1="${y}" y2="${y}"/>
     <rect class="glow" x="${zx - 8}" y="${y - 14}" width="${zw + 16}" height="28" rx="14"/>
     <rect class="zone" x="${zx}" y="${y - 6}" width="${zw}" height="12" rx="6"/>
-    <text class="ax" x="${zx}" y="${y + 24}" text-anchor="start">${esc(fmtPace(fast))}</text>
-    <text class="ax" x="${zx + zw}" y="${y + 24}" text-anchor="end">${esc(fmtPace(slow))}</text>`;
+    ${zw < 72
+      ? `<text class="ax" x="${zx + zw / 2}" y="${y + 24}" text-anchor="middle">${esc(fmtPace(fast))}–${esc(fmtPace(slow))}</text>`
+      : `<text class="ax" x="${zx}" y="${y + 24}" text-anchor="start">${esc(fmtPace(fast))}</text>
+         <text class="ax" x="${zx + zw}" y="${y + 24}" text-anchor="end">${esc(fmtPace(slow))}</text>`}`;
   if (ghost != null && actual == null) {
     g += `<circle class="ghost" cx="${x(ghost)}" cy="${y}" r="6"/>
       <text class="ax" x="${x(ghost)}" y="${y - 16}" text-anchor="middle">last ${esc(fmtPace(ghost))}</text>`;
@@ -533,6 +536,55 @@ function renderFeel(row, f) {
   });
 }
 
+/* The route, drawn from the GPS track and coloured by how it was run:
+   on a quality session gold is the work; on an easy run gold is under the
+   ceiling and red is over it. No tiles, no keys - just the line. */
+function renderRoute() {
+  const el = $('s-route'), rt = S.route, row = S.routeRow;
+  if (!rt?.available || !row) { el.hidden = true; return; }
+  el.hidden = false;
+  const s = sessionFor(row.date) || {}, quality = ['tempo', 'mp'].includes(row.kind);
+  const slowBound = s.paceLo ? toSec(s.paceLo) : null, cap = ceilingFor(row.kind);
+  const W = 350, H = 230, pad = 16;
+  const b = rt.bounds, latMid = (b.minLat + b.maxLat) / 2;
+  const kx = Math.cos((latMid * Math.PI) / 180);  // metres per degree of longitude shrink with latitude
+  const spanX = Math.max(1e-6, (b.maxLon - b.minLon) * kx), spanY = Math.max(1e-6, b.maxLat - b.minLat);
+  const scale = Math.min((W - pad * 2) / spanX, (H - pad * 2) / spanY);
+  const offX = (W - spanX * scale) / 2, offY = (H - spanY * scale) / 2;
+  const x = (lon) => offX + (lon - b.minLon) * kx * scale;
+  const y = (lat) => H - (offY + (lat - b.minLat) * scale);  // north up
+
+  // one path per colour so the whole trace is two or three <path> elements, not 400
+  const groups = { hot: [], base: [], over: [] };
+  let cur = null, curKey = null;
+  rt.points.forEach((p) => {
+    const key = quality
+      ? (p.paceSecPerKm && slowBound && p.paceSecPerKm <= slowBound ? 'hot' : 'base')
+      : (p.hr ? (p.hr <= cap ? 'hot' : 'over') : 'base');
+    if (key !== curKey) {
+      if (cur && cur.length > 1) groups[curKey].push(cur);
+      cur = cur && cur.length ? [cur[cur.length - 1]] : [];   // bridge the seam
+      curKey = key;
+    }
+    cur.push(`${x(p.lon).toFixed(1)},${y(p.lat).toFixed(1)}`);
+  });
+  if (cur && cur.length > 1) groups[curKey].push(cur);
+  const path = (runs, stroke, width) => runs.map((r) => `<polyline points="${r.join(' ')}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+  const first = rt.points[0], last = rt.points[rt.points.length - 1];
+
+  el.innerHTML = `<div class="mono">The route &middot; ${km1(rt.km)} km</div>
+    <p class="sub" style="margin-top:8px;">${quality
+      ? '<span style="color:var(--gold)">Gold</span> is the work at target pace, grey the warm-up, jogs and cool-down.'
+      : '<span style="color:var(--gold)">Gold</span> is under your heart-rate ceiling, <span class="crit">red</span> is over it.'}</p>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" style="margin-top:10px;" role="img" aria-label="Route of the run, ${km1(rt.km)} km">
+      ${path(groups.base, 'var(--ink-4)', 3)}
+      ${path(groups.over, 'var(--crit)', 3.5)}
+      ${path(groups.hot, 'var(--gold)', 3.5)}
+      <circle cx="${x(first.lon)}" cy="${y(first.lat)}" r="5" fill="var(--ink)" stroke="var(--ground)" stroke-width="2"/>
+      <circle cx="${x(last.lon)}" cy="${y(last.lat)}" r="5" fill="none" stroke="var(--ink)" stroke-width="2"/>
+    </svg>`;
+}
+
 function renderWeek() {
   const wk = curWeek(), rows = S.progress.rows.filter((r) => r.week === wk);
   const planned = rows.reduce((a, r) => a + r.plannedKm, 0), actual = rows.reduce((a, r) => a + (r.actualKm || 0), 0);
@@ -669,6 +721,15 @@ async function loadNow(force) {
   safe('the block', $('s-block'), renderBlock);
   safe('effort discipline', $('s-ribbon'), effortChart);
   safe('the outlook', $('s-outlook'), renderOutlook);
+
+  // The route is a second request, so it arrives after the screen is usable.
+  const lastRun = [...progress.rows].reverse().find((r) => done(r) && r.activityId);
+  if (lastRun) {
+    S.routeRow = lastRun;
+    getJSON(`/api/route?activityId=${lastRun.activityId}`)
+      .then((rt) => { S.route = rt; safe('the route', $('s-route'), renderRoute); })
+      .catch(() => {});
+  }
 }
 
 /* ---------- PLAN ---------- */

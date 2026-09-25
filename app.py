@@ -28,6 +28,7 @@ from checkin_store import friendly_error as checkin_error
 from checkin_store import summarize as summarize_checkins
 from feel_store import all_feels, friendly_error, save_feel
 from mind import fetch_stress_days, stress_summary
+from route import fetch_route
 from fuel import DEFAULT_WEIGHT_KG, all_day_types, day_guidance
 from garmin_session import session
 from race_plan import carb_load, fuel_plan, pacing_plan, race_morning
@@ -513,6 +514,24 @@ def api_feel_post():
     except Exception as exc:
         return jsonify({"error": friendly_error(exc)}), 503
     return jsonify({"ok": True})
+
+
+@app.get("/api/route")
+def api_route():
+    """GPS track for one activity, for the route trace on Today's run."""
+    if session.status != "logged_in":
+        return jsonify({"error": "not_logged_in"}), 401
+    try:
+        activity_id = int(request.args["activityId"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "activityId is required"}), 400
+    force = request.args.get("refresh") == "1"
+    try:
+        data = _cached(f"route:{activity_id}", lambda: fetch_route(session.client, activity_id),
+                       ttl=_HISTORY_CACHE_TTL_SECONDS, force=force)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+    return jsonify(data)
 
 
 @app.get("/api/mind")
