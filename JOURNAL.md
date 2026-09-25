@@ -1,10 +1,10 @@
 # Road to Bangsaen
 
-Race day **2026-11-15** · 52 days to go · goal **sub-4:00** (5:41/km)
+Race day **2026-11-15** · 51 days to go · goal **sub-4:00** (5:41/km)
 
-So far: **13 runs**, **142.5 km**, predicted finish **3:50:45**
+So far: **14 runs**, **150.1 km**, predicted finish **3:50:45**
 
-<sub>Generated from Garmin and the app's own logs on 2026-09-24. Don't edit by hand - it is rebuilt each time.</sub>
+<sub>Generated from Garmin and the app's own logs on 2026-09-25. Don't edit by hand - it is rebuilt each time.</sub>
 
 ## W1 · Base
 
@@ -45,7 +45,7 @@ So far: **13 runs**, **142.5 km**, predicted finish **3:50:45**
 
 ## W4 · Cutback
 
-15.0 of 37.6 km · 2 of 4 runs
+22.6 of 37.6 km · 3 of 4 runs
 
 - **2026-09-22 · Easy (7K)** — 7.0 km · 7:10/km · HR 151 · felt 6/10
   <sub>slept 6.6 h · stress 30</sub>
@@ -57,4 +57,11 @@ So far: **13 runs**, **142.5 km**, predicted finish **3:50:45**
   > form too, and it feels more calm. At the end I felt like I still had so much fuel in
   > the tank and I could just go zoom. I controlled my emotion, and that brought me the
   > goose bumps. I feel like I am getting back to my prime age!
-  <sub>slept 7.3 h · stress 35 · mood Good, motivation Keen</sub>
+  <sub>slept 7.3 h · stress 33 · mood Good, motivation Keen</sub>
+- **2026-09-25 · Tempo Intervals (2x1.5K @ Tempo)** — 7.6 km · 5:13/km · HR 170 · felt 4/10
+  > Tempo day, and it was raining. It felt easy because I started slow. When I was
+  > running at 5:13 I was still able to make conversation - talk to myself! A lot of
+  > change in the way I feel. Felt really good, not tiring. And the ability to control
+  > the pace was the best feeling and satisfaction.
+  > Feels like 20
+  <sub>slept 5.3 h · stress 26 · mood Great, motivation Fired up</sub>

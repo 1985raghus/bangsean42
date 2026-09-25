@@ -17,3 +17,10 @@ slower people run past me easily. But running slow has helped me correct my runn
 form too, and it feels more calm. At the end I felt like I still had so much fuel in
 the tank and I could just go zoom. I controlled my emotion, and that brought me the
 goose bumps. I feel like I am getting back to my prime age!
+
+## 2026-09-25
+
+Tempo day, and it was raining. It felt easy because I started slow. When I was
+running at 5:13 I was still able to make conversation - talk to myself! A lot of
+change in the way I feel. Felt really good, not tiring. And the ability to control
+the pace was the best feeling and satisfaction.
