@@ -15,8 +15,24 @@ from fuel import DEFAULT_WEIGHT_KG, fluid_ml_per_hour, sodium_mg_per_hour
 from plan_data import MARATHON_KM
 from progress import fmt_hms, fmt_pace
 
-_START_KM = 5.0
-_START_EASE_SEC = 10
+# The first 2 km are crowded at Bangsaen, so they are planned slow rather than
+# fought: +19 s/km costs 38 seconds over the whole race and buys the restraint
+# that both previous attempts lacked. The middle banks a few seconds so the last
+# 10 km can be the SLOWEST segment - which is what actually happens in the heat -
+# instead of requiring a negative split nobody runs at km 35.
+_CROWD_KM = 2.0
+_CROWD_EASE_SEC = 19
+# (from_km, to_km, seconds/km relative to the flat average). The final segment's
+# pace is solved so the whole plan lands exactly on the goal time.
+_PROFILE = ((0.0, _CROWD_KM, _CROWD_EASE_SEC), (_CROWD_KM, 10.0, -1), (10.0, 21.1, -2), (21.1, 32.0, -2))
+_CUES = (
+    "Crowded, and planned that way. Let it hold you back - these 38 seconds are the "
+    "cheapest insurance in the race. Do not weave.",
+    "Settle in. This should feel too easy. Heart rate 165-172, no higher.",
+    "Goal pace. Halfway should read about 2:00 - if it reads 1:57 you have already made the 2025 mistake.",
+    "Hold. Being passed is fine here; pushing because you feel good is not.",
+    "Now it counts. This is where 2024 and 2025 went to 8:00/km. Whatever is left, spend it here.",
+)
 _GEL_CARBS_G = 25
 _GEL_EVERY_MIN = 30
 _LAST_GEL_BEFORE_FINISH_MIN = 25
@@ -24,23 +40,34 @@ _MAX_FLUID_ML_PER_HOUR = 800
 
 
 def _goal_pace(goal_sec: float) -> float:
-    # 5 km at (p + ease) + the rest at p must add up to the goal time.
-    return (goal_sec - _START_KM * _START_EASE_SEC) / MARATHON_KM
+    """The flat average the goal time implies; every segment is set against it."""
+    return goal_sec / MARATHON_KM
+
+
+def _paced_segments(goal_sec: float) -> list[tuple[float, float, float]]:
+    """(from_km, to_km, pace_sec_per_km), the last one solved to hit the goal exactly."""
+    p = _goal_pace(goal_sec)
+    out = [(start, end, p + offset) for start, end, offset in _PROFILE]
+    used = sum((end - start) * pace for start, end, pace in out)
+    last_start = _PROFILE[-1][1]
+    remaining_km = MARATHON_KM - last_start
+    out.append((last_start, MARATHON_KM, (goal_sec - used) / remaining_km))
+    return out
+
+
+def _elapsed_at(km: float, goal_sec: float) -> float:
+    total = 0.0
+    for start, end, pace in _paced_segments(goal_sec):
+        if km <= start:
+            break
+        total += (min(km, end) - start) * pace
+    return total
 
 
 def pacing_plan(goal_sec: float) -> dict:
-    p = _goal_pace(goal_sec)
-    segments = [
-        (0.0, _START_KM, p + _START_EASE_SEC,
-         "Deliberately slow. The crowd and fresh legs will say go faster - this is exactly where 2024 and 2025 were lost."),
-        (_START_KM, 30.0, p,
-         "Settle at goal pace. If it feels hard before 20 km, drop 5-10 s/km early rather than hang on."),
-        (30.0, MARATHON_KM, p,
-         "Hold goal pace. Only press after 35 km, and only if it's genuinely there."),
-    ]
-    out = []
-    elapsed = 0.0
-    for start, end, pace, cue in segments:
+    segs = _paced_segments(goal_sec)
+    out, elapsed = [], 0.0
+    for (start, end, pace), cue in zip(segs, _CUES):
         elapsed += (end - start) * pace
         out.append({
             "fromKm": start,
@@ -51,11 +78,11 @@ def pacing_plan(goal_sec: float) -> dict:
             "elapsedAtEndLabel": fmt_hms(elapsed),
             "cue": cue,
         })
-    half_sec = _START_KM * (p + _START_EASE_SEC) + (MARATHON_KM / 2 - _START_KM) * p
+    half_sec = _elapsed_at(MARATHON_KM / 2, goal_sec)
     return {
         "goalSec": goal_sec,
         "goalLabel": fmt_hms(goal_sec),
-        "goalPaceLabel": fmt_pace(p),
+        "goalPaceLabel": fmt_pace(_goal_pace(goal_sec)),
         "halfwaySec": half_sec,
         "halfwayLabel": fmt_hms(half_sec),
         "segments": out,
@@ -63,12 +90,16 @@ def pacing_plan(goal_sec: float) -> dict:
 
 
 def _km_at(minutes: float, goal_sec: float) -> float:
-    p = _goal_pace(goal_sec)
+    """Distance reached at a given minute, walking the same segment profile."""
     t = minutes * 60
-    start_block = _START_KM * (p + _START_EASE_SEC)
-    if t <= start_block:
-        return t / (p + _START_EASE_SEC)
-    return _START_KM + (t - start_block) / p
+    km = 0.0
+    for start, end, pace in _paced_segments(goal_sec):
+        block = (end - start) * pace
+        if t <= block:
+            return start + t / pace
+        t -= block
+        km = end
+    return km
 
 
 def fuel_plan(goal_sec: float, temp_c: float, sweat_rate_l_per_hr: float | None = None) -> dict:
