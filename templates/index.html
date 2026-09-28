@@ -82,6 +82,10 @@
   .row .lead { font: 600 var(--t-3)/1.25 var(--f-ui); letter-spacing: -.01em; }
   .row .meta { margin-top: 2px; }
   .row .val { text-align: right; white-space: nowrap; font: 500 var(--t-sub)/1.3 var(--f-mono); letter-spacing: .02em; color: var(--ink-2); }
+  .row.wk-row, .row.sess-row { background: none; transition: background var(--d-fast); border-radius: var(--r-2); }
+  .row.wk-row:active, .row.sess-row:active { background: var(--ground-2); }
+  .chev { width: 18px; height: 18px; flex: none; color: var(--ink-3); transition: transform var(--d-base) var(--ease-out); }
+  .wk-row[aria-expanded="true"] .chev { transform: rotate(90deg); }
 
   /* hero block */
   .kicker { margin-bottom: 10px; }
@@ -777,21 +781,54 @@ function progressionChart() {
 function renderTimeline() {
   const rows = S.progress.rows, byWeek = {}, wk = curWeek();
   rows.forEach((r) => { (byWeek[r.week] = byWeek[r.week] || []).push(r); });
-  $('s-timeline').innerHTML = `<div class="mono">Plan</div><div style="margin-top:12px;">${Object.keys(byWeek).map((w) => {
+  if (!S.openWeeks) S.openWeeks = new Set([wk]);   // current week open, the rest one tap away
+  $('s-timeline').innerHTML = `<div class="mono">Plan &middot; tap a week</div><div style="margin-top:12px;">${Object.keys(byWeek).map((w) => {
     const ws = byWeek[w], p = ws.reduce((a, r) => a + r.plannedKm, 0), a = ws.reduce((x, r) => x + (r.actualKm || 0), 0);
-    const future = ws.every((r) => r.status === 'upcoming'), open = w === wk;
-    return `<div class="row"><div class="grow"><div class="lead" style="font-family:var(--f-hero);font-weight:400;">${esc(w)}</div>
-        <div class="meta mono">${esc(PHASE[w] || '')} &middot; ${future ? `${ws.length} runs` : `${ws.filter(done).length} of ${ws.length} done`}</div></div>
-      <div class="val">${future ? `${km1(p)} km` : `${km1(a)} / ${km1(p)} km`}</div></div>
+    const future = ws.every((r) => r.status === 'upcoming'), open = S.openWeeks.has(w);
+    return `<button class="row wk-row" data-week="${esc(w)}" aria-expanded="${open}" style="width:100%;text-align:left;">
+        <span class="grow"><span class="lead" style="font-family:var(--f-hero);font-weight:400;">${esc(w)}</span>
+          <span class="meta mono" style="display:block;">${esc(PHASE[w] || '')} &middot; ${future ? `${ws.length} runs` : `${ws.filter(done).length} of ${ws.length} done`}</span></span>
+        <span class="val">${future ? `${km1(p)} km` : `${km1(a)} / ${km1(p)} km`}</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       ${open ? ws.map((r) => {
         const s = sessionFor(r.date) || {}, f = feelOf(r);
-        return `<div class="row" style="padding-left:14px;"><div class="grow">
-          <div class="sub">${esc(r.label)}</div>
-          <div class="meta mono">${esc(short(r.date))}${r.actualKm ? ` &middot; ran ${km1(r.actualKm)} km at ${esc(r.actualPaceLabel)}` : ` &middot; ${km1(r.plannedKm)} km`}${f.rpe ? ` &middot; felt ${f.rpe}/10` : ''}</div>
-          ${f.note ? `<p class="sub" style="margin-top:6px;color:var(--ink-3);font-style:italic;">&ldquo;${esc(f.note)}&rdquo;</p>` : ''}</div>
-          <div>${s.paceHi ? bandStrip(toSec(s.paceHi), toSec(s.paceLo), r.actualPace ?? null, r.inZone) : ''}</div></div>`;
+        return `<button class="row sess-row" data-date="${r.date}" style="width:100%;text-align:left;padding-left:14px;">
+          <span class="grow"><span class="sub" style="color:var(--ink)">${esc(r.label)}</span>
+            <span class="meta mono" style="display:block;">${esc(short(r.date))}${r.actualKm ? ` &middot; ran ${km1(r.actualKm)} km at ${esc(r.actualPaceLabel)}` : ` &middot; ${km1(r.plannedKm)} km &middot; ${esc(s.paceHi || '')}–${esc(s.paceLo || '')}`}${f.rpe ? ` &middot; felt ${f.rpe}/10` : ''}</span>
+            ${f.note ? `<span class="sub" style="display:block;margin-top:6px;color:var(--ink-3);font-style:italic;">&ldquo;${esc(f.note)}&rdquo;</span>` : ''}</span>
+          <span>${s.paceHi ? bandStrip(toSec(s.paceHi), toSec(s.paceLo), r.actualPace ?? null, r.inZone) : ''}</span>
+        </button>`;
       }).join('') : ''}`;
   }).join('')}</div>`;
+
+  $('s-timeline').querySelectorAll('.wk-row').forEach((b) => b.addEventListener('click', () => {
+    const w = b.dataset.week;
+    S.openWeeks.has(w) ? S.openWeeks.delete(w) : S.openWeeks.add(w);
+    renderTimeline();
+  }));
+  $('s-timeline').querySelectorAll('.sess-row').forEach((b) => b.addEventListener('click', () => openSessionSheet(b.dataset.date)));
+}
+
+/* Tapping a session shows its steps and what to eat around it. */
+async function openSessionSheet(date) {
+  const s = sessionFor(date), r = rowFor(date);
+  if (!s) return;
+  openSheet(r?.label || KIND[s.kind], `
+    <p class="mono">${esc(short(date))} &middot; ${km1(s.km)} km &middot; ${esc(mins(s.durationMin))} &middot; target ${esc(s.paceHi)}–${esc(s.paceLo)}/km</p>
+    ${s.steps.length > 1 ? `<div style="margin-top:12px;">${s.steps.map(stepRow).join('')}</div>` : ''}
+    ${s.note ? `<p class="sub" style="margin-top:12px;">${esc(s.note)}</p>` : ''}
+    <div id="sheet-fuel" style="margin-top:16px;"><p class="mono">Loading the fuel…</p></div>`);
+  try {
+    const f = S.fuelByDate?.[date] || await getJSON(`/api/fuel?date=${date}`);
+    S.fuelByDate = { ...(S.fuelByDate || {}), [date]: f };
+    const d = f.during;
+    $('sheet-fuel').innerHTML = `<div class="mono">Fuel</div>
+      <p class="sub" style="margin-top:6px;">${f.carbsG ? `${f.carbsG[0]}–${f.carbsG[1]} g carbs` : ''}${f.proteinG ? ` &middot; ${f.proteinG[0]}–${f.proteinG[1]} g protein` : ''} across the day.</p>
+      ${f.before ? `<p class="sub" style="margin-top:8px;"><span class="mono">Before</span> ${esc(f.before)}</p>` : ''}
+      ${d?.text ? `<p class="sub" style="margin-top:8px;"><span class="mono">During</span> ${esc(d.text)}</p>` : ''}
+      ${f.after ? `<p class="sub" style="margin-top:8px;"><span class="mono">After</span> ${esc(f.after)}</p>` : ''}`;
+  } catch (e) { $('sheet-fuel').innerHTML = `<p class="sub crit">${esc(e.message)}</p>`; }
 }
 
 function renderRace() {
