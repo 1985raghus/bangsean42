@@ -118,6 +118,14 @@
   @keyframes pulse { 50% { transform: scaleY(1.25); } }
   .band.in.anim .zone { animation: bandIn 500ms var(--ease-out) both, pulse 320ms var(--ease-io) 700ms; }
 
+  /* splits */
+  .split { display: flex; align-items: center; gap: 10px; height: 26px; }
+  .split .n { width: 18px; text-align: right; color: var(--ink-3); }
+  .split .bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.05); }
+  .split .bar i { display: block; height: 100%; border-radius: 3px; }
+  .split .p { width: 52px; text-align: right; font: 500 14px var(--f-mono); color: var(--ink); }
+  .split .h { width: 30px; text-align: right; }
+
   /* charts */
   .chart .ref { stroke: var(--line-strong); stroke-width: 1; }
   .chart .ax { font: 500 11px var(--f-mono); fill: var(--ink-3); letter-spacing: .04em; }
@@ -586,7 +594,27 @@ function renderRoute() {
       ${path(groups.hot, 'var(--gold)', 3.5)}
       <circle cx="${x(first.lon)}" cy="${y(first.lat)}" r="5" fill="var(--ink)" stroke="var(--ground)" stroke-width="2"/>
       <circle cx="${x(last.lon)}" cy="${y(last.lat)}" r="5" fill="none" stroke="var(--ink)" stroke-width="2"/>
-    </svg>`;
+    </svg>
+    ${splitRows(rt.splits, row)}`;
+}
+
+/* Per-kilometre splits, computed from Garmin's distance stream - the watch only
+   records laps, so an easy run with auto-lap off arrives as one 8 km lap. */
+function splitRows(splits, row) {
+  if (!splits?.length) return '';
+  const paces = splits.map((s) => s.paceSecPerKm);
+  const fast = Math.min(...paces), slow = Math.max(...paces);
+  const cap = ceilingFor(row.kind);
+  const width = (p) => 14 + ((slow - p) / Math.max(1, slow - fast)) * 86;   // quicker km = longer bar
+  return `<div class="mono" style="margin-top:22px;">Splits</div>
+    <div style="margin-top:10px;">${splits.map((s) => {
+      const quickest = s.paceSecPerKm === fast;
+      return `<div class="split"><span class="n mono">${s.km}${s.partial ? '' : ''}</span>
+        <span class="bar"><i style="width:${width(s.paceSecPerKm).toFixed(1)}%;background:${quickest ? 'var(--gold)' : 'var(--ink-4)'}"></i></span>
+        <span class="p num">${esc(fmtPace(s.paceSecPerKm))}</span>
+        <span class="h mono" style="color:${s.hr && s.hr > cap ? 'var(--crit)' : 'var(--ink-3)'}">${s.hr ?? '–'}</span></div>`;
+    }).join('')}</div>
+    <p class="mono" style="margin-top:10px;">From Garmin's own distance, so a second or two off Strava</p>`;
 }
 
 function renderWeek() {
