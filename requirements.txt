@@ -1,4 +1,7 @@
-garminconnect[workout]
-flask
-gunicorn
-supabase
+# Pinned 2026-09-29 to the versions this app is actually developed and tested
+# against. They were unpinned before, which means any upstream release could
+# (and did) break a deploy that touched nothing but application code.
+garminconnect[workout]==0.3.11
+flask==3.1.3
+supabase==2.31.0
+gunicorn==23.0.0
