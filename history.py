@@ -1,11 +1,19 @@
-"""Pull and summarize training history from before the plan started.
+"""Per-activity detail (splits, laps, interval reps) and the pre-plan history.
 
-Used by app.py's "Reality check" / "3 Marathons" views - the same analysis
-that shaped the plan's recalibrated goal and volume ramp, kept live so it's
-reusable rather than a one-off snapshot baked into a document.
+The history half feeds /api/history and heat.py: prior Bangsaen races with
+their km splits, training-block comparisons and VO2max - the analysis that
+shaped the plan's goal tiers, kept live rather than baked into a document.
+
+The per-activity half is shared by progress.py, insights.py and
+weekly_summary.py. A finished activity's splits never change, so they are
+memoised here for the life of the process: before this, one long run's splits
+were fetched three times per cache miss (the fade rule, the decoupling rule
+and the fade forecast), against an unofficial API that rate-limits.
 """
 
 import statistics
+import threading
+from collections import OrderedDict
 from datetime import date, timedelta
 
 from garminconnect import Garmin
@@ -15,6 +23,36 @@ from plan_data import MARATHON_KM
 _LOOKBACK_DAYS = 3 * 365
 _RIEGEL_EXPONENT = 1.06
 _MIN_REAL_RUN_KM = 2.0  # excludes warmup/cooldown fragments logged as separate activities
+
+_ACTIVITY_CACHE_MAX = 256  # (kind, activityId) -> result; a full plan is ~44 runs x 3 kinds
+_activity_cache: OrderedDict[tuple[str, int], object] = OrderedDict()
+_activity_cache_lock = threading.Lock()
+
+
+def _memo_activity(kind: str, activity_id: int, fetch):
+    """Return the cached result for (kind, activity_id), fetching once if needed.
+
+    Only successful fetches are cached - a failed call is retried next time, so a
+    transient Garmin error can't pin an empty result for the rest of the process.
+    """
+    key = (kind, int(activity_id))
+    with _activity_cache_lock:
+        if key in _activity_cache:
+            _activity_cache.move_to_end(key)
+            return _activity_cache[key]
+    value = fetch()
+    with _activity_cache_lock:
+        _activity_cache[key] = value
+        _activity_cache.move_to_end(key)
+        while len(_activity_cache) > _ACTIVITY_CACHE_MAX:
+            _activity_cache.popitem(last=False)
+    return value
+
+
+def clear_activity_cache() -> None:
+    """Forget every memoised activity detail - used on a forced refresh and on logout."""
+    with _activity_cache_lock:
+        _activity_cache.clear()
 
 
 def fetch_history(client: Garmin, plan_start: date, end: date | None = None) -> list[dict]:
@@ -32,9 +70,14 @@ def fetch_history(client: Garmin, plan_start: date, end: date | None = None) -> 
     return sorted(activities, key=lambda a: a.get("startTimeLocal", ""))
 
 
+def _raw_splits(client: Garmin, activity_id: int) -> dict:
+    """One Garmin call behind both fetch_race_splits and fetch_activity_laps."""
+    return _memo_activity("splits", activity_id, lambda: client.get_activity_splits(activity_id) or {})
+
+
 def fetch_race_splits(client: Garmin, activity_id: int) -> list[dict]:
     """Per-km pace/HR for a race activity, for a pacing-strategy/fade chart."""
-    splits = client.get_activity_splits(activity_id)
+    splits = _raw_splits(client, activity_id)
     laps = [lap for lap in splits.get("lapDTOs", []) if lap.get("distance", 0) >= 900]
     result = []
     for i, lap in enumerate(laps, 1):
@@ -49,6 +92,12 @@ def fetch_race_splits(client: Garmin, activity_id: int) -> list[dict]:
     return result
 
 
+def pacing_for_activity(client: Garmin, activity_id: int) -> dict:
+    """race_pacing_summary() of an activity's km splits - the one call the fade rule,
+    the decoupling rule, the fade forecast and the weekly positives all need."""
+    return race_pacing_summary(fetch_race_splits(client, activity_id))
+
+
 def fetch_interval_reps(client: Garmin, activity_id: int, min_metres: float = 100) -> list[dict]:
     """The work reps of a structured session, from Garmin's own typed splits.
 
@@ -58,7 +107,7 @@ def fetch_interval_reps(client: Garmin, activity_id: int, min_metres: float = 10
     steps (a 1-mile auto-lap once split every 2 km rep into 1.61 + 0.39).
     Returns [] when the activity has no interval structure.
     """
-    data = client.get_activity_typed_splits(activity_id) or {}
+    data = _memo_activity("typed", activity_id, lambda: client.get_activity_typed_splits(activity_id) or {})
     reps = []
     for split in data.get("splits") or []:
         if (split.get("type") or split.get("splitType")) != "INTERVAL_ACTIVE":
@@ -85,7 +134,7 @@ def fetch_activity_laps(client: Garmin, activity_id: int) -> list[dict]:
     (e.g. 1 mile) often doesn't line up with the workout's own step boundaries anyway, so a
     single planned "2km rep" can arrive as two Garmin laps (e.g. 1609m + 391m).
     """
-    data = client.get_activity_splits(activity_id)
+    data = _raw_splits(client, activity_id)
     laps = []
     for lap in data.get("lapDTOs", []):
         distance_m = lap.get("distance") or 0

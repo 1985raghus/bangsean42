@@ -63,6 +63,20 @@ PACE_SETS = {
 ACTIVE_PACE_SET = "stretch"
 PACES = PACE_SETS[ACTIVE_PACE_SET]
 
+# Effort is the instruction on aerobic days (see the notes below): the heart-rate
+# ceiling each kind of session is meant to stay under. One table, served to the
+# web app through /api/plan, so the screen and the coach rules can't disagree.
+HR_CEILINGS = {"recovery": 150, "easy": 155, "long": 162, "mp": 175, "tempo": 185}
+AEROBIC_KINDS = ("easy", "long", "recovery")
+
+# What each session kind should feel like on the 1-10 post-run scale (low, high).
+PLANNED_RPE = {"recovery": (2, 3), "easy": (3, 4), "long": (4, 5), "mp": (5, 6), "tempo": (7, 8)}
+
+PHASES = {
+    "W1": "Base", "W2": "Build", "W3": "Build", "W4": "Cutback", "W5": "Build", "W6": "Build",
+    "W7": "Peak", "W8": "Peak", "W9": "Taper", "W10": "Taper", "W11": "Race week",
+}
+
 
 def _time_to_sec(hms: str) -> int:
     hours, minutes, seconds = hms.split(":")
@@ -82,12 +96,12 @@ STRIDES_NOTE = "Finish with 4-6 x 20s relaxed strides, full recovery between."
 # tempo. The distances were fine; the efforts were not, so the fix is written
 # into the workout descriptions the watch actually shows.
 EASY_NOTE = (
-    "Effort, not pace: keep HR at or under ~155. In this heat that lands around 7:10-7:45/km, "
+    f"Effort, not pace: keep HR at or under ~{HR_CEILINGS['easy']}. In this heat that lands around 7:10-7:45/km, "
     "and slower is fine - the pace is just what that effort gives on the day. Finish with "
     "4-6 x 20s relaxed strides if the legs feel flat, to keep the turnover."
 )
 LONG_NOTE = (
-    "Steady and easy the whole way: HR 155-162, not the 167-168 these have been running. "
+    f"Steady and easy the whole way: HR {HR_CEILINGS['easy']}-{HR_CEILINGS['long']}, not the 167-168 these have been running. "
     "If the last 3km drop off by more than 15s/km, you started too fast."
 )
 TEMPO_NOTE = (

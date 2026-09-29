@@ -59,7 +59,7 @@ def main() -> None:
             status_label = {"upcoming": "upcoming", "today": "today, not yet synced", "missed": "MISSED"}[row["status"]]
             print(f"  {row['label']:45s} planned {row['plannedKm']:5.1f}K   [{status_label}]")
         else:
-            zone_note = "" if row["inZone"] else "  (off target pace)"
+            zone_note = "" if row["inZone"] else "  (off target effort)"
             date_note = f"  (ran {row['actualDate']})" if row["actualDate"] else ""
             print(
                 f"  {row['label']:45s} planned {row['plannedKm']:5.1f}K -> actual {row['actualKm']:5.1f}K "
@@ -91,7 +91,7 @@ def main() -> None:
         print(f"{current_week} long-run share: {week_kpi['longRunPct']}% of that week's volume")
 
     compliance = pace_compliance_pct(all_rows)
-    print(f"Pace-zone compliance: {compliance}% of completed sessions" if compliance is not None else "Pace-zone compliance: no completed sessions yet")
+    print(f"Effort discipline: {compliance}% of completed sessions at the right effort" if compliance is not None else "Effort discipline: no completed sessions yet")
 
     hr_by_kind = avg_hr_by_kind(all_rows)
     if hr_by_kind:

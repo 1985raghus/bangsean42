@@ -11,8 +11,17 @@ from datetime import date, datetime, timedelta
 from garminconnect import Garmin
 
 from build_workouts import session_distance_km
-from history import fetch_activity_laps, fetch_interval_reps, fetch_race_splits, race_pacing_summary
-from plan_data import ACTIVE_PACE_SET, FLOOR_TIME_SEC, MARATHON_KM, PACES, PRIMARY_TIME_SEC, STRETCH_TIME_SEC
+from history import fetch_activity_laps, fetch_interval_reps, pacing_for_activity
+from plan_data import (
+    ACTIVE_PACE_SET,
+    AEROBIC_KINDS,
+    FLOOR_TIME_SEC,
+    HR_CEILINGS,
+    MARATHON_KM,
+    PACES,
+    PRIMARY_TIME_SEC,
+    STRETCH_TIME_SEC,
+)
 
 _FADE_FORECAST_MIN_KM = 10  # only long runs long enough for pacing strategy to matter
 _QUALITY_KINDS = ("tempo", "mp")
@@ -51,22 +60,33 @@ def pace_to_sec(pace: str) -> float:
     return int(minutes) * 60 + int(seconds)
 
 
-_AEROBIC_KINDS = ("easy", "long", "recovery")
+_AEROBIC_KINDS = AEROBIC_KINDS
+HR_CEILING_TOLERANCE_BPM = 2  # a beat or two of average-HR noise is not "over the ceiling"
 
 
-def _in_zone(kind: str, actual_pace: float | None, slow_bound: str, fast_bound: str) -> bool | None:
+def in_zone(kind: str, actual_pace: float | None, slow_bound: str, fast_bound: str, actual_hr: float | None = None) -> bool | None:
     """Was this run at the right effort?
 
-    For quality work both edges matter: too slow misses the stimulus the session
-    exists for. For easy, long and recovery running only the fast edge does -
-    running slower than the band is how aerobic base is built, especially in
-    heat, and marking it "off band" would score the right behaviour as a miss.
+    For quality work both pace edges matter: too slow misses the stimulus the
+    session exists for. For easy, long and recovery running effort is the
+    instruction (see plan_data.HR_CEILINGS): with heart rate on the run, in
+    band means the average stayed under that kind's ceiling, and pace is not
+    judged at all. Without HR, only the fast pace edge counts - running slower
+    than the band is how aerobic base is built, especially in heat, and marking
+    it "off band" would score the right behaviour as a miss.
     """
+    if kind in _AEROBIC_KINDS:
+        if actual_hr:
+            return actual_hr <= HR_CEILINGS[kind] + HR_CEILING_TOLERANCE_BPM
+        if actual_pace is None:
+            return None
+        return actual_pace >= pace_to_sec(fast_bound)
     if actual_pace is None:
         return None
-    if kind in _AEROBIC_KINDS:
-        return actual_pace >= pace_to_sec(fast_bound)
     return pace_to_sec(fast_bound) <= actual_pace <= pace_to_sec(slow_bound)
+
+
+_in_zone = in_zone  # older imports
 
 
 def target_kind(session: dict) -> str:
@@ -122,8 +142,17 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
     day, checks +/- DATE_TOLERANCE_DAYS (a run logged a day early or late
     still counts, rather than showing as both "missed" and an orphaned,
     invisible activity on the actual day it happened).
+
+    Exact matches are claimed for every session before any tolerance match is
+    tried. Thu and Fri are consecutive sessions in this plan, so a one-pass
+    matcher let a skipped Thursday steal Friday's run and mark Friday missed.
     """
     available = dict(activity_by_date)
+    exact: dict[str, dict] = {}
+    for session in sessions:
+        if session["date"] in available:
+            exact[session["date"]] = available.pop(session["date"])
+
     rows = []
     for session in sessions:
         session_date = datetime.strptime(session["date"], "%Y-%m-%d").date()
@@ -151,7 +180,10 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
             rows.append({**base, "status": "upcoming"})
             continue
 
-        activity, matched_date = _claim_nearby_activity(available, session_date, DATE_TOLERANCE_DAYS)
+        if session["date"] in exact:
+            activity, matched_date = exact[session["date"]], session["date"]
+        else:
+            activity, matched_date = _claim_nearby_activity(available, session_date, DATE_TOLERANCE_DAYS)
         if activity is None:
             status = "today" if session_date == today else "missed"
             rows.append({**base, "status": status})
@@ -159,8 +191,12 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
 
         actual_km = round(activity.get("distance", 0) / 1000.0, 1)
         actual_pace = pace_sec_per_km(activity.get("distance", 0), activity.get("duration", 0))
+        actual_hr = activity.get("averageHR")
         lo, hi = PACES[kind]
-        in_zone = _in_zone(kind, actual_pace, lo, hi)
+        # An MP-finish long run's whole-run HR is lifted by the finish on purpose, so its
+        # aerobic verdict comes from pace here and refine_quality_pace() reads the finish.
+        hr_for_zone = None if has_mp_effort(session) else actual_hr
+        zone = in_zone(kind, actual_pace, lo, hi, hr_for_zone)
         status = "done" if planned_km == 0 or actual_km >= planned_km * COMPLETION_THRESHOLD else "partial"
         rows.append({
             **base,
@@ -169,8 +205,8 @@ def build_rows(sessions: list[dict], activity_by_date: dict[str, dict], today: d
             "actualKm": actual_km,
             "actualPace": actual_pace,
             "actualPaceLabel": fmt_pace(actual_pace),
-            "inZone": in_zone,
-            "actualHr": activity.get("averageHR"),
+            "inZone": zone,
+            "actualHr": actual_hr,
             "activityId": activity.get("activityId"),
         })
     return rows
@@ -336,7 +372,8 @@ def planned_weekly_kpis(sessions: list[dict]) -> list[dict]:
 
 
 def pace_compliance_pct(rows: list[dict]) -> float | None:
-    """% of completed sessions whose actual pace landed in the target zone."""
+    """% of completed sessions run at the right effort: work pace in band for
+    quality sessions, HR under the ceiling (or pace not too fast) for aerobic ones."""
     judged = [r for r in rows if r["inZone"] is not None]
     if not judged:
         return None
@@ -361,10 +398,10 @@ def avg_hr_by_kind(rows: list[dict]) -> dict[str, float]:
 def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> dict:
     """Estimate marathon finish time from actual MP-effort session paces.
 
-    Uses each qualifying session's whole-activity average pace (MP interval
-    workouts, and the MP-finish portion's parent long run), which runs a
-    little slower than true rep pace since it includes warmup/cooldown/
-    recovery jogs - read the trend, not the exact number.
+    Uses the isolated marathon-pace effort of each qualifying session - the MP
+    reps of an interval workout, or the MP finish of a long run - as set by
+    refine_quality_pace(). Only when no lap data exists at all (the CLI) does
+    it fall back to whole-run averages, and it says so via "diluted".
 
     The last 3 qualifying sessions are recency-weighted (1x/2x/3x, oldest to
     newest) rather than averaged flat - a session from 2 weeks ago is a
@@ -490,6 +527,11 @@ def compute_fade_forecast(
     the average second-half fade actually observed on long runs instead, so the prediction
     reads as "start here, drift to here" rather than one number that assumes perfect pacing
     discipline - discipline this runner's history shows isn't a given.
+
+    The MP sessions measure what the runner holds fresh, so the first half runs at the
+    predicted pace and the second half at that pace plus the observed fade. (An earlier
+    version centred the fade on the predicted pace, half faster and half slower, which
+    always summed back to the flat estimate - the "fade-adjusted" number never moved.)
     """
     if not prediction.get("available"):
         return {"available": False, "message": "Needs a race-time prediction first."}
@@ -508,8 +550,7 @@ def compute_fade_forecast(
             # only steady long runs can say anything about fading.
             continue
         try:
-            splits = fetch_race_splits(client, r["activityId"])
-            pacing = race_pacing_summary(splits)
+            pacing = pacing_for_activity(client, r["activityId"])
         except Exception:
             continue
         if pacing.get("available"):
@@ -525,8 +566,8 @@ def compute_fade_forecast(
     avg_fade = sum(fades) / len(fades)
     fade_penalty = max(0.0, avg_fade)  # negative splits don't get rewarded with a faster prediction
     base_pace = prediction["avgPredictedSec"] / MARATHON_KM
-    first_half_pace = base_pace - fade_penalty / 2
-    second_half_pace = base_pace + fade_penalty / 2
+    first_half_pace = base_pace
+    second_half_pace = base_pace + fade_penalty
     forecast_sec = first_half_pace * (MARATHON_KM / 2) + second_half_pace * (MARATHON_KM / 2)
 
     if fade_penalty > 0:

@@ -28,14 +28,14 @@ pace-zone data on the steps isn't visible everywhere the workout shows up.
 - `plan_data.py` — the plan itself: the three pace tiers and every session (edit this to change dates/distances/paces).
 - `build_workouts.py` — converts a session into a Garmin Connect structured workout (interval repeat groups, plain-text pace description), and exposes its steps and estimated duration to the web app.
 - `push_to_garmin.py` — logs into Garmin Connect, creates or updates each workout, and schedules it on your calendar so it syncs to the watch.
-- `progress.py` — plan vs. actual: adherence, work-interval pace for quality sessions (warmup/recovery/cooldown laps excluded), recency-weighted race prediction, fade forecast, CSV export.
-- `insights.py` — mistake-detection rules (easy runs too hard, quality too fast or slow, long-run fade, aerobic decoupling, short sleep, ramp spikes, missed sessions), each with a specific suggestion.
+- `progress.py` — plan vs. actual: adherence, work-interval pace for quality sessions (warmup/recovery/cooldown laps excluded), effort verdicts (HR against the ceiling on aerobic days, pace band on quality days), recency-weighted race prediction, fade forecast, CSV export.
+- `insights.py` — mistake-detection rules (easy runs over their HR ceiling, quality too fast or slow, long-run fade, aerobic decoupling, short sleep, ramp spikes, missed sessions), each with a specific suggestion.
 - `readiness.py` — daily readiness score from sleep, resting HR and training load, plus a "swap today's quality session" suggestion when it's low.
 - `fuel.py` — daily carb/protein targets scaled to body weight, and before/during/after-run fueling by session.
 - `race_plan.py` — race-day pacing (a deliberately slower first 5 km), gel/fluid/sodium timeline, carb-load and race-morning guidance.
 - `heat.py` — heat-adjusted goal times, anchored to the temperatures of your own two prior Bangsaen finishes.
 - `health.py` — weight, sleep, hydration and sweat rate, backed by Garmin Connect's own records.
-- `history.py` — prior races (km-by-km splits), training-block comparisons, VO2max history.
+- `history.py` — per-activity splits, laps and interval reps (fetched once per activity and memoised), prior races (km-by-km splits), training-block comparisons, VO2max history.
 - `gear.py` / `fitness_snapshot.py` — shoe mileage from Garmin Gear (only the two tracked pairs, `TRACKED_SHOES`); Garmin's own VO2max and training-load range.
 - `mind.py` / `checkin_store.py` — all-day stress against your own baseline, and the daily mood/motivation check-in.
 - `feel_store.py` / `db.py` — post-run 1-10 ratings, and the shared Supabase client.
@@ -102,9 +102,12 @@ python track_progress.py --week W7   # just one week
 ```
 
 For each session due so far it reports done / partial / missed, actual
-distance vs. planned, and whether your average pace landed in the target
-zone. Matching is by calendar date, so log runs on the day they're
-scheduled for.
+distance vs. planned, and whether it was run at the right effort: for
+tempo and marathon-pace sessions that is the work-interval pace inside the
+target band; for easy, long and recovery runs it is average heart rate under
+that kind's ceiling (`HR_CEILINGS` in `plan_data.py`), with pace only used
+when the run has no heart rate. Matching is by calendar date (plus or minus
+a day), so log runs on the day they're scheduled for.
 
 It also prints a **race-time prediction** built from your actual
 marathon-pace session paces (MP interval workouts and MP-finish long runs),
@@ -163,6 +166,20 @@ Data is pulled on demand (page load, tab switch, or the refresh button) and
 cached for 5 minutes (history for an hour) — no background polling. The app
 and the CLI share `progress.py`, so the numbers always agree.
 
+### Tests
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+The tests cover the logic that decides what the screen says, with no Garmin
+account involved: session matching and effort verdicts (`progress.py`), the
+finish prediction and fade forecast, the coach rules (`insights.py`), the
+readiness score, the per-activity memo cache, and the web app's login gate,
+password throttle and input validation (via Flask's test client with a fake
+Garmin session). The live Garmin round-trip itself is not tested here.
+
 ### Deploying (e.g. Render)
 
 The repo deploys as-is: `Procfile` runs gunicorn with a **single worker** —
@@ -171,7 +188,7 @@ environment variables on the host:
 
 | Variable | What it does |
 |---|---|
-| `APP_PASSWORD` | Turns on the password page. Visitors only ever see this one field, never your Garmin email. |
+| `APP_PASSWORD` | Turns on the password page. Visitors only ever see this one field, never your Garmin email. After five wrong guesses the gate locks for 30 s, doubling each time up to 10 min. |
 | `FLASK_SECRET_KEY` | Any long random string; keeps you signed in across restarts. |
 | `SUPABASE_URL`, `SUPABASE_KEY` | Where the Garmin token and your post-run ratings are kept so they survive restarts. Use the **secret** key — the server is the only thing that talks to Supabase. |
 | `TZ` | Optional. Defaults to `Asia/Bangkok` so "today" is your day, not the server's UTC day. |
@@ -222,10 +239,10 @@ its own independent session.
   explicit choice, overriding that data; `"primary"` (4:35:00) and
   `"floor"` (4:45:00) are the more conservative fallbacks if training shows
   it's not holding up.
-- 4 runs/week (Tue/Thu/Sat/Sun), rest Mon/Wed/Fri, long run Sunday. Week 1's
-  Tuesday session was moved from 09-01 to 09-02 (today) as a one-time
-  exception since the plan starts mid-week — every week from W2 on keeps
-  the full Tue/Thu/Sat/Sun cadence with 3 rest days.
+- 4 runs/week (Tue/Thu/Fri/Sun), rest Mon/Wed/Sat, long run Sunday. Week 1
+  ran the original Tue/Thu/Sat/Sun cadence as a one-time transition (its
+  Tuesday session moved from 09-01 to 09-02 since the plan started
+  mid-week) — every week from W2 on keeps Tue/Thu/Fri/Sun with 3 rest days.
 - Total volume is 490 km over 11 weeks, peaking around 59.5 km/week (week
   7-8) with a 30 km long run, then a taper — a real ~10-15x jump from the
   account's actual recent volume. A smoothed, lower-volume version (273km,
@@ -239,9 +256,9 @@ its own independent session.
   (`distance`, `duration`, `startTimeLocal`) that are standard for this API
   but not pinned down by a live test here — if a live run shows off
   numbers, tell me and I'll adjust the field names.
-- `app.py`'s login flow (happy path, MFA, and error handling) is unit-tested
-  against a mocked Garmin client, but the actual network round-trip to
-  Garmin's login servers hasn't been exercised with a real account — if the
-  first live login behaves unexpectedly, tell me what you see and I'll fix it.
+- `app.py`'s endpoints are tested with a fake Garmin session (see Tests
+  above); the actual network round-trip to Garmin's login servers is only
+  exercised by real use — if a live login behaves unexpectedly, tell me what
+  you see and I'll fix it.
 - Bangsaen is coastal Thailand — heat/humidity affect both race-day pacing
   and hydration/electrolyte needs regardless of how early the race starts.

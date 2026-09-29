@@ -21,20 +21,16 @@ from feel_store import all_feels
 from garmin_session import session
 from health import compute_sleep_summary, fetch_sleep_entries
 from mind import fetch_stress_days
+from plan_data import PHASES as PHASE
 from plan_data import RACE, SESSIONS
 from progress import (
     build_rows,
     compute_prediction,
     fetch_activities_by_date,
-    fmt_hms,
     refine_quality_pace,
 )
 
 KIND_WORD = {"easy": "easy", "long": "long run", "tempo": "tempo", "mp": "marathon pace", "recovery": "recovery"}
-PHASE = {
-    "W1": "Base", "W2": "Build", "W3": "Build", "W4": "Cutback", "W5": "Build", "W6": "Build",
-    "W7": "Peak", "W8": "Peak", "W9": "Taper", "W10": "Taper", "W11": "Race week",
-}
 MOMENTS_FILE = "MOMENTS.md"
 
 

@@ -10,7 +10,7 @@ from datetime import datetime
 
 from garminconnect import Garmin
 
-from history import fetch_race_splits, race_pacing_summary
+from history import pacing_for_activity
 from progress import avg_hr_by_kind, pace_compliance_pct
 
 _FLAT_SPLIT_THRESHOLD_SEC = 5  # fade at/below this counts as a genuinely even long run
@@ -48,22 +48,21 @@ def generate_positives(client: Garmin, week_rows: list[dict], prev_week_rows: li
         if prev_compliance is not None and this_compliance > prev_compliance:
             positives.append({
                 "id": "compliance-improved",
-                "title": f"Pace-zone compliance up to {this_compliance}%",
-                "detail": f"Up from {prev_compliance}% last week - real, measurable improvement in hitting target paces.",
+                "title": f"Effort discipline up to {this_compliance}%",
+                "detail": f"Up from {prev_compliance}% last week - more sessions run at the effort they were meant to be.",
             })
         elif this_compliance >= 50 and prev_compliance is None:
             positives.append({
                 "id": "compliance-solid",
-                "title": f"Pace-zone compliance at {this_compliance}%",
-                "detail": "Half or more of completed sessions landed in their target zone.",
+                "title": f"Effort discipline at {this_compliance}%",
+                "detail": "Half or more of completed sessions were run at the right effort: quality pace in band, easy days under the HR ceiling.",
             })
 
     for r in completed:
         if r["kind"] != "long" or not r.get("activityId") or (r["actualKm"] or 0) < _LONG_RUN_MIN_KM:
             continue
         try:
-            splits = fetch_race_splits(client, r["activityId"])
-            pacing = race_pacing_summary(splits)
+            pacing = pacing_for_activity(client, r["activityId"])
         except Exception:
             continue
         if not pacing.get("available"):

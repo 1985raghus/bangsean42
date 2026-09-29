@@ -65,8 +65,12 @@ def save_feel(activity_id: int, run_date: str, rpe: int, note: str = "") -> None
 
 
 def _missing_note_column(exc: Exception) -> bool:
+    """PostgREST reports an unknown column as PGRST204 ("Could not find the 'note'
+    column"); an older install without the column is the only case this should match.
+    An earlier version also matched any error mentioning "note" that wasn't a
+    missing-table error, which turned unrelated failures into a silent retry."""
     text = str(exc)
-    return "note" in text and ("column" in text or "PGRST204" in text or "PGRST205" not in text)
+    return "note" in text and ("column" in text or "PGRST204" in text)
 
 
 def friendly_error(exc: Exception) -> str:

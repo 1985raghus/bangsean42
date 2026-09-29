@@ -330,12 +330,19 @@ const short = (d) => d8(d).toLocaleDateString('en-GB', { weekday: 'short', day: 
 const longDate = (d) => d8(d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
 const KIND = { easy: 'Easy', long: 'Long', tempo: 'Tempo', mp: 'Marathon pace', recovery: 'Recovery' };
-/* The ceilings the plan's own notes prescribe. Effort, not pace, is the instruction. */
-const CEILING = { recovery: 150, easy: 155, long: 162, mp: 175, tempo: 185 };
-const AEROBIC = ['easy', 'long', 'recovery'];
-const PHASE = { W1: 'Base', W2: 'Build', W3: 'Build', W4: 'Cutback', W5: 'Build', W6: 'Build', W7: 'Peak', W8: 'Peak', W9: 'Taper', W10: 'Taper', W11: 'Race week' };
+/* The coaching constants come from /api/plan (plan_data.py is the one source), filled in
+   by loadNow() before anything renders. Effort, not pace, is the instruction on aerobic days. */
+const CEILING = {};
+const AEROBIC = [];
+const PHASE = {};
+const PLANNED_RPE = {};
+function adoptPlanConstants(plan) {
+  Object.assign(CEILING, plan.hrCeilings || {});
+  AEROBIC.splice(0, AEROBIC.length, ...(plan.aerobicKinds || []));
+  Object.assign(PHASE, plan.phases || {});
+  Object.assign(PLANNED_RPE, plan.plannedRpe || {});
+}
 const FEEL = [[2, 'Very easy'], [4, 'Easy'], [6, 'Moderate'], [8, 'Hard'], [10, 'All-out']];
-const PLANNED_RPE = { recovery: [2, 3], easy: [3, 4], long: [4, 5], mp: [5, 6], tempo: [7, 8] };
 const MOOD = [[1, 'Rough'], [2, 'Flat'], [3, 'Fine'], [4, 'Good'], [5, 'Great']];
 const MOTIV = [[1, 'Empty'], [2, 'Low'], [3, 'Steady'], [4, 'Keen'], [5, 'Fired']];
 
@@ -635,9 +642,10 @@ function renderWeek() {
     return `<div class="col ${cls}"><div class="stack" style="height:${h}px"><i data-fill="${fill}"></i></div>
       <span class="km">${r.actualKm ? km1(r.actualKm) : km1(r.plannedKm)}</span><span class="dow">${dd}</span></div>`;
   }).join('');
+  const missed = rows.filter((r) => r.status === 'missed').length;
   $('s-week').innerHTML = `<div class="mono">This week &middot; ${rows.filter(done).length} of ${rows.length} runs</div>
     <div class="strip" style="margin-top:14px;">${cols}</div>
-    <p class="sub" style="margin-top:12px;"><b style="color:var(--ink)">${km1(actual)} km</b> of ${km1(planned)} planned${rows.some((r) => r.status === 'missed') ? ' · one missed' : ''}</p>`;
+    <p class="sub" style="margin-top:12px;"><b style="color:var(--ink)">${km1(actual)} km</b> of ${km1(planned)} planned${missed ? ` · ${missed === 1 ? 'one' : missed} missed` : ''}</p>`;
   requestAnimationFrame(() => $('s-week').querySelectorAll('.stack i').forEach((i) => { i.style.transform = `scaleY(${i.dataset.fill})`; }));
 }
 
@@ -744,6 +752,7 @@ async function loadNow(force) {
     getJSON('/api/feel').catch(() => ({ feels: {} })),
   ]);
   Object.assign(S, { plan, progress, readiness, insights: insights.insights, feels: feel.feels || {} });
+  adoptPlanConstants(plan);
   S.moment = moment();
   $('hdr-week').textContent = curWeek().replace('W', 'W');
   $('hdr-phase').textContent = `${PHASE[curWeek()] || ''} · ${dayDiff(progress.today, plan.race.date)} days`;

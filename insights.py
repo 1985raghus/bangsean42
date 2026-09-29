@@ -15,9 +15,9 @@ import statistics
 from garminconnect import Garmin
 
 from health import fetch_sleep_entries
-from history import fetch_race_splits, race_pacing_summary
-from plan_data import PACES
-from progress import fmt_pace, pace_to_sec
+from history import pacing_for_activity
+from plan_data import AEROBIC_KINDS, HR_CEILINGS, PACES
+from progress import HR_CEILING_TOLERANCE_BPM, fmt_pace, pace_to_sec
 
 _SHORT_SLEEP_HOURS = 6.0
 
@@ -34,28 +34,63 @@ def _completed(rows: list[dict]) -> list[dict]:
     return [r for r in rows if r["status"] in ("done", "partial") and r["actualPace"] is not None]
 
 
+def aerobic_effort_verdict(row: dict) -> dict | None:
+    """How an easy, long or recovery run was judged, on the same terms the hero uses.
+
+    Effort is the instruction on these days (plan_data.HR_CEILINGS), so with heart
+    rate on the run the verdict is HR against the kind's ceiling and pace is not
+    judged. Only a run with no HR falls back to the old pace test. An MP-finish long
+    run is skipped: its whole-run HR is lifted by the finish on purpose.
+    Returns None when the row isn't an aerobic run that can be judged, otherwise
+    {"over": bool, "basis": "hr" | "pace", ...detail fields}.
+    """
+    if row["kind"] not in AEROBIC_KINDS or row.get("mpEffortPace") is not None:
+        return None
+    ceiling = HR_CEILINGS[row["kind"]]
+    hr = row.get("actualHr")
+    if hr:
+        return {"over": hr > ceiling + HR_CEILING_TOLERANCE_BPM, "basis": "hr", "hr": hr, "ceiling": ceiling}
+    if row.get("actualPace") is None:
+        return None
+    _, fast_bound = PACES[row["kind"]]
+    fast_sec = pace_to_sec(fast_bound)
+    return {
+        "over": row["actualPace"] < fast_sec - _EASY_PACE_TOLERANCE_SEC,
+        "basis": "pace",
+        "fastBound": fast_bound,
+        "overBySec": fast_sec - row["actualPace"],
+    }
+
+
 def _rule_easy_too_hard(rows: list[dict]) -> list[dict]:
+    """The rule the whole app is built around: aerobic days run too hard. Judged by
+    heart rate against the ceiling, exactly as the Today screen judges them, so the
+    coach flag and the hero can never say opposite things about the same run."""
     out = []
     for r in _completed(rows):
-        if r["kind"] not in ("easy", "recovery"):
+        verdict = aerobic_effort_verdict(r)
+        if not verdict or not verdict["over"]:
             continue
-        _, fast_bound = PACES[r["kind"]]
-        fast_sec = pace_to_sec(fast_bound)
-        if r["actualPace"] < fast_sec - _EASY_PACE_TOLERANCE_SEC:
-            over_by = fast_sec - r["actualPace"]
-            out.append({
-                "id": f"easy-hard-{r['date']}",
-                "severity": "warning",
-                "title": f"{r['label']} run faster than its easy zone",
-                "detail": (
-                    f"{r['actualPaceLabel']}/km actual vs. {fast_bound}/km fastest allowed "
-                    f"({over_by:.0f} sec/km over)"
-                    + (f", HR {round(r['actualHr'])}bpm" if r.get("actualHr") else "")
-                    + "."
-                ),
-                "suggestion": "Slow down until it feels conversational, even if the pace looks slower than the target. This is the exact pattern behind both prior marathon results.",
-                "date": r["actualDate"] or r["date"],
-            })
+        if verdict["basis"] == "hr":
+            title = f"{r['label']} ran over its HR ceiling"
+            detail = (
+                f"Average HR {round(verdict['hr'])}bpm against a {verdict['ceiling']}bpm ceiling"
+                f" ({round(verdict['hr'] - verdict['ceiling'])} over), at {r['actualPaceLabel']}/km."
+            )
+        else:
+            title = f"{r['label']} run faster than its easy zone"
+            detail = (
+                f"{r['actualPaceLabel']}/km actual vs. {verdict['fastBound']}/km fastest allowed "
+                f"({verdict['overBySec']:.0f} sec/km over); no heart rate on this run to judge effort directly."
+            )
+        out.append({
+            "id": f"easy-hard-{r['date']}",
+            "severity": "warning",
+            "title": title,
+            "detail": detail,
+            "suggestion": "Slow down until it feels conversational, even if the pace looks slower than the target. This is the exact pattern behind both prior marathon results.",
+            "date": r["actualDate"] or r["date"],
+        })
     return out
 
 
@@ -164,8 +199,7 @@ def _rule_long_run_fade(client: Garmin, rows: list[dict]) -> list[dict]:
         if r["kind"] != "long" or not r.get("activityId") or r["actualKm"] < _LONG_RUN_MIN_KM:
             continue
         try:
-            splits = fetch_race_splits(client, r["activityId"])
-            pacing = race_pacing_summary(splits)
+            pacing = pacing_for_activity(client, r["activityId"])
         except Exception:
             continue
         if not pacing.get("available"):
@@ -197,8 +231,7 @@ def _rule_aerobic_decoupling(client: Garmin, rows: list[dict]) -> list[dict]:
         if r["kind"] != "long" or not r.get("activityId") or r["actualKm"] < _LONG_RUN_MIN_KM:
             continue
         try:
-            splits = fetch_race_splits(client, r["activityId"])
-            pacing = race_pacing_summary(splits)
+            pacing = pacing_for_activity(client, r["activityId"])
         except Exception:
             continue
         if not pacing.get("available") or pacing.get("decouplingPct") is None:
@@ -234,10 +267,9 @@ def _rule_poor_sleep(client: Garmin, rows: list[dict]) -> list[dict]:
         if not night or night["hours"] >= _SHORT_SLEEP_HOURS:
             continue
         context = ""
-        if r["kind"] in ("easy", "recovery") and r["actualPace"] is not None:
-            fast_bound = pace_to_sec(PACES[r["kind"]][1])
-            if r["actualPace"] < fast_bound:
-                context = " Likely no coincidence this is also one of the easy-run-too-hard flags - short sleep makes effort control worse."
+        verdict = aerobic_effort_verdict(r)
+        if verdict and verdict["over"]:
+            context = " Likely no coincidence this is also one of the easy-run-too-hard flags - short sleep makes effort control worse."
         out.append({
             "id": f"poor-sleep-{r['date']}",
             "severity": "warning",

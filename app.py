@@ -13,9 +13,11 @@ reachable from anywhere other than localhost - see the deploy notes in
 README.md). Leave it unset for local use and nothing changes.
 """
 
+import functools
 import hmac
 import os
 import secrets
+import threading
 import time
 from datetime import date, datetime, timedelta
 
@@ -46,9 +48,21 @@ from health import (
 from fitness_snapshot import fetch_fitness_snapshot
 from gear import fetch_shoes, project_to_race_day
 from heat import DEFAULT_HUMIDITY_PCT, DEFAULT_TEMP_C, heat_adjusted_goals, heat_penalty_pct
-from history import fetch_history, fetch_race_splits, race_pacing_summary, summarize
+from history import clear_activity_cache, fetch_history, fetch_race_splits, race_pacing_summary, summarize
 from insights import generate_insights
-from plan_data import ACTIVE_PACE_SET, FLOOR_TIME_SEC, PACES, PRIMARY_TIME_SEC, RACE, SESSIONS, STRETCH_TIME_SEC
+from plan_data import (
+    ACTIVE_PACE_SET,
+    AEROBIC_KINDS,
+    FLOOR_TIME_SEC,
+    HR_CEILINGS,
+    PACES,
+    PHASES,
+    PLANNED_RPE,
+    PRIMARY_TIME_SEC,
+    RACE,
+    SESSIONS,
+    STRETCH_TIME_SEC,
+)
 from readiness import compute_readiness, pivot_suggestion
 from weekly_summary import generate_week_review
 from progress import (
@@ -71,10 +85,15 @@ if hasattr(time, "tzset"):  # Unix only; a local Windows run already uses the ma
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+app.permanent_session_lifetime = timedelta(days=30)
 
 _APP_PASSWORD = os.environ.get("APP_PASSWORD")  # unset = local trusted-machine mode, gate disabled
 _BUILD = (os.environ.get("RENDER_GIT_COMMIT") or "local")[:7]
 
+
+# ---------------------------------------------------------------------------
+# The password gate
+# ---------------------------------------------------------------------------
 
 @app.before_request
 def _require_app_password():
@@ -93,6 +112,46 @@ def _require_app_password():
 def _sync_garmin_token():
     if session.status == "logged_in":
         sync_if_changed()  # no-op locally; keeps the Supabase copy current when deployed
+
+
+class GateThrottle:
+    """Slows down password guessing on the single shared gate.
+
+    One user, one password, one worker: a global counter is enough, and unlike a
+    per-IP limit it can't be side-stepped by rotating a forwarded-for header.
+    After `free_attempts` wrong passwords the gate locks for `base_lock_sec`,
+    doubling on each further failure up to `max_lock_sec`; a correct password
+    resets it.
+    """
+
+    def __init__(self, free_attempts: int = 5, base_lock_sec: int = 30, max_lock_sec: int = 600, clock=time.monotonic):
+        self.free_attempts = free_attempts
+        self.base_lock_sec = base_lock_sec
+        self.max_lock_sec = max_lock_sec
+        self._clock = clock
+        self._failures = 0
+        self._locked_until = 0.0
+        self._lock = threading.Lock()
+
+    def seconds_locked(self) -> int:
+        with self._lock:
+            return max(0, int(self._locked_until - self._clock() + 0.999))
+
+    def record_failure(self) -> None:
+        with self._lock:
+            self._failures += 1
+            over = self._failures - self.free_attempts
+            if over >= 0:
+                lock_for = min(self.max_lock_sec, self.base_lock_sec * (2 ** over))
+                self._locked_until = self._clock() + lock_for
+
+    def reset(self) -> None:
+        with self._lock:
+            self._failures = 0
+            self._locked_until = 0.0
+
+
+_gate_throttle = GateThrottle()
 
 
 @app.post("/gate/logout")
@@ -117,16 +176,26 @@ def login_gate():
 
 @app.post("/gate")
 def login_gate_post():
+    wait = _gate_throttle.seconds_locked()
+    if wait:
+        return render_template("gate.html", error=f"Too many attempts. Wait {wait}s"), 429
     entered = request.form.get("password", "")
     if _APP_PASSWORD and hmac.compare_digest(entered, _APP_PASSWORD):
+        _gate_throttle.reset()
         flask_session["authed"] = True
         flask_session.permanent = True
         return redirect("/")
+    _gate_throttle.record_failure()
     return render_template("gate.html", error="Wrong password")
 
 
+# ---------------------------------------------------------------------------
+# Plumbing shared by every Garmin-backed endpoint
+# ---------------------------------------------------------------------------
+
 _MIND_STRESS_DAYS = 10  # one Garmin call per day, so keep the window short enough to stay quick
 _CACHE_TTL_SECONDS = 300
+_READINESS_TTL_SECONDS = 900
 _HISTORY_CACHE_TTL_SECONDS = 3600  # history barely changes minute to minute
 _cache: dict[str, tuple[float, dict]] = {}
 
@@ -144,6 +213,46 @@ def _cached(key: str, build, ttl: int = _CACHE_TTL_SECONDS, force: bool = False)
 def _cache_age(key: str) -> float | None:
     hit = _cache.get(key)
     return round(time.time() - hit[0], 1) if hit else None
+
+
+def _cache_meta(key: str, ttl: int = _CACHE_TTL_SECONDS) -> dict:
+    return {"cacheAgeSec": _cache_age(key), "cacheTtlSec": ttl}
+
+
+def _forced() -> bool:
+    """?refresh=1 - bypass the caches. Also drops memoised activity details, so a
+    run edited on Garmin (or a mis-synced one) gets re-read rather than served stale."""
+    force = request.args.get("refresh") == "1"
+    if force:
+        clear_activity_cache()
+    return force
+
+
+def garmin_api(fn):
+    """The contract every Garmin-backed endpoint shares: 401 until the owner has
+    signed in, and any failure talking to Garmin comes back as a 502 with the
+    message, not a stack trace. Endpoints that degrade more gracefully catch
+    their own exceptions inside and never reach the 502."""
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        if session.status != "logged_in":
+            return jsonify({"error": "not_logged_in"}), 401
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:  # noqa: BLE001 - every upstream failure surfaces the same way
+            return jsonify({"error": str(exc)}), 502
+
+    return wrapper
+
+
+def _positive_number(data: dict, key: str) -> float | None:
+    """A positive float from a JSON body, or None if missing, non-numeric or <= 0."""
+    try:
+        value = float(data.get(key))
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
 
 
 def _plan_start_end() -> tuple[str, date]:
@@ -179,13 +288,17 @@ def _fetch_progress() -> dict:
     }
 
 
+def _progress(force: bool = False) -> dict:
+    return _cached("progress", _fetch_progress, force=force)
+
+
 def _current_week(rows: list[dict]) -> str:
     due = [r for r in rows if r["status"] != "upcoming"]
     return due[-1]["week"] if due else rows[0]["week"]
 
 
 def _fetch_insights() -> list[dict]:
-    progress = _cached("progress", _fetch_progress)
+    progress = _progress()
     kpis = planned_weekly_kpis(SESSIONS)
     return generate_insights(session.client, progress["rows"], kpis, _current_week(progress["rows"]))
 
@@ -199,7 +312,7 @@ def _week_order(rows: list[dict]) -> list[str]:
 
 
 def _fetch_weekly_review(week: str) -> dict:
-    progress = _cached("progress", _fetch_progress)
+    progress = _progress()
     return generate_week_review(session.client, progress["rows"], week, _week_order(progress["rows"]))
 
 
@@ -215,6 +328,10 @@ def _fetch_history_summary() -> dict:
 
     return summary
 
+
+# ---------------------------------------------------------------------------
+# Page, session
+# ---------------------------------------------------------------------------
 
 @app.get("/")
 def index():
@@ -255,8 +372,13 @@ def api_logout():
     data = request.get_json(silent=True) or {}
     session.logout(forget_device=bool(data.get("forget")))
     _cache.clear()
+    clear_activity_cache()
     return jsonify(session.state())
 
+
+# ---------------------------------------------------------------------------
+# The plan (static - no Garmin needed)
+# ---------------------------------------------------------------------------
 
 @app.get("/api/plan")
 def api_plan():
@@ -284,30 +406,34 @@ def api_plan():
             "steps": session_steps(s),
             "durationMin": session_duration_min(s),
         })
-    return jsonify({"race": RACE, "sessions": sessions, "plannedKpis": planned_weekly_kpis(SESSIONS)})
+    return jsonify({
+        "race": RACE,
+        "sessions": sessions,
+        "plannedKpis": planned_weekly_kpis(SESSIONS),
+        # The coaching constants the screen renders against - served, not duplicated,
+        # so the front end and the coach rules can't drift apart.
+        "hrCeilings": HR_CEILINGS,
+        "aerobicKinds": list(AEROBIC_KINDS),
+        "plannedRpe": {k: list(v) for k, v in PLANNED_RPE.items()},
+        "phases": PHASES,
+    })
 
+
+# ---------------------------------------------------------------------------
+# Progress and analysis
+# ---------------------------------------------------------------------------
 
 @app.get("/api/progress")
+@garmin_api
 def api_progress():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        data = _cached("progress", _fetch_progress, force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "cacheAgeSec": _cache_age("progress"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+    data = _progress(force=_forced())
+    return jsonify({**data, **_cache_meta("progress")})
 
 
 @app.get("/api/analysis")
+@garmin_api
 def api_analysis():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        progress = _cached("progress", _fetch_progress, force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+    progress = _progress(force=_forced())
 
     weekly: dict[str, dict] = {}
     for row in progress["rows"]:
@@ -332,108 +458,114 @@ def api_analysis():
 
 
 @app.get("/api/insights")
+@garmin_api
 def api_insights():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        data = _cached("insights", _fetch_insights, ttl=_CACHE_TTL_SECONDS, force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({"insights": data, "cacheAgeSec": _cache_age("insights"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+    data = _cached("insights", _fetch_insights, force=_forced())
+    return jsonify({"insights": data, **_cache_meta("insights")})
 
 
 @app.get("/api/weekly-summary")
+@garmin_api
 def api_weekly_summary():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        progress = _cached("progress", _fetch_progress, force=force)
-        weeks = _week_order(progress["rows"])
-        week = request.args.get("week") or _current_week(progress["rows"])
-        if week not in weeks:
-            return jsonify({"error": f"unknown week {week!r}"}), 400
-        data = _cached(f"weekly-{week}", lambda: _fetch_weekly_review(week), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "availableWeeks": weeks, "cacheAgeSec": _cache_age(f"weekly-{week}"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+    force = _forced()
+    progress = _progress(force=force)
+    weeks = _week_order(progress["rows"])
+    week = request.args.get("week") or _current_week(progress["rows"])
+    if week not in weeks:
+        return jsonify({"error": f"unknown week {week!r}"}), 400
+    data = _cached(f"weekly-{week}", lambda: _fetch_weekly_review(week), force=force)
+    return jsonify({**data, "availableWeeks": weeks, **_cache_meta(f"weekly-{week}")})
 
+
+@app.get("/api/export/progress.csv")
+@garmin_api
+def export_progress_csv():
+    csv_text = rows_to_csv(_progress()["rows"])
+    return Response(
+        csv_text,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=bangsaen_progress_{date.today().isoformat()}.csv"},
+    )
+
+
+@app.get("/api/history")
+@garmin_api
+def api_history():
+    data = _cached("history", _fetch_history_summary, ttl=_HISTORY_CACHE_TTL_SECONDS, force=_forced())
+    return jsonify({**data, **_cache_meta("history", _HISTORY_CACHE_TTL_SECONDS)})
+
+
+@app.get("/api/route")
+@garmin_api
+def api_route():
+    """GPS track for one activity, for the route trace on Today's run."""
+    try:
+        activity_id = int(request.args["activityId"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "activityId is required"}), 400
+    data = _cached(f"route:{activity_id}", lambda: fetch_route(session.client, activity_id),
+                   ttl=_HISTORY_CACHE_TTL_SECONDS, force=_forced())
+    return jsonify(data)
+
+
+# ---------------------------------------------------------------------------
+# Body: weight, sleep, hydration, sweat
+# ---------------------------------------------------------------------------
 
 @app.get("/api/weight")
+@garmin_api
 def api_weight_get():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        entries = _cached("weight", lambda: fetch_weight_entries(session.client), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+    entries = _cached("weight", lambda: fetch_weight_entries(session.client), force=_forced())
     return jsonify({"entries": entries, "trend": compute_trend(entries)})
 
 
 @app.post("/api/weight")
+@garmin_api
 def api_weight_post():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    data = request.get_json(force=True) or {}
-    weight = data.get("weight")
-    on_date = data.get("date")
-    if not weight or float(weight) <= 0:
+    data = request.get_json(silent=True) or {}
+    weight = _positive_number(data, "weight")
+    if weight is None:
         return jsonify({"error": "a positive weight in kg is required"}), 400
-    try:
-        log_weight(session.client, float(weight), on_date)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+    on_date = data.get("date") or None
+    if on_date:
+        try:
+            datetime.strptime(str(on_date), "%Y-%m-%d")
+        except ValueError:
+            return jsonify({"error": "date must be YYYY-MM-DD"}), 400
+    log_weight(session.client, weight, on_date)
     _cache.pop("weight", None)
     return jsonify({"ok": True})
 
 
 @app.get("/api/sleep")
+@garmin_api
 def api_sleep():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        entries = _cached("sleep", lambda: fetch_sleep_entries(session.client), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+    entries = _cached("sleep", lambda: fetch_sleep_entries(session.client), force=_forced())
     return jsonify({"entries": entries, "summary": compute_sleep_summary(entries)})
 
 
 @app.get("/api/hydration")
+@garmin_api
 def api_hydration_get():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        data = _cached("hydration", lambda: fetch_hydration(session.client), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify(data)
+    return jsonify(_cached("hydration", lambda: fetch_hydration(session.client), force=_forced()))
 
 
 @app.post("/api/hydration")
+@garmin_api
 def api_hydration_post():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    data = request.get_json(force=True) or {}
-    ml = data.get("ml")
-    if not ml or float(ml) <= 0:
+    data = request.get_json(silent=True) or {}
+    ml = _positive_number(data, "ml")
+    if ml is None:
         return jsonify({"error": "a positive amount in ml is required"}), 400
-    try:
-        log_hydration(session.client, float(ml))
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+    log_hydration(session.client, ml)
     _cache.pop("hydration", None)
     return jsonify({"ok": True})
 
 
 @app.post("/api/sweat-rate")
+@garmin_api
 def api_sweat_rate():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     try:
         pre_kg = float(data["preKg"])
         post_kg = float(data["postKg"])
@@ -448,6 +580,10 @@ def api_sweat_rate():
     return jsonify(result)
 
 
+# ---------------------------------------------------------------------------
+# Gear, fuel, race plan
+# ---------------------------------------------------------------------------
+
 def _fetch_gear() -> dict:
     race_date = datetime.strptime(RACE["date"], "%Y-%m-%d").date()
     shoes = fetch_shoes(session.client)
@@ -457,15 +593,10 @@ def _fetch_gear() -> dict:
 
 
 @app.get("/api/gear")
+@garmin_api
 def api_gear():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    try:
-        data = _cached("gear", _fetch_gear, force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "cacheAgeSec": _cache_age("gear"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+    data = _cached("gear", _fetch_gear, force=_forced())
+    return jsonify({**data, **_cache_meta("gear")})
 
 
 def _latest_weight_kg() -> tuple[float, bool]:
@@ -483,117 +614,9 @@ def _session_on(on_date: str) -> dict | None:
     return next((s for s in SESSIONS if s["date"] == on_date), None)
 
 
-@app.get("/api/feel")
-def api_feel_get():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    try:
-        return jsonify({"feels": all_feels()})
-    except Exception as exc:
-        # Degrade to "no ratings yet" so the rest of Today still renders.
-        return jsonify({"feels": {}, "error": friendly_error(exc)})
-
-
-@app.post("/api/feel")
-def api_feel_post():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    data = request.get_json(silent=True) or {}
-    try:
-        activity_id = int(data["activityId"])
-        rpe = int(data["rpe"])
-        run_date = str(data["date"])
-        datetime.strptime(run_date, "%Y-%m-%d")
-    except (KeyError, TypeError, ValueError):
-        return jsonify({"error": "activityId, date (YYYY-MM-DD) and rpe are required"}), 400
-    if activity_id <= 0 or not 1 <= rpe <= 10:
-        return jsonify({"error": "rpe must be between 1 and 10"}), 400
-    note = str(data.get("note") or "")[:500]
-    try:
-        save_feel(activity_id, run_date, rpe, note)
-    except Exception as exc:
-        return jsonify({"error": friendly_error(exc)}), 503
-    return jsonify({"ok": True})
-
-
-@app.get("/api/route")
-def api_route():
-    """GPS track for one activity, for the route trace on Today's run."""
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    try:
-        activity_id = int(request.args["activityId"])
-    except (KeyError, TypeError, ValueError):
-        return jsonify({"error": "activityId is required"}), 400
-    force = request.args.get("refresh") == "1"
-    try:
-        data = _cached(f"route:{activity_id}", lambda: fetch_route(session.client, activity_id),
-                       ttl=_HISTORY_CACHE_TTL_SECONDS, force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify(data)
-
-
-@app.get("/api/mind")
-def api_mind():
-    """Everything the Body & Mind tab needs about the mind half: stress from the
-    watch, sleep, and the runner's own daily check-in."""
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
-    days = _MIND_STRESS_DAYS
-    try:
-        stress_days = _cached("stress", lambda: fetch_stress_days(session.client, days=days), force=force)
-        sleep_entries = _cached("sleep", lambda: fetch_sleep_entries(session.client), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-
-    window = [(date.today() - timedelta(days=offset)).isoformat() for offset in range(days - 1, -1, -1)]
-    payload = {
-        "today": date.today().isoformat(),
-        "stress": stress_summary(stress_days),
-        "stressDays": stress_days,
-        "sleep": {"entries": sleep_entries, "summary": compute_sleep_summary(sleep_entries)},
-        "scale": {"min": SCALE_MIN, "max": SCALE_MAX},
-    }
-    try:
-        checkins = all_checkins()
-        payload["checkins"] = checkins
-        payload["checkinSummary"] = summarize_checkins(checkins, window)
-    except Exception as exc:
-        # The watch data is still worth showing if the check-in table isn't set up.
-        payload["checkins"] = {}
-        payload["checkinSummary"] = summarize_checkins({}, window)
-        payload["checkinError"] = checkin_error(exc)
-    return jsonify(payload)
-
-
-@app.post("/api/checkin")
-def api_checkin_post():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    data = request.get_json(silent=True) or {}
-    try:
-        checkin_date = str(data["date"])
-        datetime.strptime(checkin_date, "%Y-%m-%d")
-        mood = int(data["mood"])
-        motivation = int(data["motivation"])
-    except (KeyError, TypeError, ValueError):
-        return jsonify({"error": "date (YYYY-MM-DD), mood and motivation are required"}), 400
-    if not (SCALE_MIN <= mood <= SCALE_MAX and SCALE_MIN <= motivation <= SCALE_MAX):
-        return jsonify({"error": f"mood and motivation must be between {SCALE_MIN} and {SCALE_MAX}"}), 400
-    note = str(data.get("note") or "")[:280]
-    try:
-        save_checkin(checkin_date, mood, motivation, note)
-    except Exception as exc:
-        return jsonify({"error": checkin_error(exc)}), 503
-    return jsonify({"ok": True})
-
-
 @app.get("/api/fuel")
+@garmin_api
 def api_fuel():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
     on_date = request.args.get("date") or date.today().isoformat()
     s = _session_on(on_date)
     kind = next((b["kind"] for b in s["blocks"] if b["role"] in ("main", "repeat")), None) if s else None
@@ -613,9 +636,8 @@ _TIER_GOAL_SEC = {"floor": FLOOR_TIME_SEC, "primary": PRIMARY_TIME_SEC, "stretch
 
 
 @app.get("/api/race-plan")
+@garmin_api
 def api_race_plan():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
     tier = request.args.get("tier", ACTIVE_PACE_SET)
     if tier not in _TIER_GOAL_SEC:
         return jsonify({"error": f"tier must be one of {sorted(_TIER_GOAL_SEC)}"}), 400
@@ -646,22 +668,37 @@ def api_race_plan():
     })
 
 
-@app.get("/api/fitness-snapshot")
-def api_fitness_snapshot():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
+@app.get("/api/heat-pace")
+@garmin_api
+def api_heat_pace():
     try:
-        data = _cached("fitness-snapshot", lambda: fetch_fitness_snapshot(session.client), force=force)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "cacheAgeSec": _cache_age("fitness-snapshot"), "cacheTtlSec": _CACHE_TTL_SECONDS})
+        temp_c = float(request.args.get("tempC", DEFAULT_TEMP_C))
+        humidity_pct = float(request.args.get("humidity", DEFAULT_HUMIDITY_PCT))
+    except ValueError:
+        return jsonify({"error": "tempC and humidity must be numbers"}), 400
+    try:
+        history = _cached("history", _fetch_history_summary, ttl=_HISTORY_CACHE_TTL_SECONDS)
+        races = history.get("races", [])
+    except Exception:
+        races = []
+    return jsonify(heat_adjusted_goals(_TIER_GOAL_SEC, temp_c, humidity_pct, races))
+
+
+# ---------------------------------------------------------------------------
+# Readiness, fitness snapshot
+# ---------------------------------------------------------------------------
+
+@app.get("/api/fitness-snapshot")
+@garmin_api
+def api_fitness_snapshot():
+    data = _cached("fitness-snapshot", lambda: fetch_fitness_snapshot(session.client), force=_forced())
+    return jsonify({**data, **_cache_meta("fitness-snapshot")})
 
 
 def _fetch_readiness() -> dict:
     data = compute_readiness(session.client)
     if data.get("available"):
-        progress = _cached("progress", _fetch_progress)
+        progress = _progress()
         today_iso = date.today().isoformat()
         today_row = next((r for r in progress["rows"] if r["date"] == today_iso), None)
         data["pivotSuggestion"] = pivot_suggestion(data, today_row["kind"] if today_row else None)
@@ -669,61 +706,96 @@ def _fetch_readiness() -> dict:
 
 
 @app.get("/api/readiness")
+@garmin_api
 def api_readiness():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
+    data = _cached("readiness", _fetch_readiness, ttl=_READINESS_TTL_SECONDS, force=_forced())
+    return jsonify({**data, **_cache_meta("readiness", _READINESS_TTL_SECONDS)})
+
+
+# ---------------------------------------------------------------------------
+# The runner's own entries: post-run feel, daily check-in, mind
+# ---------------------------------------------------------------------------
+
+@app.get("/api/feel")
+@garmin_api
+def api_feel_get():
     try:
-        data = _cached("readiness", _fetch_readiness, ttl=900, force=force)
+        return jsonify({"feels": all_feels()})
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "cacheAgeSec": _cache_age("readiness"), "cacheTtlSec": 900})
+        # Degrade to "no ratings yet" so the rest of Today still renders.
+        return jsonify({"feels": {}, "error": friendly_error(exc)})
 
 
-@app.get("/api/heat-pace")
-def api_heat_pace():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
+@app.post("/api/feel")
+@garmin_api
+def api_feel_post():
+    data = request.get_json(silent=True) or {}
     try:
-        temp_c = float(request.args.get("tempC", DEFAULT_TEMP_C))
-        humidity_pct = float(request.args.get("humidity", DEFAULT_HUMIDITY_PCT))
-    except ValueError:
-        return jsonify({"error": "tempC and humidity must be numbers"}), 400
-    goal_times_sec = {"primary": PRIMARY_TIME_SEC, "floor": FLOOR_TIME_SEC, "stretch": STRETCH_TIME_SEC}
+        activity_id = int(data["activityId"])
+        rpe = int(data["rpe"])
+        run_date = str(data["date"])
+        datetime.strptime(run_date, "%Y-%m-%d")
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "activityId, date (YYYY-MM-DD) and rpe are required"}), 400
+    if activity_id <= 0 or not 1 <= rpe <= 10:
+        return jsonify({"error": "rpe must be between 1 and 10"}), 400
+    note = str(data.get("note") or "")[:500]
     try:
-        history = _cached("history", _fetch_history_summary, ttl=_HISTORY_CACHE_TTL_SECONDS)
-        races = history.get("races", [])
-    except Exception:
-        races = []
-    return jsonify(heat_adjusted_goals(goal_times_sec, temp_c, humidity_pct, races))
-
-
-@app.get("/api/export/progress.csv")
-def export_progress_csv():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    try:
-        progress = _cached("progress", _fetch_progress)
+        save_feel(activity_id, run_date, rpe, note)
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    csv_text = rows_to_csv(progress["rows"])
-    return Response(
-        csv_text,
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=bangsaen_progress_{date.today().isoformat()}.csv"},
-    )
+        return jsonify({"error": friendly_error(exc)}), 503
+    return jsonify({"ok": True})
 
 
-@app.get("/api/history")
-def api_history():
-    if session.status != "logged_in":
-        return jsonify({"error": "not_logged_in"}), 401
-    force = request.args.get("refresh") == "1"
+@app.get("/api/mind")
+@garmin_api
+def api_mind():
+    """Everything the Body & Mind tab needs about the mind half: stress from the
+    watch, sleep, and the runner's own daily check-in."""
+    force = _forced()
+    days = _MIND_STRESS_DAYS
+    stress_days = _cached("stress", lambda: fetch_stress_days(session.client, days=days), force=force)
+    sleep_entries = _cached("sleep", lambda: fetch_sleep_entries(session.client), force=force)
+
+    window = [(date.today() - timedelta(days=offset)).isoformat() for offset in range(days - 1, -1, -1)]
+    payload = {
+        "today": date.today().isoformat(),
+        "stress": stress_summary(stress_days),
+        "stressDays": stress_days,
+        "sleep": {"entries": sleep_entries, "summary": compute_sleep_summary(sleep_entries)},
+        "scale": {"min": SCALE_MIN, "max": SCALE_MAX},
+    }
     try:
-        data = _cached("history", _fetch_history_summary, ttl=_HISTORY_CACHE_TTL_SECONDS, force=force)
+        checkins = all_checkins()
+        payload["checkins"] = checkins
+        payload["checkinSummary"] = summarize_checkins(checkins, window)
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
-    return jsonify({**data, "cacheAgeSec": _cache_age("history"), "cacheTtlSec": _HISTORY_CACHE_TTL_SECONDS})
+        # The watch data is still worth showing if the check-in table isn't set up.
+        payload["checkins"] = {}
+        payload["checkinSummary"] = summarize_checkins({}, window)
+        payload["checkinError"] = checkin_error(exc)
+    return jsonify(payload)
+
+
+@app.post("/api/checkin")
+@garmin_api
+def api_checkin_post():
+    data = request.get_json(silent=True) or {}
+    try:
+        checkin_date = str(data["date"])
+        datetime.strptime(checkin_date, "%Y-%m-%d")
+        mood = int(data["mood"])
+        motivation = int(data["motivation"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "date (YYYY-MM-DD), mood and motivation are required"}), 400
+    if not (SCALE_MIN <= mood <= SCALE_MAX and SCALE_MIN <= motivation <= SCALE_MAX):
+        return jsonify({"error": f"mood and motivation must be between {SCALE_MIN} and {SCALE_MAX}"}), 400
+    note = str(data.get("note") or "")[:280]
+    try:
+        save_checkin(checkin_date, mood, motivation, note)
+    except Exception as exc:
+        return jsonify({"error": checkin_error(exc)}), 503
+    return jsonify({"ok": True})
 
 
 session.try_cached_login()  # runs on import too, so gunicorn (which never hits __main__) still restores the session
