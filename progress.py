@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from garminconnect import Garmin
 
 from build_workouts import session_distance_km
-from history import fetch_activity_laps, fetch_race_splits, race_pacing_summary
+from history import fetch_activity_laps, fetch_interval_reps, fetch_race_splits, race_pacing_summary
 from plan_data import ACTIVE_PACE_SET, FLOOR_TIME_SEC, MARATHON_KM, PACES, PRIMARY_TIME_SEC, STRETCH_TIME_SEC
 
 _FADE_FORECAST_MIN_KM = 10  # only long runs long enough for pacing strategy to matter
@@ -209,6 +209,37 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
         is_mp_finish = not is_quality and session is not None and has_mp_effort(session)
         if not (is_quality or is_mp_finish):
             continue
+
+        # For a rep session, Garmin has already labelled the work intervals - use them
+        # rather than guessing from lap paces. (An MP-finish long run is NOT read this
+        # way: Garmin reports its easy block and its MP finish as one active split.)
+        if is_quality and any(b.get("role") == "repeat" for b in (session or {}).get("blocks", [])):
+            try:
+                reps = fetch_interval_reps(client, row["activityId"])
+            except Exception:
+                reps = []
+            if len(reps) >= 2:
+                work_km = sum(r["km"] for r in reps)
+                work_sec = sum(r["km"] * r["paceSecPerKm"] for r in reps)
+                work_pace = work_sec / work_km
+                hrs = [r["hr"] for r in reps if r["hr"]]
+                slow_bound, fast_bound = PACES[row["kind"]]
+                row["wholeActivityPaceLabel"] = row["actualPaceLabel"]
+                row["actualPace"] = work_pace
+                row["actualPaceLabel"] = fmt_pace(work_pace)
+                if hrs:
+                    row["actualHr"] = round(sum(hrs) / len(hrs), 1)
+                row["inZone"] = pace_to_sec(fast_bound) <= work_pace <= pace_to_sec(slow_bound)
+                row["workLapCount"] = len(reps)
+                row["workDistanceKm"] = round(work_km, 2)
+                row["reps"] = reps
+                if row["kind"] == "mp":
+                    row["mpEffortPace"] = work_pace
+                    row["mpEffortPaceLabel"] = row["actualPaceLabel"]
+                    row["mpEffortKm"] = round(work_km, 2)
+                    if hrs:
+                        row["mpEffortHr"] = row["actualHr"]
+                continue
         try:
             laps = fetch_activity_laps(client, row["activityId"])
         except Exception:

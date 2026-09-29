@@ -49,6 +49,33 @@ def fetch_race_splits(client: Garmin, activity_id: int) -> list[dict]:
     return result
 
 
+def fetch_interval_reps(client: Garmin, activity_id: int, min_metres: float = 100) -> list[dict]:
+    """The work reps of a structured session, from Garmin's own typed splits.
+
+    A pushed workout's steps are labelled by Garmin (INTERVAL_WARMUP / ACTIVE /
+    RECOVERY / COOLDOWN), so the reps can be read directly instead of inferred
+    from lap paces - which matters when the watch's auto-lap cuts across the
+    steps (a 1-mile auto-lap once split every 2 km rep into 1.61 + 0.39).
+    Returns [] when the activity has no interval structure.
+    """
+    data = client.get_activity_typed_splits(activity_id) or {}
+    reps = []
+    for split in data.get("splits") or []:
+        if (split.get("type") or split.get("splitType")) != "INTERVAL_ACTIVE":
+            continue
+        distance_m = split.get("distance") or 0
+        duration_s = split.get("duration") or 0
+        if distance_m < min_metres or duration_s <= 0:
+            continue  # the 10 m tail Garmin adds when you stop the timer
+        km = distance_m / 1000
+        reps.append({
+            "km": round(km, 2),
+            "paceSecPerKm": round(duration_s / km, 1),
+            "hr": round(split["averageHR"]) if split.get("averageHR") else None,
+        })
+    return reps
+
+
 def fetch_activity_laps(client: Garmin, activity_id: int) -> list[dict]:
     """Raw per-lap data for a structured interval/tempo workout.
 

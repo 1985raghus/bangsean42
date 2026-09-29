@@ -453,6 +453,7 @@ function renderHero() {
         ? `<span class="good">Held the ceiling.</span> HR ${Math.round(hr)} under ${cap}${streakText(kind)}`
         : `<span class="crit">Over the ceiling.</span> HR ${Math.round(hr)} against a ${cap} cap — that is the habit to break.`}
         ${mpKm ? ` Marathon-pace portion ${esc(row.mpEffortPaceLabel)}/km over ${km1(mpKm)} km.` : ''}</p>
+      ${row.reps?.length ? `<p class="sub" style="margin-top:8px;">Reps: ${row.reps.map((rp) => `<b style="color:var(--ink)">${esc(fmtPace(rp.paceSecPerKm))}</b>${rp.hr ? `<span class="dim"> ${rp.hr}</span>` : ''}`).join(' · ')}</p>` : ''}
       <div id="feel-slot" style="margin-top:22px;"></div>`;
     const bs = s ? { fast: toSec(s.paceHi), slow: toSec(s.paceLo), actual: row.actualPace, inZone: row.inZone, label: row.actualPaceLabel } : null;
     if (bs) $('hero-band').innerHTML = bandSvg(bs);
