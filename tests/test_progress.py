@@ -256,6 +256,18 @@ def test_build_rows_thursday_skipped_does_not_steal_fridays_run():
     assert rows[1]["kind"] == "mp" and rows[1]["actualDate"] is None
 
 
+# --- race_activity_summary ----------------------------------------------------------------
+
+def test_race_activity_summary_only_counts_a_marathon_distance_run():
+    from progress import race_activity_summary
+    assert race_activity_summary(None) is None
+    assert race_activity_summary(activity("2026-11-15", 5.0, 30)) is None  # the shakeout, not the race
+    race = race_activity_summary(activity("2026-11-15", 42.3, 238.5, hr=168, activity_id=4215))
+    assert race["activityId"] == 4215 and race["date"] == "2026-11-15"
+    assert race["finishLabel"] == "3:58:30"
+    assert race["paceLabel"] == "5:38" and race["hr"] == 168
+
+
 # --- planned_weekly_kpis ----------------------------------------------------------------
 
 def test_planned_weekly_kpis_flags_ramp_over_20_pct():

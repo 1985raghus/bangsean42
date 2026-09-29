@@ -66,6 +66,7 @@ from plan_data import (
 from readiness import compute_readiness, pivot_suggestion
 from weekly_summary import generate_week_review
 from progress import (
+    HR_CEILING_TOLERANCE_BPM,
     avg_hr_by_kind,
     build_rows,
     compute_fade_forecast,
@@ -73,6 +74,7 @@ from progress import (
     fetch_activities_by_date,
     pace_compliance_pct,
     planned_weekly_kpis,
+    race_activity_summary,
     refine_quality_pace,
     rows_to_csv,
 )
@@ -262,13 +264,18 @@ def _plan_start_end() -> tuple[str, date]:
 
 
 def _fetch_progress() -> dict:
-    plan_start, plan_end_date = _plan_start_end()
+    plan_start, _plan_end_date = _plan_start_end()
     today = date.today()
-    fetch_end = min(today, plan_end_date)
+    race_date = datetime.strptime(RACE["date"], "%Y-%m-%d").date()
+    fetch_end = min(today, race_date)  # through race day, so the race itself is picked up once it syncs
 
     activity_by_date = {}
     if fetch_end >= datetime.strptime(plan_start, "%Y-%m-%d").date():
         activity_by_date = fetch_activities_by_date(session.client, plan_start, fetch_end.isoformat())
+
+    # Race day is not a planned session: take it out before matching so no taper
+    # session can claim it, and summarise it separately for the after-race screen.
+    race_activity = race_activity_summary(activity_by_date.pop(RACE["date"], None))
 
     rows = build_rows(SESSIONS, activity_by_date, today)
     sessions_by_date = {s["date"]: s for s in SESSIONS}
@@ -285,6 +292,7 @@ def _fetch_progress() -> dict:
         "completedCount": completed,
         "rows": rows,
         "prediction": prediction,
+        "raceActivity": race_activity,
     }
 
 
@@ -413,6 +421,7 @@ def api_plan():
         # The coaching constants the screen renders against - served, not duplicated,
         # so the front end and the coach rules can't drift apart.
         "hrCeilings": HR_CEILINGS,
+        "hrCeilingToleranceBpm": HR_CEILING_TOLERANCE_BPM,
         "aerobicKinds": list(AEROBIC_KINDS),
         "plannedRpe": {k: list(v) for k, v in PLANNED_RPE.items()},
         "phases": PHASES,

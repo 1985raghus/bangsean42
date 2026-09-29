@@ -330,6 +330,27 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
             row["mpEffortKm"] = round(work_km, 2)
 
 
+def race_activity_summary(activity: dict | None) -> dict | None:
+    """The race itself, once it has synced: finish time, pace and HR, shaped for the
+    Now screen's after-race state. Race day is not a planned session, so build_rows()
+    never sees it; anything under marathon distance on race day is a warm-up, not the race."""
+    if not activity or (activity.get("distance") or 0) < 40_000:
+        return None
+    distance_m = activity["distance"]
+    duration_s = activity.get("duration") or 0
+    pace = pace_sec_per_km(distance_m, duration_s)
+    return {
+        "activityId": activity.get("activityId"),
+        "date": (activity.get("startTimeLocal") or "")[:10],
+        "km": round(distance_m / 1000, 2),
+        "durationSec": duration_s,
+        "finishLabel": fmt_hms(duration_s),
+        "paceSecPerKm": pace,
+        "paceLabel": fmt_pace(pace),
+        "hr": activity.get("averageHR"),
+    }
+
+
 def planned_weekly_kpis(sessions: list[dict]) -> list[dict]:
     """Per-week planned volume, long-run share, and week-over-week ramp rate.
 

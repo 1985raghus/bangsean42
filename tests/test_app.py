@@ -13,6 +13,7 @@ def test_healthz_is_open(web, logged_out):
 def test_plan_serves_the_coaching_constants(web, logged_out):
     plan = web.get("/api/plan").get_json()
     assert plan["hrCeilings"] == HR_CEILINGS
+    assert plan["hrCeilingToleranceBpm"] == 2
     assert plan["phases"] == PHASES
     assert plan["plannedRpe"] == {k: list(v) for k, v in PLANNED_RPE.items()}
     assert set(plan["aerobicKinds"]) == {"easy", "long", "recovery"}
@@ -41,6 +42,7 @@ def test_progress_renders_with_no_activities_and_reports_cache_age(web, logged_i
     assert r.status_code == 200
     body = r.get_json()
     assert body["prediction"]["available"] is False
+    assert body["raceActivity"] is None
     assert body["cacheTtlSec"] == app_module._CACHE_TTL_SECONDS
     assert body["cacheAgeSec"] is not None
     web.get("/api/progress")
