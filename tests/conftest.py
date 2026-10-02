@@ -28,10 +28,11 @@ class FakeGarmin:
     was actually asked for something.
     """
 
-    def __init__(self, activities=None, splits=None, typed_splits=None, sleep=None, hydration=None):
+    def __init__(self, activities=None, splits=None, typed_splits=None, sleep=None, hydration=None, details=None):
         self.activities = activities or []
         self.splits = splits or {}
         self.typed_splits = typed_splits or {}
+        self.details = details or {}
         self.sleep = sleep or []
         self.hydration = hydration or {}
         self.calls = collections.Counter()
@@ -46,6 +47,12 @@ class FakeGarmin:
         if activity_id not in self.splits:
             raise RuntimeError(f"no splits for {activity_id}")
         return self.splits[activity_id]
+
+    def get_activity_details(self, activity_id, maxchart=None, maxpoly=None):
+        self.calls["details"] += 1
+        if activity_id not in self.details:
+            raise RuntimeError(f"no details for {activity_id}")
+        return self.details[activity_id]
 
     def get_activity_typed_splits(self, activity_id):
         self.calls["typed"] += 1
@@ -80,6 +87,26 @@ def activity(date, km, minutes, hr=None, activity_id=None):
 def laps(*legs):
     """lapDTOs from (distance_m, duration_s, hr) tuples."""
     return {"lapDTOs": [{"distance": d, "duration": t, "averageHR": hr} for d, t, hr in legs]}
+
+
+def stream(*km_seconds, hr=None):
+    """An activityDetailMetrics payload: one sample per kilometre boundary.
+
+    Each argument is that kilometre's duration in seconds, so stream(360, 390)
+    is a 2 km run whose second kilometre was 30 s slower. The GPS coordinates
+    are filler - the splits are computed from distance and elapsed time.
+    """
+    keys = ["directLatitude", "directLongitude", "sumDistance", "sumElapsedDuration", "directHeartRate"]
+    rows, dist, elapsed = [], 0.0, 0.0
+    for i, secs in enumerate(km_seconds):
+        dist += 1000.0
+        elapsed += secs
+        beats = hr[i] if hr else None
+        rows.append({"metrics": [13.7, 100.5, dist, elapsed, beats]})
+    return {
+        "metricDescriptors": [{"key": k, "metricsIndex": i} for i, k in enumerate(keys)],
+        "activityDetailMetrics": rows,
+    }
 
 
 @pytest.fixture(autouse=True)

@@ -19,6 +19,7 @@ from datetime import date, timedelta
 from garminconnect import Garmin
 
 from plan_data import MARATHON_KM
+from route import fetch_route
 
 _LOOKBACK_DAYS = 3 * 365
 _RIEGEL_EXPONENT = 1.06
@@ -75,21 +76,68 @@ def _raw_splits(client: Garmin, activity_id: int) -> dict:
     return _memo_activity("splits", activity_id, lambda: client.get_activity_splits(activity_id) or {})
 
 
-def fetch_race_splits(client: Garmin, activity_id: int) -> list[dict]:
-    """Per-km pace/HR for a race activity, for a pacing-strategy/fade chart."""
-    splits = _raw_splits(client, activity_id)
-    laps = [lap for lap in splits.get("lapDTOs", []) if lap.get("distance", 0) >= 900]
+_MIN_SPLITS = 4  # below this, "first half vs second half" is two laps arguing
+
+
+def _laps_as_km_splits(laps: list[dict]) -> list[dict]:
     result = []
     for i, lap in enumerate(laps, 1):
         dist_km = lap["distance"] / 1000
-        pace_sec = (lap["duration"] / dist_km) if dist_km else None
         result.append({
             "km": i,
-            "paceSecPerKm": pace_sec,
+            "paceSecPerKm": (lap["duration"] / dist_km) if dist_km else None,
             "avgHr": lap.get("averageHR"),
             "temp": lap.get("averageTemperature"),
         })
     return result
+
+
+def _laps_look_like_kilometres(laps: list[dict]) -> bool:
+    """True when the watch was auto-lapping at 1 km, so the laps already ARE km splits."""
+    if len(laps) < _MIN_SPLITS:
+        return False
+    return all(900 <= (lap.get("distance") or 0) <= 1100 for lap in laps[:-1])
+
+
+def _computed_km_splits(client: Garmin, activity_id: int) -> list[dict]:
+    """Km splits computed from the activity's own distance/time stream."""
+
+    def fetch():
+        try:
+            route = fetch_route(client, activity_id)
+        except Exception:
+            # a details call that fails must not take the fade rule down with it -
+            # fetch_race_splits falls back to the laps, which is better than nothing
+            return []
+        if not route.get("available"):
+            return []
+        return [
+            {"km": s["km"], "paceSecPerKm": s["paceSecPerKm"], "avgHr": s.get("hr"), "temp": None}
+            for s in route.get("splits") or []
+        ]
+
+    return _memo_activity("computed_splits", activity_id, fetch)
+
+
+def fetch_race_splits(client: Garmin, activity_id: int) -> list[dict]:
+    """Per-km pace/HR for one activity, for a pacing-strategy/fade chart.
+
+    Garmin stores LAPS, not kilometres. With auto-lap off, a 21 km long run arrives
+    as a single 21 km lap, and every rule built on these splits - fade, decoupling,
+    the fade forecast - silently had nothing to read: four long runs in this block
+    produced one fade number between them. So laps are used only when they really
+    are kilometre splits (auto-lap on); otherwise the splits are computed from the
+    1-second stream, the way Strava does it. Laps remain the last resort if the
+    stream can't be read, which keeps a structured workout's steps better than nothing.
+    """
+    splits = _raw_splits(client, activity_id)
+    laps = [lap for lap in splits.get("lapDTOs", []) if lap.get("distance", 0) >= 900]
+    if _laps_look_like_kilometres(laps):
+        return _laps_as_km_splits(laps)
+    computed = _computed_km_splits(client, activity_id)
+    if len(computed) >= _MIN_SPLITS:
+        return computed
+    return _laps_as_km_splits(laps)
 
 
 def pacing_for_activity(client: Garmin, activity_id: int) -> dict:

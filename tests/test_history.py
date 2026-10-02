@@ -1,5 +1,5 @@
 import pytest
-from conftest import FakeGarmin, laps
+from conftest import FakeGarmin, laps, stream
 
 import history
 from history import fetch_activity_laps, fetch_race_splits, pacing_for_activity, race_pacing_summary
@@ -54,3 +54,35 @@ def test_race_pacing_summary_fade_and_decoupling():
 def test_race_pacing_summary_needs_two_halves():
     assert race_pacing_summary([]) == {"available": False}
     assert race_pacing_summary([{"paceSecPerKm": 400, "avgHr": None}])["available"] is False
+
+
+def test_a_single_long_lap_falls_back_to_computed_kilometres():
+    """A long run with auto-lap off arrives as one lap - the km splits come from the stream.
+
+    This is the bug that made the fade forecast read four long runs and find one
+    usable fade: the kilometre detail was never missing, just never computed.
+    """
+    client = FakeGarmin(
+        splits={5: laps((15000, 6000, 160))},
+        details={5: stream(380, 385, 390, 395, 400, 405, hr=[150, 152, 155, 158, 160, 162])},
+    )
+    splits = fetch_race_splits(client, 5)
+    assert [s["paceSecPerKm"] for s in splits] == [380, 385, 390, 395, 400, 405]
+    assert [s["avgHr"] for s in splits] == [150, 152, 155, 158, 160, 162]
+    pacing = pacing_for_activity(client, 5)
+    assert pacing["available"] and pacing["fadeSecPerKm"] == pytest.approx(15.0)  # 385 avg -> 400 avg
+
+
+def test_auto_lapped_kilometres_are_used_as_is():
+    """Auto-lap at 1 km already gives true km splits - don't spend a details call."""
+    client = FakeGarmin(splits={6: laps(*([(1000, 360, 150)] * 4 + [(420, 160, 150)]))})
+    splits = fetch_race_splits(client, 6)
+    assert len(splits) == 4
+    assert client.calls["details"] == 0
+
+
+def test_unreadable_stream_keeps_the_laps():
+    """A details call that fails leaves the laps in place rather than losing the activity."""
+    client = FakeGarmin(splits={8: laps((2000, 700, 170), (2000, 710, 172))})  # workout steps, no details
+    splits = fetch_race_splits(client, 8)
+    assert [round(s["paceSecPerKm"]) for s in splits] == [350, 355]
