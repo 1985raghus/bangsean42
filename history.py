@@ -154,6 +154,14 @@ def fetch_interval_reps(client: Garmin, activity_id: int, min_metres: float = 10
     from lap paces - which matters when the watch's auto-lap cuts across the
     steps (a 1-mile auto-lap once split every 2 km rep into 1.61 + 0.39).
     Returns [] when the activity has no interval structure.
+
+    Pace is MOVING pace, not elapsed. A rep's "duration" includes time standing
+    still, so anything that interrupts a rep - a crossing, a dog, the Thai
+    national anthem at 18:00 - is charged to the runner as slowness. One 2 km
+    rep with an 89 second stop in it read 5:39/km when the running was 4:55/km,
+    which turned the best rep of the session into the worst and had the coach
+    diagnosing a fade that never happened. Stopped time is reported alongside so
+    a rep that was interrupted can say so instead of quietly lying.
     """
     data = _memo_activity("typed", activity_id, lambda: client.get_activity_typed_splits(activity_id) or {})
     reps = []
@@ -161,13 +169,15 @@ def fetch_interval_reps(client: Garmin, activity_id: int, min_metres: float = 10
         if (split.get("type") or split.get("splitType")) != "INTERVAL_ACTIVE":
             continue
         distance_m = split.get("distance") or 0
-        duration_s = split.get("duration") or 0
-        if distance_m < min_metres or duration_s <= 0:
+        elapsed_s = split.get("elapsedDuration") or split.get("duration") or 0
+        moving_s = split.get("movingDuration") or elapsed_s
+        if distance_m < min_metres or moving_s <= 0:
             continue  # the 10 m tail Garmin adds when you stop the timer
         km = distance_m / 1000
         reps.append({
             "km": round(km, 2),
-            "paceSecPerKm": round(duration_s / km, 1),
+            "paceSecPerKm": round(moving_s / km, 1),
+            "stoppedSec": round(max(0.0, elapsed_s - moving_s)),
             "hr": round(split["averageHR"]) if split.get("averageHR") else None,
         })
     return reps

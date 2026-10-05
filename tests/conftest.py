@@ -84,6 +84,14 @@ def activity(date, km, minutes, hr=None, activity_id=None):
     }
 
 
+def typed(*steps):
+    """Typed splits from (type, distance_m, elapsed_s, moving_s, hr) tuples."""
+    return {"splits": [
+        {"type": t, "distance": d, "duration": el, "elapsedDuration": el, "movingDuration": mv, "averageHR": hr}
+        for t, d, el, mv, hr in steps
+    ]}
+
+
 def laps(*legs):
     """lapDTOs from (distance_m, duration_s, hr) tuples."""
     return {"lapDTOs": [{"distance": d, "duration": t, "averageHR": hr} for d, t, hr in legs]}
