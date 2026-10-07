@@ -5,3 +5,8 @@ __pycache__/
 venv/
 *.egg-info/
 .DS_Store
+
+# API keys - never commit
+runway.txt
+*.key
+*_secret*
