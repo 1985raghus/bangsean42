@@ -124,9 +124,14 @@ class GateThrottle:
     After `free_attempts` wrong passwords the gate locks for `base_lock_sec`,
     doubling on each further failure up to `max_lock_sec`; a correct password
     resets it.
+
+    The ceiling is deliberately low. This gate keeps a training log private, not
+    a bank account, and the old 10-minute maximum locked the owner out of his
+    own app for longer than it took to look the password up. Guessing is still
+    hopeless at 20 seconds a try.
     """
 
-    def __init__(self, free_attempts: int = 5, base_lock_sec: int = 30, max_lock_sec: int = 600, clock=time.monotonic):
+    def __init__(self, free_attempts: int = 8, base_lock_sec: int = 20, max_lock_sec: int = 120, clock=time.monotonic):
         self.free_attempts = free_attempts
         self.base_lock_sec = base_lock_sec
         self.max_lock_sec = max_lock_sec
@@ -181,8 +186,11 @@ def login_gate_post():
     wait = _gate_throttle.seconds_locked()
     if wait:
         return render_template("gate.html", error=f"Too many attempts. Wait {wait}s"), 429
-    entered = request.form.get("password", "")
-    if _APP_PASSWORD and hmac.compare_digest(entered, _APP_PASSWORD):
+    # Both sides stripped: a trailing space or newline on the value pasted into
+    # the host's environment panel is invisible there and fails compare_digest,
+    # which reads to the owner as "my correct password does not work".
+    entered = request.form.get("password", "").strip()
+    if _APP_PASSWORD and hmac.compare_digest(entered, _APP_PASSWORD.strip()):
         _gate_throttle.reset()
         flask_session["authed"] = True
         flask_session.permanent = True

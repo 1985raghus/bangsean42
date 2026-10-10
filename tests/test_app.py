@@ -121,11 +121,23 @@ def test_gate_accepts_the_password_and_sets_a_session(web, logged_out, monkeypat
 
 def test_gate_throttles_after_repeated_failures(web, logged_out, monkeypatch):
     monkeypatch.setattr(app_module, "_APP_PASSWORD", "open-sesame")
-    for _ in range(5):
+    for _ in range(app_module._gate_throttle.free_attempts):
         assert web.post("/gate", data={"password": "nope"}).status_code == 200
     r = web.post("/gate", data={"password": "open-sesame"})  # even the right password waits now
     assert r.status_code == 429 and b"Too many attempts" in r.data
     assert web.get("/api/session").status_code == 401
+
+
+def test_gate_ignores_surrounding_whitespace(web, logged_out, monkeypatch):
+    """A trailing newline on the value in the host's env panel is invisible there.
+
+    Without stripping, the owner types the right password, compare_digest fails
+    on the hidden character, and the gate says "Wrong password" forever.
+    """
+    monkeypatch.setattr(app_module, "_APP_PASSWORD", "open-sesame" + chr(10))
+    r = web.post("/gate", data={"password": "  open-sesame "})
+    assert r.status_code == 302 and r.headers["Location"].endswith("/")
+    assert web.get("/api/session").status_code == 200
 
 
 def test_gate_throttle_backoff_and_reset():
