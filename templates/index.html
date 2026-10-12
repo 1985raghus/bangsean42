@@ -342,6 +342,26 @@
   nav.tabs button[aria-selected="true"] { color: #fff; background: var(--dawn); }
   nav.tabs .slider { display: none; }
 
+
+  /* ===== simplification: a readiness pill, a tappable last-run, breathing room ===== */
+  .rpill { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/1 var(--f-mono); letter-spacing: .04em;
+    padding: 6px 11px; border-radius: 999px; background: var(--ground-2); border: 1px solid var(--line); color: var(--ink-2); }
+  .rpill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+  .rpill.green::before { background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .rpill.amber::before { background: var(--gold); box-shadow: 0 0 8px var(--gold-40); }
+  .rpill.red::before { background: var(--crit); box-shadow: 0 0 8px var(--crit); }
+  .lastrun-head { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 18px; }
+  .lastrun-head .chev { width: 16px; height: 16px; color: var(--ink-3); }
+  .minirow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .minicard { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    background: var(--ground-2); border: 1px solid var(--line); border-radius: var(--r-2); padding: 14px 16px;
+    transition: transform var(--d-tap), background var(--d-fast); }
+  .minicard:active { transform: scale(.97); background: var(--ground-3); }
+  .minicard .mc-main { flex: 1; min-width: 0; }
+  .minicard .mc-big { font: 400 24px/1 var(--f-hero); letter-spacing: .01em; }
+  .minicard .mc-big.gold { color: var(--gold); }
+  .minicard .mc-lbl { font: 600 9.5px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-top: 6px; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     #app-view::after { display: none; }
@@ -402,6 +422,8 @@
       <div class="skel" id="plan-skel"><i class="mid"></i><i class="big"></i><i></i></div>
       <div id="plan-body" hidden>
         <section id="s-fuel" style="--i:0"></section>
+        <section id="s-plan-block" style="--i:0"></section>
+        <section id="s-plan-effort" style="--i:1"></section>
         <section id="s-progression" style="--i:1"></section>
         <section id="s-timeline" style="--i:2"></section>
         <section id="s-race" style="--i:3"></section>
@@ -565,6 +587,13 @@ function renderSummary() {
   const rows = S.progress.rows, race = S.plan.race;
   const wkNo = Number(curWeek().replace('W', '')) || 1;
   const days = Math.max(0, dayDiff(S.progress.today, race.date));
+  const wkRows = rows.filter((r) => r.week === curWeek());
+  const weekDone = wkRows.reduce((a, r) => a + (r.actualKm || 0), 0);
+  const weekPlan = wkRows.reduce((a, r) => a + r.plannedKm, 0);
+  const weekRuns = wkRows.filter(done).length, weekTotal = wkRows.length;
+  const pred = S.progress.prediction;
+  const outLabel = pred?.available ? esc(pred.avgPredictedLabel) : '—';
+  const outSub = pred?.available ? (pred.verdict === 'on_goal' ? 'on for sub-4' : 'projected finish') : 'needs more data';
 
   const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const monday = (() => { const d = d8(S.progress.today); const off = (d.getDay() + 6) % 7; d.setDate(d.getDate() - off); return d; })();
@@ -596,20 +625,35 @@ function renderSummary() {
     ['hr', 'avg hr', last.actualHr ? Math.round(last.actualHr) : '–', 'bpm'],
   ] : [];
 
+  const rd = S.readiness;
+  const rpill = rd?.available ? `<span class="rpill ${esc(rd.verdict)}">${rd.score} ready</span>` : '';
   el.innerHTML = `
-    <div class="greet"><span class="g1">Week ${wkNo}</span><span class="g2">${days} days to Bangsaen</span></div>
+    <div class="greet"><span class="g1">Week ${wkNo}</span>${rpill || `<span class="g2">${days} days to Bangsaen</span>`}</div>
     <div class="daychips">${chips}</div>
     <button class="gocard" id="go-card">
       <div><span class="mono">ready. steady.</span><div class="goline">${goSub}</div></div>
       <div class="gobig">${goBig}</div>
     </button>
-    ${caps.length ? `<div class="mono" style="margin-top:18px;">Last run</div>
+    ${caps.length ? `<button class="lastrun-head" id="lastrun-open">
+        <span class="mono">Last run${last && last.actualDate ? ` · ${esc(short(last.actualDate))}` : (last ? ` · ${esc(short(last.date))}` : '')}</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       <div class="caprow">${caps.map(([ic, lbl, v, u]) => `<div class="cap">
         <span class="capicon">${ICON[ic]}</span><span class="caplbl">${lbl}</span>
-        <b class="capnum">${v}</b><span class="capunit">${u}</span></div>`).join('')}</div>` : ''}`;
+        <b class="capnum">${v}</b><span class="capunit">${u}</span></div>`).join('')}</div>` : ''}
+    <div class="minirow">
+      <button class="minicard" id="mini-week"><div class="mc-main"><div class="mc-big gold">${km1(weekDone)}</div><div class="mc-lbl">of ${km1(weekPlan)} km this week</div></div>
+        ${ringSvg(weekPlan > 0 ? weekDone / weekPlan : 0, 'var(--gold)', `${weekRuns}/${weekTotal}`, 'runs', 52)}</button>
+      <button class="minicard" id="mini-outlook"><div class="mc-main"><div class="mc-big">${esc(outLabel)}</div><div class="mc-lbl">${esc(outSub)}</div></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-3)"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>`;
 
   const go = $('go-card');
   if (go) go.addEventListener('click', () => $('s-hero')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }));
+  armRings(el);
+  if ($('lastrun-open')) $('lastrun-open').addEventListener('click', openRunSheet);
+  if ($('mini-week')) $('mini-week').addEventListener('click', () => showTab('plan'));
+  if ($('mini-outlook')) $('mini-outlook').addEventListener('click', openOutlookSheet);
 }
 
 /* ---------- rings: the score language ---------- */
@@ -823,9 +867,9 @@ function renderFeel(row, f) {
 /* The route, drawn from the GPS track and coloured by how it was run:
    on a quality session gold is the work; on an easy run gold is under the
    ceiling and red is over it. No tiles, no keys - just the line. */
-function renderRoute() {
-  const el = $('s-route'), rt = S.route, row = S.routeRow;
-  if (!rt?.available || !row) { el.hidden = true; return; }
+function renderRoute(target) {
+  const el = target || $('s-route'), rt = S.route, row = S.routeRow;
+  if (!rt?.available || !row) { if (el) el.innerHTML = '<p class="sub">No GPS track on the last run.</p>'; return; }
   el.hidden = false;
   const s = sessionFor(row.date) || {}, quality = ['tempo', 'mp'].includes(row.kind);
   // the race has no session: its "work" is anything at goal pace or quicker
@@ -931,7 +975,7 @@ function renderWeek() {
   requestAnimationFrame(() => $('s-week').querySelectorAll('.stack i').forEach((i) => { i.style.transform = `scaleY(${i.dataset.fill})`; }));
 }
 
-function renderBlock() {
+function renderBlock(TARGET) {
   const rows = S.progress.rows, wk = curWeek(), weekNo = Number(wk.replace('W', '')) || 1;
   const byWeek = {};
   rows.forEach((r) => { (byWeek[r.week] = byWeek[r.week] || []).push(r); });
@@ -958,7 +1002,7 @@ function renderBlock() {
     ['Long run', longestDone, longestDue, 'km'],
     ['Marathon pace', Math.round(mpDone), Math.round(mpDue), 'km'],
   ];
-  $('s-block').innerHTML = `<div class="cardhead">
+  ($('s-plan-block') && !TARGET ? $('s-plan-block') : $('s-block')).innerHTML = `<div class="cardhead">
       <div class="grow"><div class="mono">The 11 weeks &middot; gold is km banked</div>
         <p class="sub" style="margin-top:8px;"><b style="color:var(--ink)">Week ${weekNo}</b> &middot; ${dayDiff(S.progress.today, S.plan.race.date)} days to go &middot; ${km1(kmDone)} of ${km1(kmAll)} km run</p></div>
       ${ringSvg(kmAll > 0 ? kmDone / kmAll : 0, 'var(--gold)', `${Math.round((100 * kmDone) / Math.max(1, kmAll))}%`, 'of block', 84)}
@@ -972,8 +1016,9 @@ function renderBlock() {
         <div class="track"><span class="tick" style="left:90%"></span><span class="mk" style="left:${pct}%;background:${ok ? 'var(--gold)' : 'var(--ink-2)'}"></span></div>
         <p class="sub" style="margin-top:7px;">${got} <span class="dim">of ${need} ${unit}</span></p></div>`;
     }).join('')}</div>`;
-  armRings($('s-block'));
-  requestAnimationFrame(() => $('s-block').querySelectorAll('.wkseg i').forEach((i) => { i.style.transform = `scaleX(${i.dataset.fill})`; }));
+  const _blk = $('s-plan-block') || $('s-block');
+  armRings(_blk);
+  requestAnimationFrame(() => _blk.querySelectorAll('.wkseg i').forEach((i) => { i.style.transform = `scaleX(${i.dataset.fill})`; }));
 }
 
 /* Effort discipline: heart rate on every steady easy and long run, plotted as beats
@@ -981,7 +1026,7 @@ function renderBlock() {
    long run at 159 sits below it - under its own ceiling - instead of looking like a
    miss against the easy one. */
 function effortChart() {
-  const el = $('s-ribbon');
+  const el = $('s-plan-effort') || $('s-ribbon');
   const runs = S.progress.rows.filter(steadyAerobic).slice(-12);
   if (runs.length < 2) { el.innerHTML = '<div class="mono">Easy-run heart rate</div><p class="sub" style="margin-top:8px;">Needs a couple more easy runs.</p>'; return; }
   const W = 350, H = 128, top = 26, bottom = 96;
@@ -1063,13 +1108,12 @@ async function loadNow(force) {
   $('hdr-week').textContent = curWeek().replace('W', 'W');
   $('hdr-phase').textContent = `${PHASE[curWeek()] || ''} · ${dayDiff(progress.today, plan.race.date)} days`;
   $('now-skel').hidden = true; $('now-body').hidden = false;
+  // A calm home: today, and the last run. The week, the block, the effort
+  // trend and the full outlook moved to Plan or behind a tap - the old screen
+  // stacked eight dense sections and was hard to follow.
+  ['s-status', 's-week', 's-block', 's-ribbon', 's-outlook'].forEach((id) => { const e = $(id); if (e) { e.hidden = true; e.innerHTML = ''; } });
   safe('summary', $('s-summary'), renderSummary);
-  safe('readiness', $('s-status'), renderStatus);
   safe('today', $('s-hero'), renderHero);
-  safe('this week', $('s-week'), renderWeek);
-  safe('the block', $('s-block'), renderBlock);
-  safe('effort discipline', $('s-ribbon'), effortChart);
-  safe('the outlook', $('s-outlook'), renderOutlook);
 
   // The route is a second request, so it arrives after the screen is usable.
   // After the race, the route IS the race.
@@ -1080,7 +1124,7 @@ async function loadNow(force) {
   if (lastRun) {
     S.routeRow = lastRun;
     getJSON(`/api/route?activityId=${lastRun.activityId}`)
-      .then((rt) => { S.route = rt; safe('the route', $('s-route'), renderRoute); })
+      .then((rt) => { S.route = rt; const c = $('sheet-route'); if (c) safe('the route', c, () => renderRoute(c)); })
       .catch(() => {});
   }
 }
@@ -1250,7 +1294,9 @@ async function loadPlan(force) {
   Object.assign(S, { fuelToday, hydration, racePlan, shoes: gear.shoes || [] });
   $('plan-skel').hidden = true; $('plan-body').hidden = false;
   safe('fuel', $('s-fuel'), renderFuel);
-  safe('the block chart', $('s-progression'), progressionChart);
+  safe('the block', $('s-plan-block'), renderBlock);
+  safe('effort trend', $('s-plan-effort'), effortChart);
+  const _pg = $('s-progression'); if (_pg) { _pg.hidden = true; }
   safe('the plan', $('s-timeline'), renderTimeline);
   safe('race day', $('s-race'), renderRace);
   safe('shoes', $('s-shoes'), renderShoes);
@@ -1363,6 +1409,25 @@ async function loadBody(force) {
 
 /* ---------- sheets ---------- */
 const sheet = $('sheet');
+function openRunSheet() {
+  if (!S.routeRow) { toast('No recent run yet'); return; }
+  openSheet('Last run', '<div id="sheet-route"></div>', () => {
+    const c = $('sheet-route');
+    if (S.route) safe('the route', c, () => renderRoute(c));
+    else c.innerHTML = '<p class="sub">Loading route…</p>';
+  });
+}
+function openOutlookSheet() {
+  openSheet('Outlook', '<div id="sheet-outlook"></div>', () => {
+    const c = $('sheet-outlook'), save = $('s-outlook');
+    // renderOutlook writes to #s-outlook; borrow it, then move the markup into the sheet
+    renderOutlook();
+    c.innerHTML = save.innerHTML;
+    const more = c.querySelector('#outlook-more');
+    if (more) more.addEventListener('click', () => c.querySelector('#outlook-body').classList.toggle('hide'));
+  });
+}
+
 function openSheet(title, html, after) {
   $('sheet-title').textContent = title; $('sheet-body').innerHTML = html;
   sheet.showModal(); if (after) after();
