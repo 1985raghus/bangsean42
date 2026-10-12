@@ -362,6 +362,18 @@
   .minicard .mc-big.gold { color: var(--gold); }
   .minicard .mc-lbl { font: 600 9.5px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-top: 6px; }
 
+
+  /* ===== Plan segmented control: one job per view (Schedule / Progress / Fuel) ===== */
+  .seg { display: flex; gap: 4px; padding: 4px; margin: 2px 0 6px; border-radius: 999px;
+    background: var(--ground-2); border: 1px solid var(--line); position: sticky; top: calc(58px + env(safe-area-inset-top)); z-index: 10;
+    backdrop-filter: blur(10px); }
+  .seg button { flex: 1; min-width: 0; padding: 11px 6px; border-radius: 999px; font: 600 12px/1 var(--f-ui);
+    letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3);
+    transition: color var(--d-fast), background var(--d-fast), transform var(--d-tap); }
+  .seg button:active { transform: scale(.96); }
+  .seg button[aria-selected="true"] { color: #fff; background: var(--dawn); box-shadow: 0 6px 16px -8px var(--brand); }
+  #plan-body .view-note { font: 400 var(--t-sub) var(--f-ui); color: var(--ink-3); margin: 2px 2px 0; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     #app-view::after { display: none; }
@@ -421,13 +433,18 @@
     <section class="view" id="view-plan" role="tabpanel" hidden>
       <div class="skel" id="plan-skel"><i class="mid"></i><i class="big"></i><i></i></div>
       <div id="plan-body" hidden>
-        <section id="s-fuel" style="--i:0"></section>
-        <section id="s-plan-block" style="--i:0"></section>
-        <section id="s-plan-effort" style="--i:1"></section>
-        <section id="s-progression" style="--i:1"></section>
-        <section id="s-timeline" style="--i:2"></section>
-        <section id="s-race" style="--i:3"></section>
-        <section id="s-shoes" style="--i:4"></section>
+        <div class="seg" id="plan-seg" role="tablist" aria-label="Plan views">
+          <button role="tab" data-seg="plan" aria-selected="true">Schedule</button>
+          <button role="tab" data-seg="progress" aria-selected="false">Progress</button>
+          <button role="tab" data-seg="fuel" aria-selected="false">Fuel</button>
+        </div>
+        <section id="s-timeline" data-group="plan" style="--i:0"></section>
+        <section id="s-race" data-group="plan" style="--i:1"></section>
+        <section id="s-plan-block" data-group="progress" style="--i:0" hidden></section>
+        <section id="s-plan-effort" data-group="progress" style="--i:1" hidden></section>
+        <section id="s-progression" hidden></section>
+        <section id="s-fuel" data-group="fuel" style="--i:0" hidden></section>
+        <section id="s-shoes" data-group="fuel" style="--i:1" hidden></section>
       </div>
     </section>
 
@@ -1301,6 +1318,21 @@ async function loadPlan(force) {
   safe('race day', $('s-race'), renderRace);
   safe('shoes', $('s-shoes'), renderShoes);
   if (S.progress) safe('today', $('s-hero'), renderHero);  // shoe name now known
+  setupPlanSeg();
+}
+
+/* One job per view: Schedule (the weeks + race day), Progress (tracking +
+   effort trend), Fuel (targets + gear). The old Plan stacked all three. */
+function setupPlanSeg() {
+  const tabs = document.querySelectorAll('#plan-seg [role=tab]');
+  if (!tabs.length) return;
+  const show = (name) => {
+    tabs.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.seg === name)));
+    document.querySelectorAll('#plan-body [data-group]').forEach((sec) => { sec.hidden = sec.dataset.group !== name; });
+  };
+  tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.seg)));
+  show(S.planSeg || 'plan');
+  tabs.forEach((b) => b.addEventListener('click', () => { S.planSeg = b.dataset.seg; }));
 }
 
 /* ---------- BODY & MIND ---------- */
