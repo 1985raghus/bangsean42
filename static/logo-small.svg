@@ -1,25 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <title>Sampige Sunrise</title>
-  <!-- Simplified for 16-32 px: bigger sun, five fatter petals, one gold wave. -->
+  <!-- 16-32 px cut: five fat faceted petals, one lit line. -->
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1340c9"/><stop offset="1" stop-color="#3f82ff"/></linearGradient>
-    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a2a8f"/><stop offset="1" stop-color="#061446"/></linearGradient>
-    <clipPath id="tile"><rect width="100" height="100" rx="22"/></clipPath>
-    <clipPath id="above"><rect width="100" height="64"/></clipPath>
+    <clipPath id="tile"><path d="M16 2 H84 L98 16 V84 L84 98 H16 L2 84 V16 Z"/></clipPath>
+    <clipPath id="above"><rect width="100" height="62"/></clipPath>
   </defs>
   <g clip-path="url(#tile)">
-    <rect width="100" height="64" fill="url(#sky)"/>
-    <rect y="64" width="100" height="36" fill="url(#sea)"/>
+    <rect width="100" height="100" fill="#05080f"/>
     <g clip-path="url(#above)" fill="#f5b83d">
-      <circle cx="50" cy="64" r="16"/>
-      <g transform="translate(50 64)">
-        <path d="M0,-21 C7,-27 6.5,-36 1,-46 C-4,-36 -6,-27 0,-21Z"/>
-        <path transform="rotate(-32)" d="M0,-21 C6.6,-26.5 6,-33.5 1,-42 C-3.8,-33.5 -5.6,-26.5 0,-21Z"/>
-        <path transform="rotate(32)" d="M0,-21 C6.6,-26.5 6,-33.5 1,-42 C-3.8,-33.5 -5.6,-26.5 0,-21Z"/>
-        <path transform="rotate(-64)" d="M0,-21 C6,-25.5 5.4,-29.5 0.8,-36 C-3.4,-29.5 -5.2,-25.5 0,-21Z"/>
-        <path transform="rotate(64)" d="M0,-21 C6,-25.5 5.4,-29.5 0.8,-36 C-3.4,-29.5 -5.2,-25.5 0,-21Z"/>
+      <circle cx="50" cy="62" r="17"/>
+      <g transform="translate(50 62)">
+        <path d="M0,-21 L6.5,-31 L0,-48 L-6.5,-31 Z"/>
+        <path transform="rotate(-34)" d="M0,-21 L6,-29 L0,-43 L-6,-29 Z"/>
+        <path transform="rotate(34)"  d="M0,-21 L6,-29 L0,-43 L-6,-29 Z"/>
+        <path transform="rotate(-68)" d="M0,-21 L5.4,-26.5 L0,-35 L-5.4,-26.5 Z"/>
+        <path transform="rotate(68)"  d="M0,-21 L5.4,-26.5 L0,-35 L-5.4,-26.5 Z"/>
       </g>
     </g>
-    <path d="M14,80 q9,-5.5 18,0 t18,0 t18,0 t18,0" fill="none" stroke="#f5b83d" stroke-width="7" stroke-linecap="round"/>
+    <rect x="2" y="61" width="96" height="1.6" fill="#aac3ff" fill-opacity=".3"/>
+    <path d="M14,80 H86" stroke="#f5b83d" stroke-width="8" stroke-linecap="square"/>
   </g>
 </svg>
