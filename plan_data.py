@@ -100,6 +100,18 @@ EASY_NOTE = (
     "and slower is fine - the pace is just what that effort gives on the day. Finish with "
     "4-6 x 20s relaxed strides if the legs feel flat, to keep the turnover."
 )
+PROGRESSION_NOTE = (
+    "Progression run, in four blocks - heart rate is the governor, pace is "
+    "whatever that produces. km 1-7 at HR ~150, km 8-14 at ~155, km 15-20 at "
+    "~159, km 21-26 at ~162 and no higher. That lands around 7:30 / 7:10 / "
+    "6:50 / 6:35 per km, roughly 3 hours. Flat 26 km felt interminable last "
+    "time ('when will it be over') and the whole effort got dumped into the "
+    "last block at HR 183; this gives you something to do every kilometre and "
+    "rehearses the negative split. Five gels, on the clock, TAKEN WHILE "
+    "RUNNING - two-minute gel stops cost 5:44 over a marathon. And do the "
+    "sweat test: weigh before and after, note what you drank."
+)
+
 LONG_NOTE = (
     f"Steady and easy the whole way: HR {HR_CEILINGS['easy']}-{HR_CEILINGS['long']}, not the 167-168 these have been running. "
     "If the last 3km drop off by more than 15s/km, you started too fast."
@@ -208,7 +220,7 @@ SESSIONS = [
     _simple("2026-10-13", "W7 Tue - Easy + Strides (9K)", "easy", 9, EASY_NOTE + " " + STRIDES_NOTE),
     _simple("2026-10-15", "W7 Thu - Easy (10K)", "easy", 10, EASY_NOTE),
     _reps("2026-10-16", "W7 Fri - Marathon Pace Intervals (3x3K @ MP)", "mp", 3, 3.0, recovery_km=0.5, note=MP_NOTE),
-    _simple("2026-10-18", "W7 Sun - Long Run, peak distance (26K)", "long", 26, LONG_NOTE),
+    _simple("2026-10-18", "W7 Sun - Long Run, peak distance (26K)", "long", 26, PROGRESSION_NOTE),
     # Week 8 - peak
     _simple("2026-10-20", "W8 Tue - Easy + Strides (8K)", "easy", 8, EASY_NOTE + " " + STRIDES_NOTE),
     _simple("2026-10-22", "W8 Thu - Easy (10K)", "easy", 10, EASY_NOTE),
