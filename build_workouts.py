@@ -24,6 +24,33 @@ _PACE_ZONE_TYPE = {
 }                                           # the key to a known target type, so it renders as "-:----:--"
 
 
+_HR_ZONE_TYPE = {
+    "workoutTargetTypeId": TargetType.HEART_RATE_ZONE,
+    "workoutTargetTypeKey": "heart.rate.zone",  # dotted, same convention as pace.zone
+    "displayOrder": 4,
+}
+
+
+def _hr_target(low_bpm: int, high_bpm: int) -> dict:
+    """A custom heart-rate range in bpm, not one of Garmin's predefined zones.
+
+    Same trick as the pace target: zoneNumber is omitted entirely. Sending 0
+    makes the server look up predefined zone 0, which does not exist, and it
+    silently nulls the bpm values instead of erroring.
+
+    This exists because pace targets do not work for this runner. Asked for
+    5:46 he ran 5:17 and called it comfortable; four marathon-pace sessions in
+    a row finished above the heart-rate ceiling. A pace target leaves restraint
+    to a feeling that under-reports by about ten beats. An HR target makes the
+    watch do the governing.
+    """
+    return {
+        "targetType": _HR_ZONE_TYPE,
+        "targetValueOne": float(low_bpm),
+        "targetValueTwo": float(high_bpm),
+    }
+
+
 def _distance_condition(display_order: int = 3) -> dict:
     return {
         "conditionTypeId": ConditionType.DISTANCE,
@@ -69,12 +96,28 @@ def pace_summary(session: dict) -> str | None:
     for block in session["blocks"]:
         if block["role"] not in ("main", "repeat"):
             continue
+        if block.get("hr"):
+            lo, hi = block["hr"]
+            if block["role"] == "repeat":
+                parts.append(f"{block['reps']}x{block['rep_km']:g}km @ HR {lo}-{hi} (easy float between)")
+            else:
+                parts.append(f"{block['km']:g}km @ HR {lo}-{hi}")
+            continue
         slow, fast = PACES[block["kind"]]
         label = f"{_KIND_LABEL[block['kind']]} {slow}-{fast}/km"
         if block["role"] == "repeat":
             label += " (float recovery easy between reps)"
         parts.append(label)
-    return "Target pace: " + " -> ".join(parts) if parts else None
+    if not parts:
+        return None
+    kind = "Target" if any("HR" in x for x in parts) else "Target pace"
+    return kind + ": " + " -> ".join(parts)
+
+
+def _block_target(block: dict) -> dict:
+    """A block's "hr" window, when it has one, otherwise its kind's pace band."""
+    hr = block.get("hr")
+    return _hr_target(*hr) if hr else _pace_target(block["kind"])
 
 
 def _build_simple_step(block: dict, step_order: int) -> ExecutableStep:
@@ -88,7 +131,7 @@ def _build_simple_step(block: dict, step_order: int) -> ExecutableStep:
         },
         endCondition=_distance_condition(),
         endConditionValue=block["km"] * 1000.0,
-        **_pace_target(block["kind"]),
+        **_block_target(block),
     )
 
 
@@ -99,7 +142,7 @@ def _build_repeat_group(block: dict, step_order: int) -> RepeatGroup:
         stepType={"stepTypeId": StepType.INTERVAL, "stepTypeKey": "interval", "displayOrder": 3},
         endCondition=_distance_condition(),
         endConditionValue=block["rep_km"] * 1000.0,
-        **_pace_target(block["kind"]),
+        **_block_target(block),
     )
     recovery_step = ExecutableStep(
         stepOrder=step_order + 2,

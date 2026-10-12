@@ -74,6 +74,39 @@ def _km_splits(samples: list[tuple[float, float, float | None]]) -> list[dict]:
     return splits
 
 
+
+def _continuity(stream: list[tuple]) -> dict | None:
+    """How unbroken the running was: walk share, longest continuous stretch, breaks.
+
+    The number this block's training now turns on - the owner's easy runs were
+    27% walking before 6 October and nobody could see it in the app. Walking is
+    forward motion under 2.0 m/s (slower than 8:20/km), same threshold the
+    coaching analysis used.
+    """
+    walk = run = cur = best = 0.0
+    breaks, in_break = 0, False
+    for i in range(1, len(stream)):
+        dt = stream[i][1] - stream[i - 1][1]
+        if dt <= 0 or dt > 60:
+            continue
+        dd = stream[i][0] - stream[i - 1][0]
+        if dd / dt < 2.0:
+            walk += dt
+            cur = 0.0
+            if not in_break:
+                breaks += 1
+                in_break = True
+        else:
+            run += dt
+            cur += dt
+            best = max(best, cur)
+            in_break = False
+    total = walk + run
+    if total < 60:
+        return None
+    return {"walkPct": round(100 * walk / total), "longestRunMin": round(best / 60), "breaks": breaks}
+
+
 def fetch_route(client: Garmin, activity_id: int) -> dict:
     """{"points": [{"lat","lon","km","paceSecPerKm","hr"}...], "bounds": {...}, "km": float}.
 
@@ -130,5 +163,6 @@ def fetch_route(client: Garmin, activity_id: int) -> dict:
         "points": points,
         "km": samples[-1]["km"],
         "splits": _km_splits(stream),
+        "continuity": _continuity(stream),
         "bounds": {"minLat": min(lats), "maxLat": max(lats), "minLon": min(lons), "maxLon": max(lons)},
     }
