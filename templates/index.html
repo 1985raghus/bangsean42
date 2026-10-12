@@ -276,6 +276,72 @@
   .connect label { display: block; margin-top: 12px; }
   .connect label span { display: block; margin-bottom: 6px; }
 
+
+  /* ===== v3 "Runny": glossy capsules, a lime GO card, day chips on dotted black ===== */
+  :root {
+    --brand: #7b5cff; --brand-2: #b15cff;
+    --dawn: linear-gradient(135deg, #7b5cff 0%, #b15cff 50%, #ff8a3c 110%);
+    --lime-a: #c6ee2c; --lime-b: #eef24a; --lime-ink: #dff24f;
+    --cap-top: #2b2556; --cap-bot: #15112e;
+  }
+  /* dotted phosphor ground under the dawn glow */
+  body::before { background:
+      radial-gradient(130% 55% at 50% -24%, rgba(177,92,255,.16) 0%, rgba(42,84,214,.12) 40%, rgba(4,6,12,0) 72%),
+      radial-gradient(rgba(170,195,255,.07) 1px, transparent 1.4px) !important;
+    background-size: auto, 22px 22px !important; }
+
+  #s-summary { padding: 0; background: none; border: 0; box-shadow: none; margin-top: 8px; }
+  .greet { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .greet .g1 { font: 400 26px/1 var(--f-hero); letter-spacing: .01em; }
+  .greet .g2 { font: 600 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+
+  .daychips { display: flex; gap: 6px; margin-top: 16px; }
+  .daychip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 10px 0; border-radius: 16px; background: var(--ground-2); border: 1px solid var(--line); }
+  .daychip b { font: 600 15px/1 var(--f-ui); font-variant-numeric: tabular-nums; }
+  .daychip span { font: 600 9.5px/1 var(--f-mono); text-transform: uppercase; color: var(--ink-3); }
+  .daychip.done { color: var(--good); } .daychip.done span { color: var(--good); }
+  .daychip.now { background: var(--dawn); border-color: transparent; color: #fff; box-shadow: 0 8px 20px -8px var(--brand); }
+  .daychip.now span { color: rgba(255,255,255,.85); }
+
+  /* the GO card: today's instruction, as the one bright surface */
+  .gocard { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px;
+    border-radius: 26px; padding: 22px 24px; background: linear-gradient(118deg, var(--lime-a), var(--lime-b) 62%, #f2d93c);
+    color: #16200a; box-shadow: 0 18px 40px -20px rgba(198,238,44,.6); width: 100%; text-align: left; }
+  .gocard:active { transform: scale(.985); }
+  .gocard .mono { color: #33460f; }
+  .gocard .goline { font: 600 15px/1.2 var(--f-ui); color: #1b2708; margin-top: 5px; }
+  .gocard .gobig { font: 400 clamp(32px, 10vw, 46px)/.86 var(--f-hero); color: #121b04; text-align: right; letter-spacing: .01em; }
+  .gocard .gobig small { font: 600 13px var(--f-ui); }
+
+  /* glossy violet capsules - the signature stat tile */
+  .caprow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .cap { position: relative; border-radius: 22px; padding: 16px 8px 15px; text-align: center; overflow: hidden;
+    background: linear-gradient(180deg, var(--cap-top), var(--cap-bot)); border: 1px solid rgba(170,140,255,.2); }
+  .cap::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 52%;
+    background: linear-gradient(180deg, rgba(175,140,255,.4), transparent); pointer-events: none; }
+  .capicon { position: relative; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    margin: 0 auto 11px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff;
+    box-shadow: 0 6px 14px -5px var(--brand); }
+  .capicon svg { width: 17px; height: 17px; }
+  .caplbl { position: relative; display: block; font: 600 9.5px/1 var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
+  .capnum { position: relative; display: block; font: 600 23px/1 var(--f-ui); color: var(--lime-ink); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .capunit { position: relative; font: 600 9.5px var(--f-mono); text-transform: uppercase; color: var(--ink-3); }
+
+  /* circular week chips */
+  .wkchips { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chip { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    font: 600 13px/1 var(--f-ui); background: var(--ground-2); border: 1px solid var(--line); color: var(--ink-3); }
+  .chip.done { background: var(--ground-3); color: var(--ink); }
+  .chip.done svg { width: 17px; height: 17px; color: var(--good); }
+  .chip.now { background: var(--dawn); color: #fff; border-color: transparent; box-shadow: 0 8px 20px -6px var(--brand); }
+  .chip.race { background: none; border-style: dashed; border-color: var(--gold-40); color: var(--gold); }
+  .chip.race svg { width: 16px; height: 16px; }
+
+  /* dock: active key is a filled gradient pill */
+  nav.tabs button[aria-selected="true"] { color: #fff; background: var(--dawn); }
+  nav.tabs .slider { display: none; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     #app-view::after { display: none; }
@@ -321,7 +387,8 @@
     <section class="view" id="view-now" role="tabpanel">
       <div class="skel" id="now-skel"><i class="mid"></i><i class="big"></i><i></i><i></i></div>
       <div id="now-body" hidden>
-        <section id="s-status" style="--i:0"></section>
+        <section id="s-summary" style="--i:0"></section>
+        <section id="s-status" style="--i:1"></section>
         <section id="s-hero" style="--i:1"></section>
         <section id="s-route" style="--i:2" hidden></section>
         <section id="s-week" style="--i:2"></section>
@@ -485,6 +552,64 @@ function bandStrip(fast, slow, actual, inZone) {
     <line class="track" x1="0" x2="${W}" y1="4" y2="4"/>
     <rect class="zone" x="${x(fast)}" y="1" width="${Math.max(4, x(slow) - x(fast))}" height="6" rx="3"/>
     ${actual != null ? `<circle cx="${x(actual)}" cy="4" r="4" fill="${inZone ? 'var(--ink)' : 'var(--crit)'}" stroke="var(--ground)" stroke-width="1.5"/>` : ''}</svg>`;
+}
+
+/* ---------- the summary: today's instruction, Runny-style ---------- */
+const ICON = {
+  dist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  pace: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></svg>',
+  hr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-8.8 1.9A5 5 0 0 0 3.2 5.6C1 8 2 12 12 20c10-8 11-12 8.8-14.4z"/></svg>',
+};
+function renderSummary() {
+  const el = $('s-summary'); if (!el) return;
+  const rows = S.progress.rows, race = S.plan.race;
+  const wkNo = Number(curWeek().replace('W', '')) || 1;
+  const days = Math.max(0, dayDiff(S.progress.today, race.date));
+
+  const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const monday = (() => { const d = d8(S.progress.today); const off = (d.getDay() + 6) % 7; d.setDate(d.getDate() - off); return d; })();
+  const chips = WD.map((dd, i) => {
+    const date = new Date(monday); date.setDate(date.getDate() + i);
+    const iso = isoLocal(date), r = rows.find((x) => x.date === iso), today = iso === S.progress.today;
+    const st = today ? 'now' : (r && done(r) ? 'done' : '');
+    return `<div class="daychip ${st}"><b>${date.getDate()}</b><span>${dd[0]}</span></div>`;
+  }).join('');
+
+  // today's instruction → the GO card
+  const row = rowFor(S.progress.today), s = sessionFor(S.progress.today);
+  const m = S.moment;
+  let goSub, goBig;
+  if (m === 'RACE') { goSub = 'Bangsaen · race day'; goBig = esc((race.stretch_pace || '').split('/')[0]) + '<small>/km</small>'; }
+  else if (m === 'AFTER_RACE') { goSub = 'Bangsaen'; goBig = 'done'; }
+  else if (!s) { goSub = 'Rest day'; goBig = 'rest'; }
+  else {
+    const kind = s.kind, cap = ceilingFor(kind), aerobic = AEROBIC.includes(kind);
+    goSub = `${esc(KIND[kind])} · ${km1(s.km)} km`;
+    goBig = aerobic ? `HR &le; ${cap}` : `${esc(s.paceHi)}–${esc(s.paceLo)}<small>/km</small>`;
+  }
+
+  // last completed run → three glossy capsules
+  const last = [...rows].reverse().find((r) => done(r) && r.actualKm);
+  const caps = last ? [
+    ['dist', 'distance', km1(last.actualKm), 'km'],
+    ['pace', 'pace', esc(last.actualPaceLabel || '–'), '/km'],
+    ['hr', 'avg hr', last.actualHr ? Math.round(last.actualHr) : '–', 'bpm'],
+  ] : [];
+
+  el.innerHTML = `
+    <div class="greet"><span class="g1">Week ${wkNo}</span><span class="g2">${days} days to Bangsaen</span></div>
+    <div class="daychips">${chips}</div>
+    <button class="gocard" id="go-card">
+      <div><span class="mono">ready. steady.</span><div class="goline">${goSub}</div></div>
+      <div class="gobig">${goBig}</div>
+    </button>
+    ${caps.length ? `<div class="mono" style="margin-top:18px;">Last run</div>
+      <div class="caprow">${caps.map(([ic, lbl, v, u]) => `<div class="cap">
+        <span class="capicon">${ICON[ic]}</span><span class="caplbl">${lbl}</span>
+        <b class="capnum">${v}</b><span class="capunit">${u}</span></div>`).join('')}</div>` : ''}`;
+
+  const go = $('go-card');
+  if (go) go.addEventListener('click', () => $('s-hero')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }));
 }
 
 /* ---------- rings: the score language ---------- */
@@ -814,11 +939,13 @@ function renderBlock() {
   const kmDone = rows.reduce((a, r) => a + (r.actualKm || 0), 0), kmAll = rows.reduce((a, r) => a + r.plannedKm, 0);
   const due = rows.filter((r) => r.status !== 'upcoming' && r.status !== 'today');
   // Each segment is one week, filled by the share of its kilometres actually banked.
-  const bars = weeks.map((w) => {
+  const wkIdx = weeks.indexOf(wk);
+  const check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+  const bars = weeks.map((w, i) => {
     const ws = byWeek[w], p = ws.reduce((a, r) => a + r.plannedKm, 0), a = ws.reduce((x, r) => x + (r.actualKm || 0), 0);
-    const fill = p > 0 ? Math.min(1, a / p) : 0;
-    return `<div class="wkseg ${w === wk ? 'now' : ''}" title="${w}: ${km1(a)} of ${km1(p)} km"><i data-fill="${fill}"></i></div>`;
-  }).join('') + `<div class="wkseg race" title="Race day"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="var(--gold)"/></svg></div>`;
+    const st = i < wkIdx ? 'done' : i === wkIdx ? 'now' : 'future';
+    return `<div class="chip ${st}" title="${esc(w)}: ${km1(a)} of ${km1(p)} km">${st === 'done' ? check : (i + 1)}</div>`;
+  }).join('') + `<div class="chip race" title="Race day"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1V3z"/></svg></div>`;
 
   const longs = rows.filter((r) => r.kind === 'long');
   const longestDone = Math.max(0, ...longs.filter((r) => r.actualKm).map((r) => r.actualKm));
@@ -836,7 +963,7 @@ function renderBlock() {
         <p class="sub" style="margin-top:8px;"><b style="color:var(--ink)">Week ${weekNo}</b> &middot; ${dayDiff(S.progress.today, S.plan.race.date)} days to go &middot; ${km1(kmDone)} of ${km1(kmAll)} km run</p></div>
       ${ringSvg(kmAll > 0 ? kmDone / kmAll : 0, 'var(--gold)', `${Math.round((100 * kmDone) / Math.max(1, kmAll))}%`, 'of block', 84)}
     </div>
-    <div class="weeks" style="margin-top:14px;">${bars}</div>
+    <div class="wkchips" style="margin-top:14px;">${bars}</div>
     <div style="margin-top:22px;">${items.map(([label, got, need, unit]) => {
       const pct = need > 0 ? Math.min(100, (100 * got) / need) : 0;
       const ok = pct >= 90;
@@ -936,6 +1063,7 @@ async function loadNow(force) {
   $('hdr-week').textContent = curWeek().replace('W', 'W');
   $('hdr-phase').textContent = `${PHASE[curWeek()] || ''} · ${dayDiff(progress.today, plan.race.date)} days`;
   $('now-skel').hidden = true; $('now-body').hidden = false;
+  safe('summary', $('s-summary'), renderSummary);
   safe('readiness', $('s-status'), renderStatus);
   safe('today', $('s-hero'), renderHero);
   safe('this week', $('s-week'), renderWeek);
