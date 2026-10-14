@@ -703,7 +703,52 @@ function getHome() {
   return { lat: 13.75, lon: 100.5, label: 'Bangkok' };
 }
 function setHome(h) { try { localStorage.setItem(HOME_KEY, JSON.stringify(h)); } catch (e) {} }
-const wxUrl = (loc) => `/api/weather?lat=${loc.lat}&lon=${loc.lon}&label=${encodeURIComponent(loc.label)}`;
+/* open-meteo is CORS-open public data, so the browser fetches it directly - the
+   phone has connectivity even when Render's shared IP is rate-limited. Heat model
+   ported from weather.py so the app and the server agree. */
+const WX_COMFORT = 24, WX_SECPERDEG = 1.8, WX_MAXOFF = 45;
+const wxOffset = (ap) => Math.round(Math.min(WX_MAXOFF, Math.max(0, (ap - WX_COMFORT) * WX_SECPERDEG)));
+function wxTier(ap) {
+  if (ap < 27) return { tier: 'comfortable', note: 'Good conditions. Run to the plan.' };
+  if (ap < 32) return { tier: 'warm', note: 'Warm. Easy pace drifts slower at the same effort \u2014 let it.' };
+  if (ap < 37) return { tier: 'hot', note: 'Hot. Govern by heart rate, not pace, and carry fluid. Move hard sessions to the cool window.' };
+  return { tier: 'extreme', note: 'Extreme. Easy only, or wait for the cool window. Hydration and salt are not optional.' };
+}
+function wxCoolWindow(times, app, fromIso, hoursAhead = 20) {
+  if (!times || !app) return null;
+  const horizon = new Date(new Date(fromIso).getTime() + hoursAhead * 3600000).toISOString().slice(0, 16);
+  let best = null;
+  for (let i = 0; i < times.length; i++) {
+    const t = times[i], a = app[i];
+    if (a == null || t < fromIso) continue;
+    if (t > horizon) break;
+    if (!best || a < best[1]) best = [t, a];
+  }
+  return best ? { at: best[0], hour: best[0].slice(11, 16), apparentC: Math.round(best[1] * 10) / 10 } : null;
+}
+async function wxFetch(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature`
+    + `&hourly=temperature_2m,apparent_temperature&timezone=auto&forecast_days=2`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('weather ' + r.status);
+  const d = await r.json(), cur = d.current || {}, h = d.hourly || {};
+  const ap = cur.apparent_temperature, temp = cur.temperature_2m;
+  if (ap == null || temp == null) return { available: false };
+  const now = cur.time || new Date().toISOString().slice(0, 16), t = wxTier(ap);
+  return {
+    available: true, tempC: Math.round(temp * 10) / 10, apparentC: Math.round(ap * 10) / 10,
+    humidityPct: cur.relative_humidity_2m != null ? Math.round(cur.relative_humidity_2m) : null,
+    tier: t.tier, note: t.note, easyPaceOffsetSec: wxOffset(ap),
+    coolWindow: wxCoolWindow(h.time, h.apparent_temperature, now),
+  };
+}
+async function wxGeocode(q) {
+  const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=6&language=en&format=json');
+  if (!r.ok) return [];
+  const d = await r.json();
+  return (d.results || []).map((x) => ({ label: [x.name, x.admin1, x.country_code].filter(Boolean).join(', '), lat: x.latitude, lon: x.longitude }));
+}
 const kmApart = (a, b) => {
   const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180;
   const la1 = a.lat * Math.PI / 180, la2 = b.lat * Math.PI / 180;
@@ -714,12 +759,14 @@ function renderWeather() { if (!$('s-summary').hidden) safe('summary', $('s-summ
 
 async function loadWeather() {
   const home = getHome();
-  getJSON(wxUrl(home)).then((wx) => { S.weatherHome = { ...wx, label: home.label }; if (!S.weather) { S.weather = S.weatherHome; renderWeather(); } }).catch(() => {});
+  wxFetch(home.lat, home.lon)
+    .then((wx) => { S.weatherHome = { ...wx, label: home.label }; if (!S.weather || S.weather.available !== true) { S.weather = S.weatherHome; renderWeather(); } })
+    .catch(() => { if (!S.weather || S.weather.available !== true) { S.weather = { available: false }; renderWeather(); } });
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition((pos) => {
     const here = { lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3), label: 'Here' };
     S.here = here;
-    getJSON(wxUrl(here)).then((wx) => {
+    wxFetch(here.lat, here.lon).then((wx) => {
       S.weatherHere = wx;
       S.away = kmApart(here, home) > 30;            // more than 30 km from home = travelling
       S.weather = S.away ? wx : (S.weatherHome || wx);
@@ -788,7 +835,7 @@ function openHomeSheet() {
       timer = setTimeout(async () => {
         if (q.value.trim().length < 2) { res.innerHTML = ''; return; }
         try {
-          const { results } = await getJSON('/api/geocode?q=' + encodeURIComponent(q.value.trim()));
+          const results = await wxGeocode(q.value.trim());
           res.innerHTML = (results || []).map((r, i) => `<button class="ghost wide" data-i="${i}" style="margin-top:6px;text-align:left;">${esc(r.label)}</button>`).join('') || '<p class="sub dim">No matches.</p>';
           res.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => {
             const r = results[+b.dataset.i];
