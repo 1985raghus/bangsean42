@@ -64,6 +64,7 @@ from plan_data import (
     STRETCH_TIME_SEC,
 )
 from readiness import compute_readiness, pivot_suggestion
+from weather import fetch_weather
 from weekly_summary import generate_week_review
 from progress import (
     HR_CEILING_TOLERANCE_BPM,
@@ -479,6 +480,15 @@ def api_analysis():
 def api_insights():
     data = _cached("insights", _fetch_insights, force=_forced())
     return jsonify({"insights": data, **_cache_meta("insights")})
+
+
+@app.get("/api/weather")
+def api_weather():
+    """Live conditions for the training (or race) location - public data, no Garmin
+    session needed, so it renders even before login and never blocks the screen."""
+    place = request.args.get("place", "bangkok")
+    data = _cached(f"weather:{place}", lambda: fetch_weather(place), ttl=1800, force=_forced())
+    return jsonify(data)
 
 
 @app.get("/api/weekly-summary")

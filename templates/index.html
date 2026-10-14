@@ -374,6 +374,23 @@
   .seg button[aria-selected="true"] { color: #fff; background: var(--dawn); box-shadow: 0 6px 16px -8px var(--brand); }
   #plan-body .view-note { font: 400 var(--t-sub) var(--f-ui); color: var(--ink-3); margin: 2px 2px 0; }
 
+
+  /* ===== adaptive: a slim live-conditions strip, tap for detail ===== */
+  .wx { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; margin-top: 14px;
+    padding: 11px 14px; border-radius: var(--r-2); background: var(--ground-2); border: 1px solid var(--line);
+    transition: transform var(--d-tap), background var(--d-fast); }
+  .wx:active { transform: scale(.98); background: var(--ground-3); }
+  .wx .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .wx .dot.comfortable { background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .wx .dot.warm { background: var(--gold); box-shadow: 0 0 8px var(--gold-40); }
+  .wx .dot.hot { background: var(--brand-3); box-shadow: 0 0 8px var(--brand-3); }
+  .wx .dot.extreme { background: var(--crit); box-shadow: 0 0 8px var(--crit); }
+  .wx .wxmain { flex: 1; min-width: 0; font: 500 13px/1.3 var(--f-ui); color: var(--ink-2); }
+  .wx .wxmain b { color: var(--ink); font-weight: 600; }
+  .wx .chev { width: 15px; height: 15px; color: var(--ink-3); flex: none; }
+  .wxsheet .mono { margin-top: 16px; }
+  .wxsheet .big { font: 400 40px/1 var(--f-hero); color: var(--ink); margin-top: 4px; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     #app-view::after { display: none; }
@@ -647,6 +664,7 @@ function renderSummary() {
   el.innerHTML = `
     <div class="greet"><span class="g1">Week ${wkNo}</span>${rpill || `<span class="g2">${days} days to Bangsaen</span>`}</div>
     <div class="daychips">${chips}</div>
+    ${wxStrip()}
     <button class="gocard" id="go-card">
       <div><span class="mono">ready. steady.</span><div class="goline">${goSub}</div></div>
       <div class="gobig">${goBig}</div>
@@ -671,6 +689,41 @@ function renderSummary() {
   if ($('lastrun-open')) $('lastrun-open').addEventListener('click', openRunSheet);
   if ($('mini-week')) $('mini-week').addEventListener('click', () => showTab('plan'));
   if ($('mini-outlook')) $('mini-outlook').addEventListener('click', openOutlookSheet);
+  if ($('wx-open')) $('wx-open').addEventListener('click', openWeatherSheet);
+}
+
+/* ---------- adaptive conditions ---------- */
+function wxStrip() {
+  const w = S.weather;
+  if (!w || !w.available) return '';
+  const offset = w.easyPaceOffsetSec ? `easy +${w.easyPaceOffsetSec}s/km` : 'good conditions';
+  return `<button class="wx" id="wx-open" aria-label="Today's conditions">
+    <span class="dot ${esc(w.tier)}"></span>
+    <span class="wxmain"><b>${w.apparentC}&deg;</b> feels &middot; ${w.humidityPct != null ? w.humidityPct + '% &middot; ' : ''}${esc(w.tier)} &middot; ${esc(offset)}</span>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </button>`;
+}
+function openWeatherSheet() {
+  const w = S.weather; if (!w || !w.available) { toast('Weather unavailable'); return; }
+  const cool = w.coolWindow
+    ? `<div class="row"><div class="grow"><div class="sub" style="color:var(--ink)">Coolest window</div><div class="meta mono">${esc(w.coolWindow.hour)} &middot; feels ${w.coolWindow.apparentC}&deg;</div></div><div class="val">run then</div></div>`
+    : '';
+  // next quality session: warn if it lands in the heat
+  const rows = S.progress?.rows || [];
+  const nextQ = rows.find((r) => ['tempo', 'mp'].includes(r.kind) && (r.status === 'upcoming' || r.date === S.progress.today));
+  const qWarn = (nextQ && w.tier !== 'comfortable')
+    ? `<p class="sub" style="margin-top:14px;"><b style="color:var(--ink)">${esc(KIND[nextQ.kind])} on ${esc(short(nextQ.date))}.</b> In this heat your heart rate hits its cap at a slower pace, so run it in the cool window or the numbers mislead you.</p>`
+    : '';
+  openSheet('Conditions · ' + esc(w.place), `<div class="wxsheet">
+    <div class="mono">Feels like</div><div class="big">${w.apparentC}&deg;<span style="font-size:16px;color:var(--ink-3)"> air ${w.tempC}&deg; &middot; ${w.humidityPct != null ? w.humidityPct + '% rh' : ''}</span></div>
+    <p class="sub" style="margin-top:12px;">${esc(w.note)}</p>
+    <div style="margin-top:14px;">
+      <div class="row"><div class="grow"><div class="sub" style="color:var(--ink)">Easy pace today</div><div class="meta mono">at HR &le; ${ceilingFor('easy')}, in this heat</div></div><div class="val">${w.easyPaceOffsetSec ? '+' + w.easyPaceOffsetSec + 's/km' : 'normal'}</div></div>
+      ${cool}
+    </div>
+    ${qWarn}
+    <p class="mono" style="margin-top:16px;">Live from open-meteo &middot; updates every 30 min</p>
+  </div>`);
 }
 
 /* ---------- rings: the score language ---------- */
@@ -810,11 +863,22 @@ function stepRow(st) {
 function cue(kind, prev, cap) {
   if (!prev) return `First ${esc(KIND[kind].toLowerCase())} of the block. Set the pattern: start at the slow end.`;
   const f = feelOf(prev), hr = prev.mpEffortHr || prev.actualHr;
-  const over = hr && !heldCeiling(hr, prev.mpEffortKm && kind === 'long' ? 'mp' : kind);
+  const capKind = prev.mpEffortKm && kind === 'long' ? 'mp' : kind;
+  const over = hr && !heldCeiling(hr, capKind);
+  const overBy = hr ? Math.round(hr) - (ceilingFor(capKind) + HR_TOL) : 0;
   let t = `Last ${esc(KIND[kind].toLowerCase())} ran <b>${esc(prev.actualPaceLabel)}</b>`;
   t += hr ? ` at HR ${Math.round(hr)}` : '';
-  t += over ? ` — over the ${cap} ceiling. Today, hold it down.` : ` — inside the ceiling. Same again.`;
-  if (f.rpe) t += ` You called it ${f.rpe}/10.`;
+  // A small overshoot on an aerobic run the runner rated very easy is heat, not
+  // a discipline miss - saying "hold it down" there contradicts the conditions strip.
+  if (over && AEROBIC.includes(kind) && f.rpe && f.rpe <= 3 && overBy <= 12) {
+    t += ` — reads over the ${cap} ceiling, but you called it ${f.rpe}/10. That is the heat, not the effort. Same again.`;
+  } else if (over) {
+    t += ` — over the ${cap} ceiling. Today, hold it down.`;
+    if (f.rpe) t += ` You called it ${f.rpe}/10.`;
+  } else {
+    t += ` — inside the ceiling. Same again.`;
+    if (f.rpe) t += ` You called it ${f.rpe}/10.`;
+  }
   return t;
 }
 
@@ -1112,6 +1176,7 @@ function renderOutlook() {
 
 async function loadNow(force) {
   const q = force ? '?refresh=1' : '';
+  getJSON('/api/weather').then((wx) => { S.weather = wx; if (!$('s-summary').hidden) safe('summary', $('s-summary'), renderSummary); }).catch(() => {});
   const [plan, progress, readiness, insights, feel, fuelToday] = await Promise.all([
     getJSON('/api/plan'), getJSON('/api/progress' + q),
     getJSON('/api/readiness' + q).catch(() => null),
