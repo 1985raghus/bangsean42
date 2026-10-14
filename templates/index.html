@@ -380,7 +380,7 @@
     padding: 11px 14px; border-radius: var(--r-2); background: var(--ground-2); border: 1px solid var(--line);
     transition: transform var(--d-tap), background var(--d-fast); }
   .wx:active { transform: scale(.98); background: var(--ground-3); }
-  .wx .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .wx .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--ink-3); }
   .wx .dot.comfortable { background: var(--good); box-shadow: 0 0 8px var(--good); }
   .wx .dot.warm { background: var(--gold); box-shadow: 0 0 8px var(--gold-40); }
   .wx .dot.hot { background: var(--brand-3); box-shadow: 0 0 8px var(--brand-3); }
@@ -693,6 +693,7 @@ function renderSummary() {
   if ($('mini-week')) $('mini-week').addEventListener('click', () => showTab('plan'));
   if ($('mini-outlook')) $('mini-outlook').addEventListener('click', openOutlookSheet);
   if ($('wx-open')) $('wx-open').addEventListener('click', openWeatherSheet);
+  if ($('wx-retry')) $('wx-retry').addEventListener('click', () => { S.weather = null; S.weatherHome = null; toast('Checking conditions…'); loadWeather(); });
 }
 
 /* ---------- adaptive conditions ---------- */
@@ -729,7 +730,10 @@ async function loadWeather() {
 
 function wxStrip() {
   const w = S.weather;
-  if (!w || !w.available) return '';
+  if (!w) return '';   // still loading - the strip appears when the first forecast lands
+  if (!w.available) return `<button class="wx" id="wx-retry" aria-label="Retry weather">
+    <span class="dot"></span><span class="wxmain">Conditions unavailable &middot; tap to retry</span>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>`;
   const offset = w.easyPaceOffsetSec ? `easy +${w.easyPaceOffsetSec}s/km` : 'good conditions';
   const here = S.away && S.weatherHere ? esc(S.here?.label || 'Here') + ' &middot; ' : '';
   const homeTail = (S.away && S.weatherHome?.available) ? ` <span class="wxhome">home ${S.weatherHome.apparentC}&deg;</span>` : '';

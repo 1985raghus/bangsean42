@@ -493,10 +493,15 @@ def api_weather():
         except ValueError:
             return jsonify({"error": "bad coordinates"}), 400
         label = (request.args.get("label") or "Here")[:40]
-        data = _cached(f"weather:{latf},{lonf}", lambda: fetch_weather_at(latf, lonf, label), ttl=1800, force=_forced())
-        return jsonify(data)
-    place = request.args.get("place", "bangkok")
-    data = _cached(f"weather:{place}", lambda: fetch_weather(place), ttl=1800, force=_forced())
+        key = f"weather:{latf},{lonf}"
+        data = _cached(key, lambda: fetch_weather_at(latf, lonf, label), ttl=1800, force=_forced())
+    else:
+        place = request.args.get("place", "bangkok")
+        key = f"weather:{place}"
+        data = _cached(key, lambda: fetch_weather(place), ttl=1800, force=_forced())
+    # a transient open-meteo failure must not stick in the cache for 30 min
+    if not data.get("available"):
+        _cache.pop(key, None)
     return jsonify(data)
 
 

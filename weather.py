@@ -14,6 +14,7 @@ simply reports unavailable and the rest of the screen is unaffected.
 """
 
 import json
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
@@ -35,6 +36,21 @@ DEFAULT_PLACE = "bangkok"
 _COMFORT_C = 24.0
 _SEC_PER_DEG = 1.8
 _MAX_OFFSET = 45
+
+
+def _get_json(url: str, opener, tries: int = 3):
+    """GET with a couple of quick retries - open-meteo throws the occasional 503,
+    and a single failure must not blank the feature (and must not be cached)."""
+    last = None
+    for attempt in range(tries):
+        try:
+            with opener(url, timeout=8) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            last = exc
+            if attempt < tries - 1:
+                time.sleep(0.6 * (attempt + 1))
+    raise last
 
 
 def easy_pace_offset_sec(apparent_c: float) -> int:
@@ -83,8 +99,7 @@ def fetch_weather_at(lat: float, lon: float, label: str, tz: str = "auto", _open
         f"&timezone={tz}&forecast_days=2"
     )
     try:
-        with _opener(url, timeout=8) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
+        raw = _get_json(url, _opener)
     except Exception as exc:
         return {"available": False, "message": f"weather unavailable: {exc}"}
     return summarize(raw, place)
@@ -97,8 +112,7 @@ def geocode(query: str, _opener=urllib.request.urlopen) -> list[dict]:
         return []
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=6&language=en&format=json"
     try:
-        with _opener(url, timeout=8) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
+        raw = _get_json(url, _opener)
     except Exception:
         return []
     out = []
