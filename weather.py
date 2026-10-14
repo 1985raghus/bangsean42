@@ -14,6 +14,7 @@ simply reports unavailable and the rest of the screen is unaffected.
 """
 
 import json
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -69,6 +70,45 @@ def coolest_window(times: list[str], apparent: list[float], from_iso: str, hours
     if not best:
         return None
     return {"at": best[0], "hour": best[0][11:16], "apparentC": round(best[1], 1)}
+
+
+def fetch_weather_at(lat: float, lon: float, label: str, tz: str = "auto", _opener=urllib.request.urlopen) -> dict:
+    """Conditions for any coordinates - used for a custom home or the current GPS fix."""
+    place = {"lat": lat, "lon": lon, "label": label, "tz": tz}
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code"
+        "&hourly=temperature_2m,apparent_temperature"
+        f"&timezone={tz}&forecast_days=2"
+    )
+    try:
+        with _opener(url, timeout=8) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        return {"available": False, "message": f"weather unavailable: {exc}"}
+    return summarize(raw, place)
+
+
+def geocode(query: str, _opener=urllib.request.urlopen) -> list[dict]:
+    """City search for setting a home location, via Open-Meteo's free geocoder."""
+    q = urllib.parse.quote((query or "").strip())
+    if not q:
+        return []
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=6&language=en&format=json"
+    try:
+        with _opener(url, timeout=8) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return []
+    out = []
+    for r in raw.get("results") or []:
+        bits = [r.get("name"), r.get("admin1"), r.get("country_code")]
+        out.append({
+            "label": ", ".join(b for b in bits if b),
+            "lat": r.get("latitude"), "lon": r.get("longitude"),
+        })
+    return out
 
 
 def fetch_weather(place: str = DEFAULT_PLACE, _opener=urllib.request.urlopen) -> dict:

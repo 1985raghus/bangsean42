@@ -64,7 +64,7 @@ from plan_data import (
     STRETCH_TIME_SEC,
 )
 from readiness import compute_readiness, pivot_suggestion
-from weather import fetch_weather
+from weather import fetch_weather, fetch_weather_at, geocode
 from weekly_summary import generate_week_review
 from progress import (
     HR_CEILING_TOLERANCE_BPM,
@@ -484,11 +484,26 @@ def api_insights():
 
 @app.get("/api/weather")
 def api_weather():
-    """Live conditions for the training (or race) location - public data, no Garmin
-    session needed, so it renders even before login and never blocks the screen."""
+    """Live conditions - a preset place, or any lat/lon (custom home, or the current
+    GPS fix). Public data, no Garmin session, cached so repeat views are cheap."""
+    lat, lon = request.args.get("lat"), request.args.get("lon")
+    if lat is not None and lon is not None:
+        try:
+            latf, lonf = round(float(lat), 3), round(float(lon), 3)
+        except ValueError:
+            return jsonify({"error": "bad coordinates"}), 400
+        label = (request.args.get("label") or "Here")[:40]
+        data = _cached(f"weather:{latf},{lonf}", lambda: fetch_weather_at(latf, lonf, label), ttl=1800, force=_forced())
+        return jsonify(data)
     place = request.args.get("place", "bangkok")
     data = _cached(f"weather:{place}", lambda: fetch_weather(place), ttl=1800, force=_forced())
     return jsonify(data)
+
+
+@app.get("/api/geocode")
+def api_geocode():
+    q = request.args.get("q", "")
+    return jsonify({"results": _cached(f"geo:{q.lower()}", lambda: geocode(q), ttl=86400)})
 
 
 @app.get("/api/weekly-summary")
