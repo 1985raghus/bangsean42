@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from garminconnect import Garmin
 
 from build_workouts import session_distance_km
-from history import fetch_activity_laps, fetch_interval_reps, pacing_for_activity
+from history import fetch_activity_laps, fetch_interval_reps, fetch_race_splits, pacing_for_activity
 from plan_data import (
     ACTIVE_PACE_SET,
     AEROBIC_KINDS,
@@ -291,14 +291,29 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
         target_slow_sec = pace_to_sec(PACES[target_kind_for_laps][0])
         work_cutoff_sec = (target_slow_sec + easy_fast_sec) / 2
         work_laps = [lap for lap in laps if lap["paceSecPerKm"] < work_cutoff_sec]
-        if not work_laps:
-            continue
-
-        total_distance = sum(lap["distanceM"] for lap in work_laps)
-        total_duration = sum(lap["durationSec"] for lap in work_laps)
+        if work_laps and len(laps) > 1:
+            total_distance = sum(lap["distanceM"] for lap in work_laps)
+            total_duration = sum(lap["durationSec"] for lap in work_laps)
+            hrs = [lap["avgHr"] for lap in work_laps if lap.get("avgHr")]
+            work_count = len(work_laps)
+        else:
+            # No structured reps and no auto-lap (one big lap): the session was run free,
+            # so isolate the work from the computed per-km splits instead - otherwise the
+            # whole-run average (warmup + recovery jogs + cooldown) stands in for MP pace
+            # and a strong session reads as a huge slowdown.
+            try:
+                splits = fetch_race_splits(client, row["activityId"])
+            except Exception:
+                continue
+            work_splits = [sp for sp in splits if sp.get("paceSecPerKm") and sp["paceSecPerKm"] < work_cutoff_sec]
+            if len(work_splits) < 2:
+                continue
+            total_distance = 1000.0 * len(work_splits)        # each full km split ~= 1 km
+            total_duration = sum(sp["paceSecPerKm"] for sp in work_splits)
+            hrs = [sp["avgHr"] for sp in work_splits if sp.get("avgHr")]
+            work_count = len(work_splits)
         work_pace = total_duration / (total_distance / 1000)
         work_km = total_distance / 1000
-        hrs = [lap["avgHr"] for lap in work_laps if lap.get("avgHr")]
 
         if is_mp_finish:
             # Only the finish is MP effort; the run's own pace still describes the whole run,
@@ -322,12 +337,14 @@ def refine_quality_pace(client: Garmin, rows: list[dict], sessions_by_date: dict
         if hrs:
             row["actualHr"] = round(sum(hrs) / len(hrs), 1)
         row["inZone"] = fast_sec <= work_pace <= slow_sec
-        row["workLapCount"] = len(work_laps)
+        row["workLapCount"] = work_count
         row["workDistanceKm"] = round(work_km, 2)
         if row["kind"] == "mp":
             row["mpEffortPace"] = work_pace
             row["mpEffortPaceLabel"] = row["actualPaceLabel"]
             row["mpEffortKm"] = round(work_km, 2)
+            if hrs:
+                row["mpEffortHr"] = round(sum(hrs) / len(hrs), 1)
 
 
 def race_activity_summary(activity: dict | None) -> dict | None:
