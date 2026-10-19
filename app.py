@@ -91,7 +91,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
 app.permanent_session_lifetime = timedelta(days=30)
 
 _APP_PASSWORD = os.environ.get("APP_PASSWORD")  # unset = local trusted-machine mode, gate disabled
-_BUILD = (os.environ.get("RENDER_GIT_COMMIT") or "local")[:7]  # redeploy marker: 2026-10-19
+_BUILD = (os.environ.get("RENDER_GIT_COMMIT") or "local")[:7]  # redeploy marker: 2026-10-19b
 
 
 # ---------------------------------------------------------------------------
