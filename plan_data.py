@@ -100,6 +100,15 @@ EASY_NOTE = (
     "and slower is fine - the pace is just what that effort gives on the day. Finish with "
     "4-6 x 20s relaxed strides if the legs feel flat, to keep the turnover."
 )
+MAKEUP_LONG_NOTE = (
+    "Make-up long run for the 30K that got cut. Run it RIGHT, not far: keep HR "
+    "UNDER 160 the whole way, pace is whatever that produces (likely 7:00-7:40 in "
+    "the heat), and finish calm and UNBROKEN - no surges, no walk breaks. The 25 "
+    "Oct run fell apart because the easy part was run at 166-171; this is the "
+    "rep that proves you can hold an easy ceiling for 22 km and end in control. "
+    "Gels every 30 min on the move. Dawn start for the cool."
+)
+
 PROGRESSION_NOTE = (
     "Progression run, in four blocks - heart rate is the governor, pace is "
     "whatever that produces. km 1-7 at HR ~150, km 8-14 at ~155, km 15-20 at "
@@ -230,7 +239,7 @@ SESSIONS = [
     _simple("2026-10-27", "W9 Tue - Easy (7K)", "easy", 7, EASY_NOTE),
     _simple("2026-10-29", "W9 Thu - Easy (8K)", "easy", 8, EASY_NOTE),
     _reps("2026-10-30", "W9 Fri - Marathon Pace Intervals (3x2K @ MP)", "mp", 3, 2.0, note=MP_NOTE),
-    _simple("2026-11-01", "W9 Sun - Long Run, easy (18K)", "long", 18, LONG_NOTE),
+    _simple("2026-11-01", "W9 Sun - Long Run, make-up easy (22K)", "long", 22, MAKEUP_LONG_NOTE),
     # Week 10 - taper
     _simple("2026-11-03", "W10 Tue - Easy + Strides (6K)", "easy", 6, EASY_NOTE + " " + STRIDES_NOTE),
     _simple("2026-11-05", "W10 Thu - Easy (6K)", "easy", 6, EASY_NOTE),
