@@ -473,22 +473,28 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
         }
 
     # An estimate built from reps run harder than MP quietly assumes a pace only ever held for
-    # 5-6km can be held for 42. Count those so the verdict can say so out loud instead of
-    # rewarding the exact habit (going out too fast) that this runner is trying to break.
+    # 5-6km can be held for 42. Count those so the verdict can say so out loud, AND clamp every
+    # session's pace to the MP band's fast end before extrapolating: marathon pace is by
+    # definition the fastest effort holdable for 42km, so a 1km rep at 4:53 must not predict a
+    # 3:25 marathon. Clamping stops a too-fast sharpener from poisoning the estimate, while the
+    # over_mp count still names the habit (going out too fast) that this runner is breaking.
     mp_fast_sec = pace_to_sec(PACES["mp"][1])
     over_mp = [d for d, pace in qualifying if pace < mp_fast_sec]
+
+    def _for_pred(pace: float) -> float:
+        return max(pace, mp_fast_sec)  # never predict faster than the athlete's own MP band
 
     recent = qualifying[-3:]
     latest_date, latest_pace = qualifying[-1]
     weights = list(range(1, len(recent) + 1))  # oldest->newest, e.g. [1,2,3]: most recent counts 3x an average
-    weighted_recent_pace = sum(w * pace for w, (_, pace) in zip(weights, recent)) / sum(weights)
-    latest_predicted = latest_pace * MARATHON_KM
+    weighted_recent_pace = sum(w * _for_pred(pace) for w, (_, pace) in zip(weights, recent)) / sum(weights)
+    latest_predicted = _for_pred(latest_pace) * MARATHON_KM
     avg_predicted = weighted_recent_pace * MARATHON_KM
 
     # A "range" needs enough sessions to mean anything. A standard deviation of 2-3 points is
     # just the gap between them wearing a statistics costume, so below _RANGE_MIN_SESSIONS
     # this stays hidden and the point estimate carries its own plain-language caveat.
-    all_predicted_times = [pace * MARATHON_KM for _, pace in qualifying]
+    all_predicted_times = [_for_pred(pace) * MARATHON_KM for _, pace in qualifying]
     if len(all_predicted_times) >= _RANGE_MIN_SESSIONS:
         range_low, range_high = min(all_predicted_times), max(all_predicted_times)
         predicted_range = {
@@ -527,8 +533,9 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
 
     if over_mp:
         message += (
-            f" Read it with care: {len(over_mp)} of your {len(qualifying)} marathon-pace sessions ran faster "
-            "than the MP band, so this assumes you can hold for 42km a pace you've so far held for a few km."
+            f" Note: {len(over_mp)} of your {len(qualifying)} marathon-pace sessions were run faster than the "
+            "MP band (short reps run hard). The estimate clamps those to your MP band rather than assuming a "
+            "1-2km rep pace holds for 42km, so it reflects marathon effort, not your rep speed."
         )
 
     return {
@@ -550,7 +557,7 @@ def compute_prediction(rows: list[dict], sessions_by_date: dict[str, dict]) -> d
         "verdict": verdict,
         "message": message,
         "history": [
-            {"date": d, "pace": p, "predictedSec": p * MARATHON_KM, "predictedLabel": fmt_hms(p * MARATHON_KM)}
+            {"date": d, "pace": p, "predictedSec": _for_pred(p) * MARATHON_KM, "predictedLabel": fmt_hms(_for_pred(p) * MARATHON_KM)}
             for d, p in qualifying
         ],
     }

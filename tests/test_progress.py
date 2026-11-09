@@ -193,7 +193,9 @@ def test_prediction_uses_isolated_mp_pace_and_flags_too_fast_reps():
     assert p["available"] and p["diluted"] is False
     assert p["qualifyingCount"] == 2
     assert p["fasterThanMpCount"] == 1
-    assert "Read it with care" in p["message"]
+    assert "clamps those to your MP band" in p["message"]
+    # the too-fast session (latest) is clamped to the MP band's fast end, not extrapolated raw
+    assert abs(p["latestPredictedSec"] - pace_to_sec(PACES["mp"][1]) * MARATHON_KM) < 0.01
     assert p["range"]["available"] is False  # 2 sessions is not a range
     assert p["verdict"] == "on_goal"
 
